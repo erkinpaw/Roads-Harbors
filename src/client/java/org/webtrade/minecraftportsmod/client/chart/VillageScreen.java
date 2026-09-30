@@ -300,6 +300,8 @@ public class VillageScreen extends UiScreen {
         }
         y += 8;
         int colW = mid - x - 12;
+        // the queue: as many places as the village takes on at once; what is in each
+        y = drawSlots(g, x, y, colW, mouseX, mouseY) + 10;
         // how near the next child (the chance tonight: what was built up, and what tonight adds)
         int labelW = font.width(Component.translatable("minecraftportsmod.vboard.growth"));
         int bx0 = x + labelW + 8, bx1 = x + colW;
@@ -335,6 +337,43 @@ public class VillageScreen extends UiScreen {
             ry += 32;
         }
         if (!any) g.textWithWordWrap(font, Component.translatable("minecraftportsmod.vboard.no_sites"), rx, ry, cx1 - rx - 6, ChartStyle.TEXT_MUTED, false);
+    }
+
+    /** The queue's places, in a row: what is in each (its icon; the level it is raised to), the free ones empty. */
+    private int drawSlots(GuiGraphicsExtractor g, int x, int y, int w, int mouseX, int mouseY) {
+        Component title = Component.translatable("minecraftportsmod.vboard.slots");
+        g.text(font, title, x, y + 6, ChartStyle.INK, false);
+        List<ColonyPayloads.QueueRow> steps = new ArrayList<>();
+        for (ColonyPayloads.QueueRow q : view.queue()) if (q.kind() != 4) steps.add(q);
+        int sx = x + font.width(title) + 8, size = 20;
+        for (int i = 0; i < view.slots(); i++) {
+            int cx = sx + i * (size + 3);
+            if (cx + size > x + w) break;
+            ColonyPayloads.QueueRow q = i < steps.size() ? steps.get(i) : null;
+            g.fill(cx, y, cx + size, y + size, q == null ? ChartStyle.PARCHMENT_SHADE : 0xFFF3E6C4);
+            g.outline(cx, y, size, size, q == null ? 0x60000000 : ChartStyle.INK_SOFT);
+            if (q == null) continue;
+            BuildingType t = BuildingType.values()[q.type()];
+            g.item(new ItemStack(t.icon), cx + 2, cy(y));
+            if (q.kind() == 2) g.text(font, String.valueOf(q.level()), cx + size - 6, y + size - 8, ChartStyle.INK, true);
+            if (q.kind() == 0) g.text(font, "?", cx + size - 6, y + size - 8, 0xFFB07A10, true);
+            // how far it has come, under it
+            g.fill(cx + 1, y + size - 2, cx + 1 + Math.round((size - 2) * Math.max(0, Math.min(1, q.progress()))), y + size - 1, ChartStyle.GOOD);
+            if (mouseX >= cx && mouseX < cx + size && mouseY >= y && mouseY < y + size) {
+                Component name = switch (q.kind()) {
+                    case 0 -> Component.translatable("minecraftportsmod.queue.research", t.displayName());
+                    case 2 -> Component.translatable("minecraftportsmod.queue.raise", t.displayName(), q.level());
+                    case 3 -> Component.translatable("minecraftportsmod.queue.demolish", t.displayName());
+                    default -> t.displayName();
+                };
+                g.setComponentTooltipForNextFrame(font, List.of(name, q.status()), mouseX, mouseY);
+            }
+        }
+        return y + size;
+    }
+
+    private static int cy(int y) {
+        return y + 2;
     }
 
     // --- the stores: one room for everything; each thing: how much there is, made and spent the last day

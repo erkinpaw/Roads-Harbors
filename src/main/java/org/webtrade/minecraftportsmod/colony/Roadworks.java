@@ -524,11 +524,19 @@ public final class Roadworks {
                 tries.add(new int[]{s.camp[0] + (int) Math.round(Math.cos(ang) * r), s.camp[1] + (int) Math.round(Math.sin(ang) * r), 1});
             }
         }
-        for (int[] t : tries) {
+        // (open ground first; failing that, ground under trees, which the crew clears)
+        for (int pass = 0; pass < 2; pass++) for (int[] t : tries) {
             {
                 int x = t[0], z = t[1], side = t[2];
-                Integer y = site(level, x, z);
+                Integer y = site(level, x, z, pass == 1);
                 if (y == null) continue;
+                if (pass == 1) {
+                    int logs = clearCamp(level, new BlockPos(x, y, z));
+                    if (logs > 0) {
+                        v.add(Res.WOOD, logs);
+                        v.made.merge(Res.WOOD, logs, Integer::sum);
+                    }
+                }
                 // the door towards the way
                 Direction facing = Direction.fromYRot(Math.toDegrees(h) + (side > 0 ? 90 : -90));
                 if (facing.getAxis() == Direction.Axis.Y) facing = Direction.NORTH;
@@ -544,27 +552,48 @@ public final class Roadworks {
         }
     }
 
-    /** Where a tent can stand (the floor it would stand on), or null: loaded, dry, level, nothing growing or built. */
-    private static Integer site(ServerLevel level, int x, int z) {
+    /**
+     * Where a tent can stand (the floor it would stand on), or null: loaded, dry, level, nothing built; with
+     * {@code underTrees}, ground with trees on it too (the crew fells them first), else only open ground.
+     */
+    private static Integer site(ServerLevel level, int x, int z, boolean underTrees) {
         int lo = Integer.MAX_VALUE, hi = Integer.MIN_VALUE;
         for (int dx = -2; dx <= 2; dx++) {
             for (int dz = -2; dz <= 2; dz++) {
                 BlockPos col = new BlockPos(x + dx, 0, z + dz);
                 if (!level.hasChunkAt(col)) return null;
-                int top = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x + dx, z + dz) - 1;
+                // (the ground itself, trees and bushes aside)
+                int top = Trails.groundAt(level, x + dx, z + dz);
                 BlockState st = level.getBlockState(new BlockPos(x + dx, top, z + dz));
                 if (!st.getFluidState().isEmpty() || st.is(BlockTags.LOGS) || st.is(BlockTags.PLANKS) || st.is(Blocks.DIRT_PATH) || st.is(BlockTags.FENCES)
                         || st.is(BlockTags.BEDS) || st.is(BlockTags.WOOL)) return null;
-                // (nothing above the floor but air, grass, flowers or leaves of a crown high up)
-                for (int k = 1; k <= 3; k++) {
+                for (int k = 1; k <= 4; k++) {
                     BlockState up = level.getBlockState(new BlockPos(x + dx, top + k, z + dz));
-                    if (!up.canBeReplaced() && !up.is(BlockTags.LEAVES)) return null;
+                    boolean growing = up.is(BlockTags.LOGS) || up.is(BlockTags.LEAVES) || up.is(Blocks.VINE);
+                    if (growing && !underTrees) return null;
+                    if (!up.canBeReplaced() && !growing) return null;
                 }
                 lo = Math.min(lo, top);
                 hi = Math.max(hi, top);
             }
         }
         return hi - lo <= 1 ? hi + 1 : null;
+    }
+
+    /**
+     * The crew clears its camp ground before the tent goes up: the trees on it felled whole, the leaves and bushes
+     * over it cut. Returns the logs felled (they go to the village's store).
+     */
+    private static int clearCamp(ServerLevel level, BlockPos floor) {
+        int logs = Construction.clearTrees(level, floor, 4);
+        for (BlockPos p : BlockPos.betweenClosed(floor.offset(-3, 0, -3), floor.offset(3, 8, 3))) {
+            BlockState st = level.getBlockState(p);
+            if (st.is(BlockTags.LEAVES) || st.is(BlockTags.LOGS) || st.is(Blocks.VINE) || !st.isAir() && st.canBeReplaced() && st.getFluidState().isEmpty()) {
+                if (st.is(BlockTags.LOGS)) logs++;
+                level.setBlock(p, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+            }
+        }
+        return logs;
     }
 
     /** The tent comes down (if its land is loaded; else it waits till it is). */
