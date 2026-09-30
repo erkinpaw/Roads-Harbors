@@ -563,7 +563,7 @@
   "minecraftportsmod.trade.buy_tip": "Купить %s × %s за %s изумр.",
   "minecraftportsmod.trade.not_buying": "Этого у деревни хватает — не покупает.",
   "minecraftportsmod.trade.not_selling": "Лишнего нет — не продаёт.",
-  "minecraftportsmod.trade.short": "нужно: есть %s из %s",
+  "minecraftportsmod.trade.short": "Не хватает",
   "minecraftportsmod.trade.plenty": "с запасом: %s (нужно %s)",
   "minecraftportsmod.trade.sold": "Продано: %s × %s за %s изумр.",
   "minecraftportsmod.trade.bought": "Куплено: %s × %s за %s изумр.",
@@ -891,5 +891,16 @@
   "minecraftportsmod.worldmap.layer.3": "Торговцы и корабли",
   "minecraftportsmod.worldmap.layer.4": "Метки",
   "minecraftportsmod.worldmap.too_many": "Не больше %s скриншотов на игрока",
-  "minecraftportsmod.worldmap.shot_saved": "Скриншот добавлен на карту"
+  "minecraftportsmod.worldmap.shot_saved": "Скриншот добавлен на карту",
+  "minecraftportsmod.building.carpenter": "Столярная мастерская",
+  "minecraftportsmod.job.joiner": "Столяр",
+  "minecraftportsmod.vlog.joiner": "%s встал за верстак: теперь он столяр.",
+  "minecraftportsmod.tree.desc.carpenter": "Доски и палки в столярные изделия.",
+  "minecraftportsmod.vboard.tab.trade": "Торговля",
+  "minecraftportsmod.trade.no_merchant": "Торговца нет: деревня пока не торгует.",
+  "minecraftportsmod.trade.at_home": "%s дома.",
+  "minecraftportsmod.trade.on_round": "%s идёт в %s: везёт %s, в кошельке %s изумр.",
+  "minecraftportsmod.trade.coming_home": "%s возвращается домой: везёт %s, в кошельке %s изумр.",
+  "minecraftportsmod.trade.spare": "Лишнее",
+  "minecraftportsmod.trade.deals": "Сделки"
 }

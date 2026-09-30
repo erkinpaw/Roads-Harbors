@@ -29,16 +29,16 @@ public enum BuildingType {
     /** A wool tent with two sleeping places. What people live in before there are houses. */
     TENT(Branch.HOME, null, null, 2, 2, null, 0xD8D0C0, Items.WOOL.white(), 1, true, Map.of(Res.WOOD, 4)),
     /** The first real house: log frame, plank walls, two beds. */
-    HUT(Branch.HOME, null, null, 3, 2, null, 0xA07040, Items.OAK_DOOR, 3, true, Map.of(Res.WOOD, 20, Res.STONE, 6)),
+    HUT(Branch.HOME, null, null, 3, 2, null, 0xA07040, Items.OAK_DOOR, 3, true, Map.of(Res.WOOD, 20, Res.WHEAT, 10)),
     /** A wooden house on a stone footing, four beds. */
-    HOUSE(Branch.HOME, HUT, null, 4, 2, null, 0x8A5A30, Items.SPRUCE_DOOR, 3, false, Map.of(Res.WOOD, 30, Res.PLANKS, 20, Res.STONE, 15)),
+    HOUSE(Branch.HOME, HUT, null, 4, 2, null, 0x8A5A30, Items.SPRUCE_DOOR, 3, false, Map.of(Res.WOOD, 30, Res.PLANKS, 20, Res.STONE, 15, Res.JOINERY, 12)),
     /** A wooden house of two storeys, six beds. */
-    HOUSE_TALL(Branch.HOME, HOUSE, null, 4, 3, null, 0x7A4A28, Items.DARK_OAK_DOOR, 3, false, Map.of(Res.WOOD, 40, Res.PLANKS, 45, Res.STONE, 20)),
+    HOUSE_TALL(Branch.HOME, HOUSE, null, 4, 3, null, 0x7A4A28, Items.DARK_OAK_DOOR, 3, false, Map.of(Res.WOOD, 40, Res.PLANKS, 45, Res.STONE, 20, Res.JOINERY, 24)),
     /** A stone house, four beds: warmer, people are happier in it. */
-    STONE_HOUSE(Branch.HOME, HOUSE, null, 4, 2, null, 0x8A8A8A, Items.IRON_DOOR, 3, false, Map.of(Res.STONE, 65, Res.PLANKS, 20, Res.WOOD, 10)),
+    STONE_HOUSE(Branch.HOME, HOUSE, null, 4, 2, null, 0x8A8A8A, Items.IRON_DOOR, 3, false, Map.of(Res.STONE, 65, Res.PLANKS, 20, Res.WOOD, 10, Res.JOINERY, 14)),
     /** A stone house of two storeys, six beds. */
     STONE_HOUSE_TALL(Branch.HOME, STONE_HOUSE, null, 4, 3, null, 0x6A6A70, Items.STONE_BRICKS, 3, false,
-            Map.of(Res.STONE, 110, Res.PLANKS, 35, Res.WOOD, 10, Res.IRON, 5)),
+            Map.of(Res.STONE, 110, Res.PLANKS, 35, Res.WOOD, 10, Res.IRON, 5, Res.JOINERY, 24)),
 
     // ---- stores
     /** A roofed store with barrels and crates: the village's stock is kept here. */
@@ -56,6 +56,8 @@ public enum BuildingType {
     WOOD_HUT(Branch.WOOD, SMITHY, null, 3, 1, Job.WOODCUTTER, 0x6A8A40, Items.STONE_AXE, 3, false, Map.of(Res.WOOD, 45, Res.STONE, 15)),
     /** The sawmill: its sawyer turns logs into planks and sticks, many more than by hand, and none wasted. */
     SAWMILL(Branch.WOOD, WOOD_HUT, null, 3, 1, Job.SAWYER, 0x9A6A3A, Items.STONECUTTER, 3, false, Map.of(Res.WOOD, 60, Res.STONE, 25)),
+    /** The joiner's workshop: planks and sticks into joinery (doors, stairs, chests...), which the houses are built with. */
+    CARPENTER(Branch.WOOD, SAWMILL, null, 3, 1, Job.JOINER, 0xB07A4A, Items.CRAFTING_TABLE, 3, false, Map.of(Res.WOOD, 40, Res.PLANKS, 25, Res.STONE, 10)),
     /** The fishers' hut on the shore (one day, the village's port): its fisher catches fish off the shore. */
     FISH_HUT(Branch.COAST, null, null, 3, 1, Job.FISHER, 0x4A7AA0, Items.COD, 3, false, Map.of(Res.WOOD, 40, Res.STONE, 10)),
 
@@ -138,13 +140,14 @@ public enum BuildingType {
         return switch (this) {
             case FARM -> Sub.FARMING;
             case SAWMILL -> Sub.LOGGING;
+            case CARPENTER -> Sub.JOINERY;
             default -> null;
         };
     }
 
     /** The level a building of the node before this one must have for this one to open (the woods and the mine: once the smithy stands). */
     public int opensAt() {
-        return this == MINE_HOUSE || this == WOOD_HUT ? 1 : 3;
+        return this == MINE_HOUSE || this == WOOD_HUT || this == CARPENTER ? 1 : 3;
     }
 
     public final Branch branch;
