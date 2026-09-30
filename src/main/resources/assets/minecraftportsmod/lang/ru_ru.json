@@ -902,5 +902,6 @@
   "minecraftportsmod.trade.on_round": "%s идёт в %s: везёт %s, в кошельке %s изумр.",
   "minecraftportsmod.trade.coming_home": "%s возвращается домой: везёт %s, в кошельке %s изумр.",
   "minecraftportsmod.trade.spare": "Лишнее",
-  "minecraftportsmod.trade.deals": "Сделки"
+  "minecraftportsmod.trade.deals": "Сделки",
+  "minecraftportsmod.vboard.slots": "Очередь"
 }
