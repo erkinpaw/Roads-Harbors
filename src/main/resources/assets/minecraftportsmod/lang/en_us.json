@@ -563,7 +563,7 @@
   "minecraftportsmod.trade.buy_tip": "Buy %s × %s for %s emeralds.",
   "minecraftportsmod.trade.not_buying": "The village has enough of this.",
   "minecraftportsmod.trade.not_selling": "Nothing to spare.",
-  "minecraftportsmod.trade.short": "short: %s of %s",
+  "minecraftportsmod.trade.short": "Short of",
   "minecraftportsmod.trade.plenty": "plenty: %s (needs %s)",
   "minecraftportsmod.trade.sold": "Sold %s × %s for %s emeralds.",
   "minecraftportsmod.trade.bought": "Bought %s × %s for %s emeralds.",
@@ -891,5 +891,16 @@
   "minecraftportsmod.worldmap.layer.3": "Merchants and vessels",
   "minecraftportsmod.worldmap.layer.4": "Marks",
   "minecraftportsmod.worldmap.too_many": "No more than %s screenshots each",
-  "minecraftportsmod.worldmap.shot_saved": "Screenshot added to the map"
+  "minecraftportsmod.worldmap.shot_saved": "Screenshot added to the map",
+  "minecraftportsmod.building.carpenter": "Joiner's workshop",
+  "minecraftportsmod.job.joiner": "Joiner",
+  "minecraftportsmod.vlog.joiner": "%s took up the workbench: a joiner now.",
+  "minecraftportsmod.tree.desc.carpenter": "Planks and sticks into joinery.",
+  "minecraftportsmod.vboard.tab.trade": "Trade",
+  "minecraftportsmod.trade.no_merchant": "No merchant: the village does not trade yet.",
+  "minecraftportsmod.trade.at_home": "%s is at home.",
+  "minecraftportsmod.trade.on_round": "%s is on the way to %s, with %s and %s emeralds.",
+  "minecraftportsmod.trade.coming_home": "%s is coming home with %s and %s emeralds.",
+  "minecraftportsmod.trade.spare": "To spare",
+  "minecraftportsmod.trade.deals": "Deals"
 }

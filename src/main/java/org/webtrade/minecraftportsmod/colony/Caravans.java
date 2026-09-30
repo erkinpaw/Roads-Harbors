@@ -41,7 +41,8 @@ public final class Caravans {
     /** A merchant is put into the world where he is on the trail when a player is this near. */
     static final int SEEN = 80;
     /** The goods traded. */
-    static final Res[] GOODS = {Res.FOOD, Res.WOOD, Res.STONE, Res.PLANKS, Res.STICKS, Res.COAL, Res.IRON};
+    static final Res[] GOODS = {Res.FOOD, Res.WOOD, Res.STONE, Res.PLANKS, Res.STICKS, Res.COAL, Res.IRON, Res.WHEAT, Res.JOINERY,
+            Res.TOOLS1, Res.TOOLS2, Res.TOOLS3};
     /** The most a merchant's mules carry, all told. */
     public static final int MAX_LOAD = 1000;
     /** A round is not worth the walk for less than this much to sell and buy, all told. */
@@ -181,6 +182,28 @@ public final class Caravans {
     /** What a village is short of: what it keeps and what its queue is to have, beyond what it has (and room for it). */
     static int short_(Village v, Res r) {
         return Math.max(0, Math.min(VillageLife.target(v, r) - v.stock(r), v.capacity(r) - v.stock(r)));
+    }
+
+    /** What a village is short of ({@code shortOf}), or has to spare, of each resource (0 for what is not traded). */
+    public static int[] wants(Village v, boolean shortOf) {
+        int[] out = new int[Res.values().length];
+        for (Res r : GOODS) out[r.ordinal()] = shortOf ? short_(v, r) : spare(v, r);
+        return out;
+    }
+
+    /** Where the village's merchant is: at home, on his round (to where, with what), or none. */
+    public static Component status(VillageData data, Village v) {
+        Dweller m = null;
+        for (Dweller d : v.dwellers) if (d.job == Job.MERCHANT) m = d;
+        if (m == null) return Component.translatable("minecraftportsmod.trade.no_merchant");
+        for (Trip t : data.trips()) {
+            if (t.from != v.id) continue;
+            Village to = data.get(t.to);
+            String where = to == null ? "?" : to.name;
+            return t.back ? Component.translatable("minecraftportsmod.trade.coming_home", m.name, goods(t.cargo), t.purse)
+                    : Component.translatable("minecraftportsmod.trade.on_round", m.name, where, goods(t.cargo), t.purse);
+        }
+        return Component.translatable("minecraftportsmod.trade.at_home", m.name);
     }
 
     /** Over the whole world, by resource: how much the villages are short of, and how much they have to spare. */

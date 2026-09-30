@@ -150,7 +150,28 @@ final class SiteSurvey {
             if (f >= sea && Math.abs(f - ground) <= 2) flat++;
         }
         if (flat < 3) return -1e9;
-        return flat * 0.4 + Math.min(body, 12) * 0.1 + nearWater * 0.05 + (ground <= sea + 2 ? 0.5 : 0) + rnd.nextDouble() * 0.6;
+        return flat * 0.4 + Math.min(body, 12) * 0.1 + nearWater * 0.05 + (ground <= sea + 2 ? 0.5 : 0) + rnd.nextDouble() * 0.6
+                + ROCK_WEIGHT * rockNear(x, z);
+    }
+
+    /** How much a spot is worth for rock in reach of its miners (iron and coal are found in it: a village by the hills has them to sell). */
+    private static final double ROCK_WEIGHT = 2.5;
+
+    /** The share of the land 60 to 140 blocks round a spot that is rock: mountains, hills, stony or windswept ground (by the biomes). */
+    private double rockNear(int x, int z) {
+        int rock = 0, land = 0;
+        for (int d = 60; d <= 140; d += 40) {
+            for (int a = 0; a < 16; a++) {
+                int px = x + (int) Math.round(Math.cos(a * Math.PI / 8) * d), pz = z + (int) Math.round(Math.sin(a * Math.PI / 8) * d);
+                Holder<Biome> b = biome(px, pz);
+                if (b.is(BiomeTags.IS_OCEAN) || b.is(BiomeTags.IS_DEEP_OCEAN) || b.is(BiomeTags.IS_RIVER)) continue;
+                land++;
+                String id = b.unwrapKey().map(k -> k.identifier().getPath()).orElse("");
+                if (b.is(BiomeTags.IS_MOUNTAIN) || b.is(BiomeTags.IS_HILL) || b.is(BiomeTags.IS_BADLANDS) || id.contains("peaks") || id.contains("slopes")
+                        || id.contains("stony") || id.contains("windswept")) rock++;
+            }
+        }
+        return land == 0 ? 0 : rock / (double) land;
     }
 
     private boolean riverNearby(int x, int z) {

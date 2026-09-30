@@ -90,6 +90,7 @@ public final class Blueprint {
             case WOOD_HUT -> b.woodHut();
             case FISH_HUT -> b.fishHut();
             case SAWMILL -> b.sawmill();
+            case CARPENTER -> b.carpenter();
             case CARTOGRAPHER -> b.cartographer();
             case FARM -> b.farm();
             case FIELD -> b.field(rnd, crop);
@@ -430,6 +431,19 @@ public final class Blueprint {
         workSpot = frame.at(1, 0, 4);
     }
 
+    /** The joiner's workshop: a cottage with a workbench at the door and planks stacked by it. */
+    private void carpenter() {
+        BlockState log = wood("log"), planks = wood("planks");
+        cottage(2, log, block("cobblestone"), planks, planks);
+        oneBed("orange");
+        set(1, 0, 3, block("crafting_table"));
+        set(-1, 0, 3, barrel());
+        set(-3, 0, 3, planks);
+        set(-3, 1, 3, wood("slab").setValue(BlockStateProperties.SLAB_TYPE, SlabType.BOTTOM));
+        set(3, 0, -1, wood("stairs"));
+        workSpot = frame.at(1, 0, 4);
+    }
+
     /** The cartographer's house: plank walls, the map table inside, a compass rose of flowers... a weather vane on the roof. */
     private void cartographer() {
         BlockState planks = wood("planks");
@@ -527,7 +541,7 @@ public final class Blueprint {
                     chimney();
                 }
             }
-            case SAWMILL -> {
+            case SAWMILL, CARPENTER -> {
                 if (level == 2) {
                     porch(rnd);
                     set(-3, 0, 2, barrel());

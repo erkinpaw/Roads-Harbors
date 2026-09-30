@@ -75,7 +75,7 @@ public class UiClientGameTest implements FabricClientGameTest {
             });
             context.waitForScreen(VillageScreen.class);
             context.waitTicks(20);
-            for (String tab : new String[]{"overview", "people", "store", "tree", "map", "tasks", "log"}) {
+            for (String tab : new String[]{"overview", "people", "store", "trade", "tree", "map", "tasks", "log"}) {
                 context.runOnClient(mc -> ((VillageScreen) mc.gui.screen()).showTab(tab));
                 context.waitTicks(10);
                 context.takeScreenshot("ui_village_" + tab);

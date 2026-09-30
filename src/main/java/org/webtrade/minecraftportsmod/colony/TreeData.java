@@ -116,6 +116,11 @@ public final class TreeData {
             case "metal" -> Res.IRON;
             case "fuel" -> Res.COAL;
             case "food" -> Res.FOOD;
+            case "grain" -> Res.WHEAT;
+            case "joinery" -> Res.JOINERY;
+            case "tools1" -> Res.TOOLS1;
+            case "tools2" -> Res.TOOLS2;
+            case "tools3" -> Res.TOOLS3;
             default -> null;
         };
     }

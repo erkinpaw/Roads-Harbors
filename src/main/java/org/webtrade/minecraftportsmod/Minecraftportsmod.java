@@ -23,6 +23,15 @@ public class Minecraftportsmod implements ModInitializer {
     @Override
     public void onInitialize() {
         ModContent.register();
+        // a little wheat falls from leaves, now and then: a camp's first thatch can come from the woods
+        net.fabricmc.fabric.api.loot.v3.LootTableEvents.MODIFY.register((key, table, source, registries) -> {
+            var id = key.identifier();
+            if (!source.isBuiltin() || !id.getNamespace().equals("minecraft") || !id.getPath().startsWith("blocks/")
+                    || !id.getPath().endsWith("_leaves")) return;
+            table.withPool(net.minecraft.world.level.storage.loot.LootPool.lootPool()
+                    .add(net.minecraft.world.level.storage.loot.entries.LootItem.lootTableItem(net.minecraft.world.item.Items.WHEAT))
+                    .when(net.minecraft.world.level.storage.loot.predicates.LootItemRandomChanceCondition.randomChance(0.05F)));
+        });
         ModNetworking.registerCommon();
         NavCacheManager.init();
         RouteManager.init();
