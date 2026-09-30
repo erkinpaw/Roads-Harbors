@@ -471,7 +471,13 @@ public class RoadworkClientGameTest implements FabricClientGameTest {
                 Roadworks.Work w = work(data, a[0], b[0]);
                 int[] r = Trails.route(data, a[0], b[0]);
                 int away = 0;
-                for (int id : new int[]{a[0], b[0]}) for (Dweller d : data.get(id).dwellers()) if (d.away() && d.job() != Job.SCOUT && d.job() != Job.MERCHANT) away++;
+                StringBuilder who = new StringBuilder();
+                for (int id : new int[]{a[0], b[0]}) for (Dweller d : data.get(id).dwellers()) if (d.away() && d.job() != Job.SCOUT && d.job() != Job.MERCHANT) {
+                    away++;
+                    who.append('#').append(id).append(' ').append(d.name).append(' ').append(d.job()).append("; ");
+                }
+                for (Roadworks.Work o : data.works()) who.append("work states ").append(o.sideA().state()).append('/').append(o.sideB().state()).append("; ");
+                log("away: {}", who);
                 log("after: work {}; walkable A->B {}; crew still away {}", w == null ? "done with" : "still on", r != null, away);
                 for (int id : new int[]{a[0], b[0]}) {
                     for (var l : data.get(id).log()) {
