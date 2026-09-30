@@ -872,5 +872,12 @@
   "minecraftportsmod.res.joinery": "Joinery",
   "minecraftportsmod.res.tools1": "Tools I",
   "minecraftportsmod.res.tools2": "Tools II",
-  "minecraftportsmod.res.tools3": "Tools III"
+  "minecraftportsmod.res.tools3": "Tools III",
+  "minecraftportsmod.res.stairs": "Stairs",
+  "minecraftportsmod.res.slabs": "Slabs",
+  "minecraftportsmod.res.doors": "Doors",
+  "minecraftportsmod.res.fences": "Fences",
+  "minecraftportsmod.worldmap.title": "World map",
+  "minecraftportsmod.worldmap.people": "%s people",
+  "minecraftportsmod.worldmap.merchant_of": "merchant of %s"
 }

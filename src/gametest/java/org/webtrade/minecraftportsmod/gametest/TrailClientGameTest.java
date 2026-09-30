@@ -348,8 +348,9 @@ public class TrailClientGameTest implements FabricClientGameTest {
                 final int sx = p[i], sz = p[i + 1];
                 server.runOnServer(s -> {
                     VillageData data = VillageData.get(s);
-                    // (the merchant rested: he sets out today)
+                    // (the merchant rested: he sets out today; B is short of food again, enough for a round to be worth it)
                     s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), "village give " + a[0] + " food 800");
+                    s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), "village give " + b[0] + " food -1000");
                     s.getPlayerList().getPlayers().getFirst().teleportTo(s.overworld(), sx + 6.5, surface(s, sx, sz) + 6, sz + 6.5, java.util.Set.of(), 135, 30, false);
                 });
                 context.waitTicks(40);
@@ -372,6 +373,17 @@ public class TrailClientGameTest implements FabricClientGameTest {
                 }
                 context.takeScreenshot("trail_d_merchant");
                 if (!seen[0]) throw new AssertionError("the merchant was never seen on the road by the player");
+                // the world map (the chart key on land): the villages, the trail, the merchant on it
+                server.runOnServer(s -> org.webtrade.minecraftportsmod.chart.WorldMapService.send(s.getPlayerList().getPlayers().getFirst(), false));
+                context.waitTicks(60);
+                boolean[] open = {false};
+                context.runOnClient(mc -> open[0] = mc.gui.screen() instanceof org.webtrade.minecraftportsmod.client.chart.WorldMapScreen);
+                if (!open[0]) throw new AssertionError("the world map did not open");
+                context.takeScreenshot("worldmap_a_near");
+                context.runOnClient(mc -> ((org.webtrade.minecraftportsmod.client.chart.WorldMapScreen) mc.gui.screen()).zoomOut(4));
+                context.waitTicks(60);
+                context.takeScreenshot("worldmap_b_far");
+                context.setScreen(() -> null);
                 // killed on the road: nothing is sold, the goods are gone
                 server.runOnServer(s -> {
                     var e = merchantBody(s, a[0]);

@@ -554,6 +554,22 @@ public final class Caravans {
         return Trails.route(data, t.node, t.to);
     }
 
+    /** Where a merchant on his round is now, {x, z}; null when his way is gone. */
+    public static int[] where(VillageData data, Trip t) {
+        int[] p = leg(data, t);
+        if (p == null || p.length < 2) return null;
+        double left = t.at;
+        for (int i = 2; i + 1 < p.length; i += 2) {
+            double d = Math.hypot(p[i] - p[i - 2], p[i + 1] - p[i - 1]);
+            if (left <= d) {
+                double f = d == 0 ? 0 : left / d;
+                return new int[]{(int) Math.round(p[i - 2] + (p[i] - p[i - 2]) * f), (int) Math.round(p[i - 1] + (p[i + 1] - p[i - 1]) * f)};
+            }
+            left -= d;
+        }
+        return new int[]{p[p.length - 2], p[p.length - 1]};
+    }
+
     private static double length(int[] p) {
         double len = 0;
         for (int i = 2; i + 1 < p.length; i += 2) len += Math.hypot(p[i] - p[i - 2], p[i + 1] - p[i - 1]);

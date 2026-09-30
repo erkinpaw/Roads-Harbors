@@ -27,7 +27,7 @@ import java.util.Set;
  */
 public class NetworkRunClientGameTest implements FabricClientGameTest {
 
-    private static final String[] SEEDS = {"4242"};
+    private static final String[] SEEDS = {"4242", "4242:notrade"};
     private static final int DAYS = 100;
     private static final int VILLAGES = 10;
 

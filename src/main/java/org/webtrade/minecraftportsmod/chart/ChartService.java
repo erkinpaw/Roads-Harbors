@@ -64,8 +64,9 @@ public final class ChartService {
 
     /** Key binding: steer your vessel if you sit in one, otherwise just look at the chart. */
     public static void openFromKey(ServerPlayer player) {
+        // on land (or on anything but a vessel of ours): the world map
         if (FleetManager.riddenBy(player) == null) {
-            player.sendOverlayMessage(Component.translatable("minecraftportsmod.chart.key_needs_vessel").withStyle(ChatFormatting.GRAY));
+            WorldMapService.send(player, false);
             return;
         }
         CONTEXT.put(player.getUUID(), new Context(ChartPayloads.MODE_BOAT, -1));

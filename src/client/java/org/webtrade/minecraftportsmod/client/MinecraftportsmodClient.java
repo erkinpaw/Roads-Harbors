@@ -36,6 +36,13 @@ public class MinecraftportsmodClient implements ClientModInitializer {
             }
         });
 
+        ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.WorldMapPayloads.View.TYPE, (payload, ctx) -> {
+            if (ctx.client().gui.screen() instanceof org.webtrade.minecraftportsmod.client.chart.WorldMapScreen map) {
+                map.update(payload);
+            } else if (!payload.refresh() && ctx.client().gui.screen() == null) {
+                ctx.client().gui.setScreen(new org.webtrade.minecraftportsmod.client.chart.WorldMapScreen(payload));
+            }
+        });
         ClientPlayNetworking.registerGlobalReceiver(ChartPayloads.OpenChart.TYPE, (payload, ctx) -> {
             if (ctx.client().gui.screen() instanceof ChartScreen open) {
                 open.update(payload);
