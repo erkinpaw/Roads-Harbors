@@ -156,9 +156,9 @@ public final class VillageLife {
         return (WILD_GATHERERS + WILD_MORE * (n - WILD_GATHERERS)) / n;
     }
 
-    /** Farmers a field has full work for. */
-    static final int FARMERS_PER_FIELD = 3;
-    /** What a farmer over what the fields need still brings in (a hand here and there). */
+    /** Farmers a field has work for: its one. */
+    static final int FARMERS_PER_FIELD = 1;
+    /** What a farmer with no field of his own still brings in (a hand here and there). */
     static final double SPARE_FARMER = 0.2;
 
     /** The share of a full day's work each farmer has, as many as there are on the village's fields. */
@@ -815,17 +815,24 @@ public final class VillageLife {
         return r == Res.PLANKS ? 2 * batches : r == Res.STICKS ? batches : 0;
     }
 
+    /** Tools the smith keeps making past what the village needs, for the merchant to sell: up to this many days of its work. */
+    static final int TOOL_SALE_DAYS = 8;
+
     /**
-     * The smith's day: tools of the best level he can make, while the tools in store are good for less than a few
-     * days of the village's work (the others of his trade's day go on the players' orders).
+     * The smith's day: tools of the best level he can make, first what the village's work needs, then more for the
+     * merchant to sell (while there are makings to spare over what the village keeps, and room in the store); the
+     * rest of his day goes on the players' orders.
      */
     static void smith(Village v) {
-        int users = toolUsers(v);
-        if (users == 0 || v.workers(Job.SMITH) == 0) return;
+        if (v.workers(Job.SMITH) == 0) return;
+        int users = Math.max(1, toolUsers(v));
         double free = 1 - v.orderLoad.getOrDefault(Job.SMITH, 0.0);
         for (int made = 0; ; ) {
             int l = smithMakes(v);
-            if (l == 0 || toolDaysFrom(v, 1) >= users * (double) TOOL_RESERVE_DAYS || v.full(Res.tools(l))) return;
+            if (l == 0 || v.full(Res.tools(l))) return;
+            boolean needed = toolDaysFrom(v, 1) < users * (double) TOOL_RESERVE_DAYS;
+            // (for sale: only from what the village does not keep for itself, and not without end)
+            if (!needed && (toolDaysFrom(v, 1) >= users * (double) TOOL_SALE_DAYS || !spare(v, Job.toolRecipe(l)))) return;
             int cap = (int) Math.round(TOOLS_A_DAY[l] * v.workers(Job.SMITH) * subFactor(v, BuildingType.Sub.METALWORK) * free);
             if (made >= cap) return;
             java.util.Map<Res, Integer> recipe = Job.toolRecipe(l);
