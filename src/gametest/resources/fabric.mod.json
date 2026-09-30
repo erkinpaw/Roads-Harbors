@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "minecraftportsmod-gametest",
+  "version": "1.0.0",
+  "name": "Ports & Routes client game tests",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-client-gametest": [
+      "org.webtrade.minecraftportsmod.gametest.NetworkRunClientGameTest"
+    ]
+  }
+}

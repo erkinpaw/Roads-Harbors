@@ -1,0 +1,322 @@
+package org.webtrade.minecraftportsmod.colony;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.BushBlock;
+import net.minecraft.world.level.block.CropBlock;
+import net.minecraft.world.level.block.SaplingBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.Heightmap;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * The upkeep of the village's land, done by its people in their free time: holes and cracks filled in, puddles
+ * dried, ledges eased, weeds and flowers pulled, leaves left hanging in the air taken down. The village's ground is
+ * kept clear and even: the decoration of it is left to come.
+ */
+public final class Tidy {
+
+    private static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
+
+    /** What needs doing at a spot. */
+    public enum Kind {
+        HOLE, PUDDLE, LEDGE, WEED, LEAVES;
+
+        String act() {
+            return "tidy_" + name().toLowerCase(java.util.Locale.ROOT);
+        }
+    }
+
+    /** One job of upkeep: what, where (the column's ground, or the block to take away). */
+    public record Job(Kind kind, BlockPos pos) {
+    }
+
+    /** What each village's people have found to do, and who has taken which. */
+    private static final Map<Integer, Deque<Job>> TODO = new HashMap<>();
+    private static final Map<Integer, Set<BlockPos>> TAKEN = new HashMap<>();
+    /** Spots no one could get to: left alone. */
+    private static final Map<Integer, Set<BlockPos>> NEVER = new HashMap<>();
+    /** How many jobs a village's list holds. */
+    private static final int LIST = 80;
+
+    private Tidy() {
+    }
+
+    static void clear() {
+        TODO.clear();
+        TAKEN.clear();
+        NEVER.clear();
+    }
+
+    /** The village's own land: round every building, and round the middle. */
+    static boolean territory(Village v, int x, int z) {
+        if (Math.abs(x - v.center.getX()) <= 14 && Math.abs(z - v.center.getZ()) <= 14) return true;
+        for (Building b : v.buildings) {
+            // (round the woodcutters' hut is their grove: only its own yard is the village's)
+            int h = b.type.half + (b.type == BuildingType.WOOD_HUT ? 2 : 8);
+            if (Math.abs(x - b.origin.getX()) <= h && Math.abs(z - b.origin.getZ()) <= h) return true;
+        }
+        return false;
+    }
+
+    private static boolean inPlot(Village v, int x, int z) {
+        for (Building b : v.buildings) {
+            int h = b.type.half;
+            if (Math.abs(x - b.origin.getX()) <= h && Math.abs(z - b.origin.getZ()) <= h) return true;
+        }
+        return Math.abs(x - v.board.getX()) <= 1 && Math.abs(z - v.board.getZ()) <= 1;
+    }
+
+    /** A weed, a flower, a bush: something growing wild on the village's ground (not a sapling, not a crop). */
+    static boolean weed(BlockState s) {
+        if (s.isAir() || s.getBlock() instanceof SaplingBlock || s.getBlock() instanceof CropBlock) return false;
+        return s.is(BlockTags.FLOWERS) || s.is(Blocks.SHORT_GRASS) || s.is(Blocks.TALL_GRASS) || s.is(Blocks.FERN) || s.is(Blocks.LARGE_FERN)
+                || s.is(Blocks.DEAD_BUSH) || s.is(Blocks.SWEET_BERRY_BUSH) || s.is(Blocks.BUSH) || s.is(Blocks.SHORT_DRY_GRASS) || s.is(Blocks.TALL_DRY_GRASS)
+                || s.getBlock() instanceof BushBlock && s.canBeReplaced();
+    }
+
+    // ------------------------------------------------------------------ looking for work
+
+    /** A look round the village's land: a few columns each time, what needs doing added to the list. */
+    static void survey(ServerLevel level, Village v, RandomSource rnd, int tries) {
+        Deque<Job> todo = TODO.computeIfAbsent(v.id, k -> new ArrayDeque<>());
+        if (todo.size() >= LIST) return;
+        Set<BlockPos> listed = new HashSet<>(NEVER.getOrDefault(v.id, Set.of()));
+        for (Job j : todo) listed.add(j.pos());
+        int reach = 16;
+        for (Building b : v.buildings) {
+            reach = Math.max(reach, Math.max(Math.abs(b.origin.getX() - v.center.getX()), Math.abs(b.origin.getZ() - v.center.getZ())) + b.type.half + 8);
+        }
+        reach = Math.min(reach, 90);
+        for (int i = 0; i < tries && todo.size() < LIST; i++) {
+            int x = v.center.getX() + rnd.nextInt(2 * reach + 1) - reach, z = v.center.getZ() + rnd.nextInt(2 * reach + 1) - reach;
+            if (!territory(v, x, z) || inPlot(v, x, z) || !Construction.loaded(level, new BlockPos(x, 0, z))) continue;
+            Job j = look(level, v, x, z);
+            if (j != null && listed.add(j.pos())) todo.add(j);
+        }
+    }
+
+    /** What (if anything) needs doing in this column. */
+    private static Job look(ServerLevel level, Village v, int x, int z) {
+        int ground = PlotFinder.floorAt(level, x, z) - 1;
+        BlockPos g = new BlockPos(x, ground, z);
+        BlockState top = level.getBlockState(g), above = level.getBlockState(g.above());
+        // leaves left hanging in the air, with no trunk near them
+        int leafTop = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) - 1;
+        if (leafTop > ground + 1) {
+            BlockPos l = new BlockPos(x, leafTop, z);
+            if (level.getBlockState(l).is(BlockTags.LEAVES) && !trunkNear(level, l)) return new Job(Kind.LEAVES, l);
+        }
+        // a puddle: a little water lying on the land (not the sea, not the river)
+        if (!above.getFluidState().isEmpty() || !top.getFluidState().isEmpty()) {
+            BlockPos w = !above.getFluidState().isEmpty() ? g.above() : g;
+            return smallWater(level, w) ? new Job(Kind.PUDDLE, w) : null;
+        }
+        if (weed(above)) return new Job(Kind.WEED, g.above());
+        // a hole or a crack: lower than its neighbours all round by two or more
+        int[] n = new int[4];
+        int k = 0, lowest = Integer.MAX_VALUE;
+        for (Direction d : Direction.Plane.HORIZONTAL) {
+            n[k] = PlotFinder.floorAt(level, x + d.getStepX(), z + d.getStepZ()) - 1;
+            lowest = Math.min(lowest, n[k]);
+            k++;
+        }
+        if (lowest - ground >= 2 && Construction.natural(top)) return new Job(Kind.HOLE, g);
+        // a ledge by the buildings and paths: two to five straight down to a neighbour (a higher cliff is the land's own)
+        int drop = ground - lowest;
+        if (drop >= 2 && drop <= 5 && Construction.natural(top) && !top.is(Blocks.DIRT_PATH) && (above.isAir() || above.canBeReplaced())
+                && nearWay(level, v, x, z)) {
+            return new Job(Kind.LEDGE, g);
+        }
+        return null;
+    }
+
+    private static boolean trunkNear(ServerLevel level, BlockPos p) {
+        for (BlockPos q : BlockPos.betweenClosed(p.offset(-4, -5, -4), p.offset(4, 3, 4))) {
+            if (level.getBlockState(q).is(BlockTags.LOGS)) return true;
+        }
+        return false;
+    }
+
+    /** Is this water a puddle: fewer than 24 blocks of it round here, and none of it deep? */
+    private static boolean smallWater(ServerLevel level, BlockPos start) {
+        Deque<BlockPos> open = new ArrayDeque<>();
+        Set<BlockPos> seen = new HashSet<>();
+        open.add(start);
+        seen.add(start);
+        while (!open.isEmpty()) {
+            BlockPos p = open.poll();
+            if (seen.size() > 24) return false;
+            if (!level.getBlockState(p.below()).getFluidState().isEmpty() && !level.getBlockState(p.below(2)).getFluidState().isEmpty()) return false;
+            for (Direction d : Direction.Plane.HORIZONTAL) {
+                BlockPos q = p.relative(d);
+                if (seen.contains(q) || level.getBlockState(q).getFluidState().isEmpty()) continue;
+                seen.add(q);
+                open.add(q);
+            }
+        }
+        return true;
+    }
+
+    /** Close to a building's plot or on a path's way: where a ledge is in the way of people. */
+    private static boolean nearWay(ServerLevel level, Village v, int x, int z) {
+        for (Building b : v.buildings) {
+            int h = b.type.half + 3;
+            if (Math.abs(x - b.origin.getX()) <= h && Math.abs(z - b.origin.getZ()) <= h) return true;
+        }
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                int px = x + dx, pz = z + dz;
+                if (level.getBlockState(new BlockPos(px, PlotFinder.floorAt(level, px, pz) - 1, pz)).is(Blocks.DIRT_PATH)) return true;
+            }
+        }
+        return false;
+    }
+
+    // ------------------------------------------------------------------ doing it
+
+    /** A job for someone (the nearest to them of what is listed), taken so that no one else goes to it. */
+    static Job take(Village v, BlockPos near) {
+        Deque<Job> todo = TODO.get(v.id);
+        if (todo == null || todo.isEmpty()) return null;
+        Set<BlockPos> taken = TAKEN.computeIfAbsent(v.id, k -> new HashSet<>());
+        Job best = null;
+        double bestD = Double.MAX_VALUE;
+        for (Job j : todo) {
+            if (taken.contains(j.pos())) continue;
+            double d = j.pos().distSqr(near);
+            if (d < bestD) {
+                bestD = d;
+                best = j;
+            }
+        }
+        if (best != null) taken.add(best.pos());
+        return best;
+    }
+
+    static boolean any(Village v) {
+        Deque<Job> todo = TODO.get(v.id);
+        if (todo == null) return false;
+        Set<BlockPos> taken = TAKEN.getOrDefault(v.id, Set.of());
+        for (Job j : todo) if (!taken.contains(j.pos())) return true;
+        return false;
+    }
+
+    /** Couldn't be got to: off the list, and not looked at again. */
+    static void drop(Village v, Job j) {
+        Deque<Job> todo = TODO.get(v.id);
+        if (todo != null) todo.remove(j);
+        release(v, j);
+        Set<BlockPos> never = NEVER.computeIfAbsent(v.id, k -> new HashSet<>());
+        if (never.size() > 400) never.clear();
+        never.add(j.pos());
+    }
+
+    static void release(Village v, Job j) {
+        Set<BlockPos> taken = TAKEN.get(v.id);
+        if (taken != null) taken.remove(j.pos());
+    }
+
+    /** Done: the job is off the list, and the land put right. */
+    static void finish(ServerLevel level, Village v, Job j) {
+        Deque<Job> todo = TODO.get(v.id);
+        if (todo != null) todo.remove(j);
+        release(v, j);
+        BlockPos p = j.pos();
+        switch (j.kind()) {
+            case WEED -> {
+                // the patch round it too
+                for (int dx = -1; dx <= 1; dx++) {
+                    for (int dz = -1; dz <= 1; dz++) {
+                        int x = p.getX() + dx, z = p.getZ() + dz;
+                        if (inPlot(v, x, z)) continue;
+                        BlockPos q = new BlockPos(x, PlotFinder.floorAt(level, x, z), z);
+                        if (Math.abs(q.getY() - p.getY()) > 2 || !weed(level.getBlockState(q))) continue;
+                        // (tall ones: the top half too)
+                        if (weed(level.getBlockState(q.above()))) level.setBlock(q.above(), Blocks.AIR.defaultBlockState(), FLAGS);
+                        level.destroyBlock(q, false);
+                    }
+                }
+            }
+            case LEAVES -> {
+                // the whole loose clump
+                List<BlockPos> clump = new ArrayList<>();
+                for (BlockPos q : BlockPos.betweenClosed(p.offset(-3, -3, -3), p.offset(3, 3, 3))) {
+                    if (level.getBlockState(q).is(BlockTags.LEAVES) && !trunkNear(level, q)) clump.add(q.immutable());
+                }
+                for (BlockPos q : clump) level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);
+            }
+            case PUDDLE -> {
+                // the puddle filled with earth, level with the land round it
+                Deque<BlockPos> open = new ArrayDeque<>();
+                Set<BlockPos> seen = new HashSet<>();
+                open.add(p);
+                seen.add(p);
+                while (!open.isEmpty() && seen.size() <= 24) {
+                    BlockPos q = open.poll();
+                    level.setBlock(q, Blocks.GRASS_BLOCK.defaultBlockState(), FLAGS);
+                    if (!level.getBlockState(q.below()).getFluidState().isEmpty()) level.setBlock(q.below(), Blocks.DIRT.defaultBlockState(), FLAGS);
+                    for (Direction d : Direction.Plane.HORIZONTAL) {
+                        BlockPos r = q.relative(d);
+                        if (seen.contains(r) || level.getBlockState(r).getFluidState().isEmpty()) continue;
+                        seen.add(r);
+                        open.add(r);
+                    }
+                }
+            }
+            case LEDGE -> {
+                // cut down to a step above the lowest neighbour
+                int lowest = Integer.MAX_VALUE;
+                for (Direction d : Direction.Plane.HORIZONTAL) {
+                    lowest = Math.min(lowest, PlotFinder.floorAt(level, p.getX() + d.getStepX(), p.getZ() + d.getStepZ()) - 1);
+                }
+                int to = lowest + 1;
+                if (to >= p.getY() || !Construction.natural(level.getBlockState(p))) break;
+                BlockState over = level.getBlockState(p.above());
+                if (!over.isAir()) {
+                    if (!over.canBeReplaced()) break;
+                    level.setBlock(p.above(), Blocks.AIR.defaultBlockState(), FLAGS);
+                }
+                for (int y = p.getY(); y > to; y--) {
+                    BlockPos q = new BlockPos(p.getX(), y, p.getZ());
+                    if (!Construction.natural(level.getBlockState(q))) break;
+                    level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);
+                }
+                BlockPos nt = new BlockPos(p.getX(), to, p.getZ());
+                BlockState s = level.getBlockState(nt);
+                if (s.is(Blocks.DIRT) || s.is(Blocks.STONE) || s.is(Blocks.GRAVEL)) level.setBlock(nt, Blocks.GRASS_BLOCK.defaultBlockState(), FLAGS);
+            }
+            case HOLE -> {
+                // earth heaped up to a block below the lowest neighbour (a hole) or the highest one (a ledge)
+                int target = Integer.MAX_VALUE, highest = Integer.MIN_VALUE;
+                for (Direction d : Direction.Plane.HORIZONTAL) {
+                    int n = PlotFinder.floorAt(level, p.getX() + d.getStepX(), p.getZ() + d.getStepZ()) - 1;
+                    target = Math.min(target, n);
+                    highest = Math.max(highest, n);
+                }
+                int to = target;
+                if (to - p.getY() > 4) to = p.getY() + 4;
+                for (int y = p.getY(); y < to; y++) {
+                    BlockPos q = new BlockPos(p.getX(), y, p.getZ());
+                    BlockState s = level.getBlockState(q.above());
+                    if (!s.isAir() && !s.canBeReplaced()) break;
+                    if (level.getBlockState(q).is(Blocks.GRASS_BLOCK)) level.setBlock(q, Blocks.DIRT.defaultBlockState(), FLAGS);
+                    level.setBlock(q.above(), Blocks.GRASS_BLOCK.defaultBlockState(), FLAGS);
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,60 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraftportsmod:block/port_office_plain",
+    "front": "minecraftportsmod:block/port_office_side",
+    "side": "minecraftportsmod:block/port_office_plain",
+    "wood": "minecraft:block/dark_oak_planks",
+    "chart": "minecraftportsmod:block/port_office_top",
+    "ink": "minecraft:block/black_concrete",
+    "quill": "minecraft:block/white_wool"
+  },
+  "elements": [
+    {
+      "name": "cabinet",
+      "from": [1, 0, 1], "to": [15, 12, 15],
+      "faces": {
+        "north": { "uv": [1, 4, 15, 16], "texture": "#front" },
+        "south": { "uv": [1, 4, 15, 16], "texture": "#side" },
+        "east":  { "uv": [1, 4, 15, 16], "texture": "#side" },
+        "west":  { "uv": [1, 4, 15, 16], "texture": "#side" },
+        "down":  { "uv": [1, 1, 15, 15], "texture": "#wood", "cullface": "down" }
+      }
+    },
+    {
+      "name": "tabletop",
+      "from": [0, 12, 0], "to": [16, 14, 16],
+      "faces": {
+        "north": { "uv": [0, 0, 16, 2], "texture": "#wood" },
+        "south": { "uv": [0, 0, 16, 2], "texture": "#wood" },
+        "east":  { "uv": [0, 0, 16, 2], "texture": "#wood" },
+        "west":  { "uv": [0, 0, 16, 2], "texture": "#wood" },
+        "down":  { "uv": [0, 0, 16, 16], "texture": "#wood" },
+        "up":    { "uv": [0, 0, 16, 16], "texture": "#chart" }
+      }
+    },
+    {
+      "name": "inkwell",
+      "from": [12, 14, 1.5], "to": [14, 15.5, 3.5],
+      "faces": {
+        "north": { "uv": [0, 0, 2, 1.5], "texture": "#ink" },
+        "south": { "uv": [0, 0, 2, 1.5], "texture": "#ink" },
+        "east":  { "uv": [0, 0, 2, 1.5], "texture": "#ink" },
+        "west":  { "uv": [0, 0, 2, 1.5], "texture": "#ink" },
+        "up":    { "uv": [0, 0, 2, 2], "texture": "#ink" }
+      }
+    },
+    {
+      "name": "quill",
+      "from": [13, 15, 2], "to": [13.5, 18, 2.5],
+      "rotation": { "angle": 22.5, "axis": "z", "origin": [13, 15, 2] },
+      "faces": {
+        "north": { "uv": [0, 0, 0.5, 3], "texture": "#quill" },
+        "south": { "uv": [0, 0, 0.5, 3], "texture": "#quill" },
+        "east":  { "uv": [0, 0, 0.5, 3], "texture": "#quill" },
+        "west":  { "uv": [0, 0, 0.5, 3], "texture": "#quill" },
+        "up":    { "uv": [0, 0, 0.5, 0.5], "texture": "#quill" }
+      }
+    }
+  ]
+}

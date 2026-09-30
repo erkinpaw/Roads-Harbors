@@ -1,0 +1,22 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraft:block/oak_planks",
+    "post": "minecraft:block/stripped_oak_log",
+    "plan": "minecraftportsmod:block/construction_plan",
+    "wood": "minecraft:block/oak_planks",
+    "flag": "minecraft:block/yellow_wool"
+  },
+  "elements": [
+    { "from": [7, 0, 7], "to": [9, 16, 9],
+      "faces": { "north": {"uv": [0, 0, 2, 16], "texture": "#post"}, "south": {"uv": [0, 0, 2, 16], "texture": "#post"},
+                 "east": {"uv": [0, 0, 2, 16], "texture": "#post"}, "west": {"uv": [0, 0, 2, 16], "texture": "#post"},
+                 "up": {"uv": [0, 0, 2, 2], "texture": "#post"}, "down": {"uv": [0, 0, 2, 2], "texture": "#post", "cullface": "down"} } },
+    { "from": [2, 7, 6], "to": [14, 14, 7],
+      "faces": { "north": {"uv": [2, 4, 14, 11], "texture": "#plan"}, "south": {"uv": [0, 0, 12, 7], "texture": "#wood"},
+                 "east": {"uv": [0, 0, 1, 7], "texture": "#wood"}, "west": {"uv": [0, 0, 1, 7], "texture": "#wood"},
+                 "up": {"uv": [0, 0, 12, 1], "texture": "#wood"}, "down": {"uv": [0, 0, 12, 1], "texture": "#wood"} } },
+    { "from": [9, 12, 8], "to": [14, 16, 8.5],
+      "faces": { "north": {"uv": [0, 0, 5, 4], "texture": "#flag"}, "south": {"uv": [0, 0, 5, 4], "texture": "#flag"} } }
+  ]
+}

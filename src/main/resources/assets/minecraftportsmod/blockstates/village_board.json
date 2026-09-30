@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "minecraftportsmod:block/village_board" },
+    "facing=east":  { "model": "minecraftportsmod:block/village_board", "y": 90 },
+    "facing=south": { "model": "minecraftportsmod:block/village_board", "y": 180 },
+    "facing=west":  { "model": "minecraftportsmod:block/village_board", "y": 270 }
+  }
+}

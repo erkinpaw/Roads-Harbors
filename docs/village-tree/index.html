@@ -1,0 +1,1150 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Древо деревни</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=PT+Sans:wght@400;700&family=PT+Mono&display=swap">
+<style>
+:root {
+  --bg: #efe3c4;
+  --page: #f6eed8;
+  --sunk: #e3d3ad;
+  --line: #cdb88a;
+  --ink: #3b2a1c;
+  --ink-soft: #6b5037;
+  --muted: #8a7254;
+  --wood: #4a3322;
+  --wood-ink: #f3e6c4;
+  --brass: #a57f2e;
+  --brass-soft: #e8cf8f;
+  --good: #3f7a3a;
+  --bad: #a33a2a;
+  --warn: #9a6a10;
+  --focus: #2f6f9f;
+  --display: "Pixelify Sans", "PT Sans", system-ui, sans-serif;
+  --body: "PT Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "PT Mono", ui-monospace, "Cascadia Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #17110b; --page: #221910; --sunk: #2c2116; --line: #4a3a26; --ink: #efe2c2; --ink-soft: #d6c39c;
+    --muted: #a88f69; --wood: #0f0a06; --wood-ink: #efe2c2; --brass: #d8b262; --brass-soft: #4a3a1c;
+    --good: #7fbf6a; --bad: #e0705c; --warn: #d9a441; --focus: #7fb4dd;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #17110b; --page: #221910; --sunk: #2c2116; --line: #4a3a26; --ink: #efe2c2; --ink-soft: #d6c39c;
+  --muted: #a88f69; --wood: #0f0a06; --wood-ink: #efe2c2; --brass: #d8b262; --brass-soft: #4a3a1c;
+  --good: #7fbf6a; --bad: #e0705c; --warn: #d9a441; --focus: #7fb4dd;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--body); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.bar { background: var(--wood); color: var(--wood-ink); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center;
+  border-bottom: 3px solid var(--brass); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+.bar h1 { font: 700 22px/1 var(--display); letter-spacing: .02em; margin: 0; }
+.bar .sub { font-size: 13px; opacity: .75; }
+.tabs { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+.tabs button { background: transparent; border: 1px solid transparent; color: var(--wood-ink); padding: 5px 12px; border-radius: 3px; cursor: pointer; font-weight: 700; }
+.tabs button[aria-selected="true"] { background: var(--brass); color: #20150a; }
+.tabs button:hover:not([aria-selected="true"]) { border-color: var(--brass); }
+.status { font: 12px var(--mono); padding: 3px 8px; border-radius: 3px; background: rgba(255,255,255,.08); }
+.status.err { background: var(--bad); color: #fff; }
+
+main { padding-inline: 16px; padding-block: 16px 40px; max-width: 1400px; margin: 0 auto; }
+.notice { background: var(--page); border: 1px solid var(--line); padding: 16px 18px; border-radius: 4px; max-width: 70ch; }
+
+/* ---- the tree tab */
+.tree { display: grid; grid-template-columns: minmax(250px, 330px) 1fr; gap: 16px; align-items: start; }
+@media (max-width: 820px) { .tree { grid-template-columns: 1fr; } }
+.side { background: var(--page); border: 1px solid var(--line); border-radius: 4px; max-height: calc(100vh - 110px); overflow: auto; position: sticky; top: 76px; }
+@media (max-width: 820px) { .side { position: static; max-height: 420px; } }
+.side .search { padding: 10px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--page); z-index: 1; }
+.side input[type=search] { width: 100%; padding: 6px 8px; border: 1px solid var(--line); background: var(--sunk); border-radius: 3px; }
+.branch { border-bottom: 1px solid var(--line); }
+.branch h3 { margin: 0; padding: 8px 10px 4px; font: 700 13px/1.2 var(--display); letter-spacing: .06em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+.branch h3 .dot { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.branch h3 button { margin-left: auto; }
+.nodebtn { display: block; width: 100%; text-align: left; background: none; border: 0; border-left: 3px solid transparent; padding: 5px 10px 6px; cursor: pointer; }
+.nodebtn:hover { background: var(--sunk); }
+.nodebtn[aria-current="true"] { background: var(--brass-soft); border-left-color: var(--brass); }
+.nodebtn .n { font-weight: 700; display: block; }
+.nodebtn .s { font-size: 12px; color: var(--muted); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.editor { background: var(--page); border: 1px solid var(--line); border-radius: 4px; padding: 18px 20px 22px; min-width: 0; }
+.editor h2 { font: 700 26px/1.1 var(--display); margin: 0 0 4px; text-wrap: balance; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 14px; margin: 14px 0 6px; }
+label.f { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+label.f input, label.f select, label.f textarea { text-transform: none; letter-spacing: 0; font-size: 15px; color: var(--ink); }
+input[type=text], input[type=number], select, textarea { background: var(--sunk); border: 1px solid var(--line); border-radius: 3px; padding: 5px 7px; min-width: 0; }
+textarea { width: 100%; resize: vertical; min-height: 54px; }
+.wide { grid-column: 1 / -1; }
+
+.levels { display: flex; gap: 4px; margin: 18px 0 0; border-bottom: 2px solid var(--brass); flex-wrap: wrap; }
+.levels button { border: 1px solid var(--line); border-bottom: 0; background: var(--sunk); padding: 6px 14px; border-radius: 4px 4px 0 0; cursor: pointer; font: 700 14px var(--display); }
+.levels button[aria-selected="true"] { background: var(--brass); color: #20150a; border-color: var(--brass); }
+.lvl { border: 1px solid var(--line); border-top: 0; padding: 12px 14px 14px; border-radius: 0 0 4px 4px; }
+.blocks { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.block h4 { margin: 0 0 6px; font: 700 14px/1.2 var(--display); display: flex; align-items: baseline; gap: 10px; }
+.block h4 .hint { font: 12px var(--body); color: var(--muted); }
+.block.make h4 { color: var(--good); }
+.block.use h4 { color: var(--bad); }
+.block.cost h4 { color: var(--warn); }
+.rows { overflow-x: auto; }
+table.rt { border-collapse: collapse; width: 100%; min-width: 560px; }
+table.rt th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; text-align: left; font-weight: 400; padding: 2px 4px; }
+table.rt td { padding: 2px 4px; vertical-align: middle; }
+table.rt select { width: 100%; }
+table.rt input[type=number] { width: 78px; font-family: var(--mono); }
+table.rt input.note { width: 100%; }
+.x { background: none; border: 1px solid transparent; color: var(--muted); cursor: pointer; border-radius: 3px; width: 28px; height: 28px; }
+.x:hover { color: var(--bad); border-color: var(--line); }
+.add { background: none; border: 1px dashed var(--line); color: var(--ink-soft); padding: 4px 10px; border-radius: 3px; cursor: pointer; margin-top: 6px; }
+.add:hover { border-style: solid; border-color: var(--brass); }
+.btn { background: var(--wood); color: var(--wood-ink); border: 1px solid var(--brass); padding: 6px 12px; border-radius: 3px; cursor: pointer; font-weight: 700; }
+.btn.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+.btn.ghost { background: none; color: var(--ink-soft); border-color: var(--line); }
+.foot { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-size: 12px; background: var(--sunk); border: 1px solid var(--line); border-radius: 10px; padding: 1px 8px; white-space: nowrap; }
+.chip.g { color: var(--good); } .chip.b { color: var(--bad); }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; margin-top: 14px; }
+.summary .card { background: var(--sunk); border-radius: 4px; padding: 8px 10px; }
+.summary .card b { font: 700 13px var(--display); display: block; margin-bottom: 4px; }
+
+/* ---- the tree drawing */
+.graph { display: grid; grid-template-columns: 1fr 330px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .graph { grid-template-columns: 1fr; } }
+.canvas { background: var(--page); border: 1px solid var(--line); border-radius: 4px; height: calc(100vh - 150px); min-height: 420px; position: relative; overflow: hidden; touch-action: none; }
+.canvas svg { width: 100%; height: 100%; display: block; cursor: grab; user-select: none; }
+.canvas svg.panning { cursor: grabbing; }
+.canvas .tools { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+.canvas .legend { position: absolute; left: 10px; bottom: 8px; font-size: 12px; color: var(--muted); max-width: 60ch; }
+.gnode { cursor: pointer; }
+.gnode circle.body { stroke: var(--wood); stroke-width: 2; }
+.gnode.sel circle.ring { stroke: var(--brass); stroke-width: 4; fill: none; }
+.gnode text { font: 700 12px var(--body); fill: var(--ink); paint-order: stroke; stroke: var(--page); stroke-width: 3px; }
+.gnode text.ic { font: 700 15px var(--display); fill: #fff; stroke: none; }
+.gnode .badge { font: 700 10px var(--mono); fill: var(--wood-ink); stroke: none; }
+.edge { fill: none; stroke-width: 3; opacity: .75; }
+.edge.cross { stroke-dasharray: 6 5; opacity: .5; }
+.ehit { fill: none; stroke: transparent; stroke-width: 16; cursor: pointer; pointer-events: stroke; }
+.ehit:hover + .edge, .edge.on { opacity: 1; stroke-width: 5; }
+.flow { fill: none; stroke-width: 2; opacity: .55; pointer-events: none; }
+.flow.out { stroke: var(--good); } .flow.in { stroke: var(--bad); }
+.fhit { fill: none; stroke: transparent; stroke-width: 12; cursor: pointer; pointer-events: stroke; }
+.fhit:hover + .flow { opacity: 1; stroke-width: 3.5; }
+.panel .arrow { font: 700 18px var(--display); color: var(--brass); }
+.panel table.lk { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 4px; }
+.panel table.lk td { padding: 3px 4px; border-top: 1px solid var(--line); vertical-align: top; }
+.panel table.lk td.l { color: var(--muted); white-space: nowrap; font-family: var(--mono); font-size: 12px; }
+.blabel { font: 700 15px var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.plus circle { fill: var(--page); stroke: var(--brass); stroke-width: 2; stroke-dasharray: 3 3; }
+.plus text { font: 700 16px var(--body); fill: var(--brass); }
+.plus:hover circle { fill: var(--brass-soft); }
+.panel { background: var(--page); border: 1px solid var(--line); border-radius: 4px; padding: 14px 16px; position: sticky; top: 76px; max-height: calc(100vh - 110px); overflow: auto; }
+.panel h2 { font: 700 20px/1.15 var(--display); margin: 0 0 2px; }
+.panel .lv { margin-top: 10px; }
+.panel .lv b { font: 700 13px var(--display); display: block; margin-bottom: 3px; }
+.panel .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.panel label.f { margin-top: 10px; }
+
+/* ---- icons: the game's own pictures, pixel-sharp */
+img.ico { image-rendering: pixelated; width: 20px; height: 20px; vertical-align: middle; flex: none; }
+img.ico.big { width: 28px; height: 28px; }
+.ico-x { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 3px; background: var(--sunk); font: 700 11px var(--mono); color: var(--muted); vertical-align: middle; }
+.chip.i { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px 1px 3px; font: 700 12px var(--mono); }
+.chip.i .p { font-weight: 400; color: var(--muted); }
+.cellres { display: flex; align-items: center; gap: 6px; }
+.nodebtn { display: flex !important; align-items: center; gap: 8px; }
+.nodebtn .txt { min-width: 0; }
+.gnode image { image-rendering: pixelated; pointer-events: none; }
+
+/* ---- a level as a recipe */
+.recipe { display: flex; flex-direction: column; gap: 5px; background: var(--sunk); border-radius: 5px; padding: 6px; margin-top: 4px; }
+.recipe .lvn { font: 700 12px var(--display); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; display: flex; justify-content: space-between; gap: 8px; }
+.rline { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.rline .arrow { color: var(--brass); font: 700 14px var(--display); padding: 0 2px; }
+.rline .per { font: 700 12px var(--mono); color: var(--good); margin-left: 4px; }
+.rline .nm { font-size: 12px; color: var(--ink-soft); margin-left: 6px; }
+table.rec td { vertical-align: top; }
+table.rec .ins { display: flex; flex-direction: column; gap: 3px; }
+table.rec .ins > div { display: flex; gap: 3px; align-items: center; }
+table.rec .ins select { width: 150px; }
+table.rec input[type=number] { width: 64px; }
+.recipe .side { display: flex; flex-wrap: wrap; gap: 3px; align-content: center; min-height: 34px; border-radius: 4px; padding: 3px; }
+.recipe .in { background: color-mix(in srgb, var(--bad) 13%, transparent); justify-content: flex-end; }
+.recipe .out { background: color-mix(in srgb, var(--good) 15%, transparent); }
+.recipe .mid { display: flex; align-items: center; gap: 2px; color: var(--brass); font: 700 16px var(--display); }
+.recipe .none { font-size: 11px; color: var(--muted); padding: 0 4px; align-self: center; }
+.slot { position: relative; width: 30px; height: 30px; display: grid; place-items: center; background: var(--page); border: 1px solid var(--line); border-radius: 3px; }
+.slot img.ico { width: 22px; height: 22px; }
+.slot .q { position: absolute; right: -2px; bottom: -3px; font: 700 10px var(--mono); color: var(--ink); background: var(--page); border-radius: 3px; padding: 0 2px; line-height: 12px; }
+.slot .c { position: absolute; left: -3px; top: -4px; font: 700 9px var(--mono); color: #fff; background: var(--warn); border-radius: 3px; padding: 0 2px; line-height: 11px; }
+.recipe .cost { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 3px; align-items: center; font-size: 11px; color: var(--warn); }
+.recipe .cost .slot { width: 24px; height: 24px; } .recipe .cost .slot img.ico { width: 18px; height: 18px; }
+.hovercard { position: fixed; z-index: 20; pointer-events: none; background: var(--page); border: 1px solid var(--brass); border-radius: 6px; padding: 8px 10px; width: 330px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+.hovercard h3 { margin: 0 0 4px; font: 700 15px var(--display); display: flex; align-items: center; gap: 6px; }
+.flowrow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; background: var(--sunk); border-radius: 5px; padding: 6px; margin-top: 4px; }
+.flowrow .arrow { font-size: 16px; }
+
+/* ---- resources */
+.rbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.rbar input[type=search] { padding: 6px 8px; border: 1px solid var(--line); background: var(--page); border-radius: 3px; min-width: 200px; flex: 1 1 200px; max-width: 360px; }
+.pill { border: 1px solid var(--line); background: var(--page); border-radius: 14px; padding: 4px 11px; cursor: pointer; font-size: 13px; }
+.pill[aria-pressed="true"] { background: var(--brass); color: #20150a; border-color: var(--brass); }
+.tablewrap { overflow-x: auto; background: var(--page); border: 1px solid var(--line); border-radius: 4px; }
+table.res { border-collapse: collapse; width: 100%; min-width: 820px; }
+table.res th { position: sticky; top: 0; background: var(--sunk); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); text-align: left; padding: 7px 8px; font-weight: 400; }
+table.res td { border-top: 1px solid var(--line); padding: 5px 8px; vertical-align: top; }
+table.res tr.cat td { background: var(--brass-soft); font: 700 13px var(--display); letter-spacing: .05em; }
+table.res input[type=text] { width: 100%; }
+.flag { font-size: 12px; font-weight: 700; }
+.flag.sink { color: var(--warn); } .flag.src { color: var(--bad); } .flag.ok { color: var(--good); font-weight: 400; }
+.addres { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: end; }
+.id { font: 12px var(--mono); color: var(--muted); }
+
+pre.json { background: var(--page); border: 1px solid var(--line); border-radius: 4px; padding: 12px; overflow: auto; max-height: 70vh; font: 12px/1.4 var(--mono); }
+.tnum { font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="bar">
+  <div>
+    <h1>Древо деревни</h1>
+    <div class="sub" id="counts">Ports &amp; Routes · шаблон производства и потребления</div>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Разделы">
+    <button role="tab" id="tab-graph" aria-selected="true">Древо</button>
+    <button role="tab" id="tab-tree" aria-selected="false">Здания</button>
+    <button role="tab" id="tab-res" aria-selected="false">Ресурсы</button>
+    <button role="tab" id="tab-sell" aria-selected="false">Прилавки</button>
+    <button role="tab" id="tab-json" aria-selected="false">JSON</button>
+  </nav>
+  <span class="status" id="status">загрузка…</span>
+</header>
+
+<main id="main">
+  <div class="notice">Загружаю древо…</div>
+</main>
+
+<script src="icons.js"></script>
+<script src="tree-data.js" onerror="void 0"></script>
+<script>
+(() => {
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const num = v => (v === "" || v == null || isNaN(+v)) ? 0 : +v;
+  const fmt = n => (Math.round(n * 100) / 100).toString().replace(".", ",");
+
+  const S = {
+    db: null, nodes: {}, catalog: { resources: [], cats: [] }, branches: [], items: [], itemsDirty: false, sellQuery: "", sellFilter: "all",
+    tab: "graph", sel: null, view: { x: 0, y: 0, k: 0.8 }, gSel: null, gConfirm: false, gEdge: null, flows: true, level: 0, filter: "", resFilter: "all", resQuery: "",
+    dirty: new Set(), timers: {}, catDirty: false, confirmDelete: false,
+  };
+  try { const t = localStorage.getItem("vt-tab"); if (t) S.tab = t; } catch (e) {}
+
+  const setStatus = (text, err) => { const el = $("#status"); el.textContent = text; el.classList.toggle("err", !!err); };
+  const itemOf = id => S.items.find(x => x.id === id);
+  const resName = id => {
+    if (!id) return "";
+    if (id.startsWith("i:")) return (itemOf(id.slice(2)) || {}).name || id.slice(2);
+    if (id.startsWith("b:")) return (S.nodes[id.slice(2)] || {}).name || id.slice(2);
+    return (S.catalog.resources.find(r => r.id === id) || {}).name || id;
+  };
+  const ICONS = window.ICONS || {};
+  /** A resource's picture (its name on hover); a code in a box if it has no picture. */
+  const ico = (id, big) => ICONS[id] ? `<img class="ico${big ? " big" : ""}" src="${ICONS[id]}" alt="${esc(resName(id))}" title="${esc(resName(id))}">`
+    : `<span class="ico-x" title="${esc(resName(id))}">${esc(String(resName(id) || "?").slice(0, 2))}</span>`;
+  /** A building's picture: its own icon (a resource), or the first thing it makes. */
+  /** What a recipe gives: a concrete item {i, n} (counted in the store as its category) or a whole category {r, n}. */
+  const outRes = o => o ? (o.i ? (itemOf(o.i) || {}).res || "" : o.r || "") : "";
+  const outIco = o => o ? (o.i ? "i:" + o.i : o.r || "") : "";
+  const outName = o => o ? (o.i ? (itemOf(o.i) || {}).name || o.i : resName(o.r)) : "";
+  const recipesAt = (n, i) => (n.recipes || []).filter(x => (x.lvl || 1) <= i + 1);
+  const recipesNew = (n, i) => (n.recipes || []).filter(x => (x.lvl || 1) === i + 1);
+  const workersAt = (n, i) => { const w = ((n.levels || [])[i] || {}).workers; return w ?? n.workers ?? 0; };
+  const nodeSummary = n => (n.recipes || []).filter(x => (x.lvl || 1) === 1).map(x => outName(x.out)).slice(0, 4).join(", ");
+  const nodeIcon = n => n && (n.icon || outIco((n.recipes || [])[0]?.out) || "");
+  /** A resource in a slot: its picture, how many a day (and the chance, if it isn't every day). */
+  const slot = x => `<span class="slot" title="${esc(resName(x.r))}: ${fmt(num(x.n))} в день${x.p != null && x.p < 100 ? ", шанс " + fmt(x.p) + "%" : ""}${x.t ? " — " + esc(x.t) : ""}">${ico(x.r)}<span class="q">${fmt(num(x.n))}</span>${x.p != null && x.p < 100 ? `<span class="c">${fmt(x.p)}%</span>` : ""}</span>`;
+  /** A level as a recipe: what it uses up → the building → what it makes; what building it costs, under it. */
+  /** A recipe in one line: what one making takes ▶ what it gives, ×how many times a day one worker makes it. */
+  const recLine = (x, named) => `<div class="rline">${(x.use || []).filter(y => y.r).map(slot).join("") || `<span class="none">из ничего</span>`}<span class="arrow">▶</span><span class="slot" title="${esc(outName(x.out))}: ${x.out?.n ?? 1} шт. за раз${x.p != null && x.p < 100 ? ", шанс " + x.p + "%" : ""}">${ico(outIco(x.out))}<span class="q">${x.out?.n ?? 1}</span>${x.p != null && x.p < 100 ? `<span class="c">${x.p}%</span>` : ""}</span><span class="per" title="раз в день на одного работника">×${x.per ?? 1}</span>${named ? `<span class="nm">${esc(outName(x.out))}</span>` : ""}</div>`;
+  /** A level: the recipes it opens, what the building eats up a day, what it costs. */
+  function recipe(n, L, i, withCost) {
+    const up = (L.use || []).filter(x => x.r), cost = (L.cost || []).filter(x => x.r), rs = recipesNew(n, i), w = workersAt(n, i);
+    return `<div class="recipe"><div class="lvn"><span>Уровень ${i + 1}${w ? " · работников " + w : ""}</span>${L.note ? `<span style="text-transform:none;letter-spacing:0;font-weight:400;max-width:70%;text-align:right" title="${esc(L.note)}">${esc(L.note.length > 60 ? L.note.slice(0, 58) + "…" : L.note)}</span>` : ""}</div>
+      ${rs.map(x => recLine(x, true)).join("") || `<span class="none">${i && recipesAt(n, i).length ? "новых рецептов нет, прежние быстрее" : "не производит"}</span>`}
+      ${up.length ? `<div class="cost" style="color:var(--bad)">содержание в день: ${up.map(slot).join("")}</div>` : ""}
+      ${withCost && cost.length ? `<div class="cost">${i === 0 ? "постройка:" : "улучшение:"} ${cost.map(slot).join("")}</div>` : ""}</div>`;
+  }
+  const recipeHead = `<div style="font-size:11px;color:var(--muted);margin-top:8px">Рецепт: сырьё ▶ товар <span style="color:var(--good);font-weight:700">×сколько раз в день</span> делает один работник. Уровень открывает новые рецепты, прежние остаются.</div>`;
+
+  /** A resource as a chip: picture, amount (and chance). */
+  const rchip = (x, cls) => `<span class="chip i ${cls || ""}" title="${esc(resName(x.r))}${x.t ? " — " + esc(x.t) : ""}">${ico(x.r)}${fmt(num(x.n))}${x.p != null && x.p < 100 ? `<span class="p">${fmt(x.p)}%</span>` : ""}</span>`;
+  const branchOf = id => S.branches.find(b => b.id === id) || { name: id, color: "#888" };
+  const sortedNodes = () => Object.entries(S.nodes).sort((a, b) => (a[1].order ?? 0) - (b[1].order ?? 0));
+
+  // ------------------------------------------------------------ saving
+  function saveNode(id) {
+    S.dirty.add(id);
+    setStatus("сохраняю…");
+    clearTimeout(S.timers[id]);
+    S.timers[id] = setTimeout(async () => {
+      try {
+        await S.db.doc("nodes/" + id).set(JSON.parse(JSON.stringify(S.nodes[id])));
+        S.dirty.delete(id);
+        if (!S.dirty.size && !S.catDirty) setStatus("сохранено");
+      } catch (e) { setStatus("не сохранилось: " + (e.code || e.message), true); }
+    }, 700);
+  }
+  function saveCatalog() {
+    S.catDirty = true;
+    setStatus("сохраняю…");
+    clearTimeout(S.timers.__cat);
+    S.timers.__cat = setTimeout(async () => {
+      try {
+        await S.db.doc("meta/catalog").set(JSON.parse(JSON.stringify(S.catalog)));
+        S.catDirty = false;
+        if (!S.dirty.size) setStatus("сохранено");
+      } catch (e) { setStatus("не сохранилось: " + (e.code || e.message), true); }
+    }, 700);
+  }
+
+  function saveItems() {
+    S.itemsDirty = true;
+    setStatus("сохраняю…");
+    clearTimeout(S.timers.__items);
+    S.timers.__items = setTimeout(async () => {
+      try {
+        await S.db.doc("meta/items").set({ items: JSON.parse(JSON.stringify(S.items)) });
+        S.itemsDirty = false;
+        if (!S.dirty.size && !S.catDirty) setStatus("сохранено");
+      } catch (e) { setStatus("не сохранилось: " + (e.code || e.message), true); }
+    }, 700);
+  }
+
+  /** An item select, grouped by the categories they come out of. */
+  function itemSelect(value, attrs) {
+    let h = `<select ${attrs}><option value="">— предмет —</option>`;
+    for (const c of S.catalog.resources) {
+      const its = S.items.filter(x => x.res === c.id);
+      if (!its.length) continue;
+      h += `<optgroup label="${esc(c.name)}">` + its.map(x => `<option value="${esc(x.id)}"${x.id === value ? " selected" : ""}>${esc(x.name)}</option>`).join("") + `</optgroup>`;
+    }
+    return h + `</select>`;
+  }
+  /** What a recipe gives: a concrete item (grouped by category), or a whole category when there is no item for it. */
+  function outSelect(o, attrs) {
+    const v = o ? (o.i ? "i:" + o.i : o.r ? "r:" + o.r : "") : "";
+    let h = `<select ${attrs}><option value="">— товар —</option>`;
+    for (const c of S.catalog.resources) {
+      const its = S.items.filter(x => x.res === c.id);
+      if (its.length) h += `<optgroup label="${esc(c.name)}">` + its.map(x => `<option value="i:${esc(x.id)}"${"i:" + x.id === v ? " selected" : ""}>${esc(x.name)}</option>`).join("") + `</optgroup>`;
+    }
+    h += `<optgroup label="Категория целиком">` + S.catalog.resources.map(r => `<option value="r:${esc(r.id)}"${"r:" + r.id === v ? " selected" : ""}>${esc(r.name)}</option>`).join("") + `</optgroup>`;
+    return h + `</select>`;
+  }
+  /** Who sells an item: [{id, lvl, n}]. */
+  function sellers(itemId) {
+    const out = [];
+    for (const [id, n] of sortedNodes()) for (const x of n.recipes || []) if (x.out && x.out.i === itemId) out.push({ id, lvl: x.lvl || 1, n: (x.out.n || 1) * (x.per || 1) });
+    return out;
+  }
+  /** An item in a slot, with the level it is sold from. */
+  const itemSlot = x => {
+    const it = itemOf(x.item) || { name: x.item, units: 1, res: "" };
+    return `<span class="slot" title="${esc(it.name)} — с ${x.lvl || 1} ур., один работник делает ${x.n ?? "?"} в день; на складе: ${fmt(it.units)} ед. «${esc(resName(it.res))}»">${ico("i:" + x.item)}<span class="c" style="background:var(--brass)">${x.lvl || 1}</span>${x.n ? `<span class="q">${x.n}</span>` : ""}</span>`;
+  };
+  /** A building's counter: its items, by the level they come at. */
+  function counter(n) {
+    const rows = (n.recipes || []).filter(x => x.out && x.out.i);
+    if (!rows.length) return "";
+    const by = {};
+    for (const x of rows) (by[x.lvl || 1] ||= []).push({ item: x.out.i, lvl: x.lvl || 1, n: (x.out.n || 1) * (x.per || 1) });
+    return `<div class="lv"><b>Торговля: купить сейчас или заказать</b>${Object.keys(by).sort().map(l => `<div class="flowrow"><span class="id" style="min-width:34px">${l} ур.</span>${by[l].map(itemSlot).join("")}</div>`).join("")}</div>`;
+  }
+
+  // ------------------------------------------------------------ what makes and uses what
+  function flows() {
+    const out = {};
+    const touch = id => (out[id] ||= { make: [], use: [], cost: [] });
+    for (const [nid, n] of sortedNodes()) {
+      for (const x of n.recipes || []) {
+        const add = (r, k) => { if (!r) return; const l = touch(r)[k]; if (!l.some(y => y.id === nid)) l.push({ id: nid, lvl: x.lvl || 1 }); };
+        add(outRes(x.out), "make");
+        for (const y of x.use || []) add(y.r, "use");
+      }
+      (n.levels || []).forEach((L, i) => {
+        for (const k of ["use", "cost"]) for (const row of L[k] || []) {
+          if (!row.r) continue;
+          const list = touch(row.r)[k];
+          if (!list.some(x => x.id === nid)) list.push({ id: nid, lvl: i + 1 });
+        }
+      });
+      for (const row of n.unlock || []) if (row.r) { const l = touch(row.r).cost; if (!l.some(x => x.id === nid)) l.push({ id: nid, lvl: 0 }); }
+    }
+    return out;
+  }
+
+  // ------------------------------------------------------------ tabs
+  function showTab(t) {
+    S.tab = t;
+    try { localStorage.setItem("vt-tab", t); } catch (e) {}
+    for (const [id, name] of [["tab-graph", "graph"], ["tab-tree", "tree"], ["tab-res", "res"], ["tab-sell", "sell"], ["tab-json", "json"]]) $("#" + id).setAttribute("aria-selected", String(name === t));
+    render();
+  }
+  $("#tab-graph").onclick = () => showTab("graph");
+  $("#tab-sell").onclick = () => showTab("sell");
+  $("#tab-tree").onclick = () => showTab("tree");
+  $("#tab-res").onclick = () => showTab("res");
+  $("#tab-json").onclick = () => showTab("json");
+
+  function render() {
+    const n = Object.keys(S.nodes).length, r = S.catalog.resources.length;
+    $("#counts").textContent = `${n} зданий · ${r} ресурсов · ${S.branches.length} веток`;
+    if (S.tab === "res") renderRes(); else if (S.tab === "json") renderJson(); else if (S.tab === "tree") renderTree(); else if (S.tab === "sell") renderSell(); else renderGraph();
+  }
+
+  // ------------------------------------------------------------ the buildings
+  function depthOf(id, seen = new Set()) {
+    const n = S.nodes[id];
+    if (!n || !n.parent || !S.nodes[n.parent] || seen.has(id)) return 0;
+    seen.add(id);
+    return S.nodes[n.parent].branch === n.branch ? 1 + depthOf(n.parent, seen) : 0;
+  }
+
+  function renderTree() {
+    if (!S.sel || !S.nodes[S.sel]) S.sel = sortedNodes()[0]?.[0] || null;
+    const q = S.filter.trim().toLowerCase();
+    let side = `<div class="search"><input type="search" id="nf" placeholder="Найти здание или ресурс…" value="${esc(S.filter)}" aria-label="Поиск"></div>`;
+    for (const b of S.branches) {
+      const list = sortedNodes().filter(([id, n]) => n.branch === b.id).filter(([id, n]) => {
+        if (!q) return true;
+        const text = (n.name + " " + (n.recipes || []).map(x => outName(x.out) + " " + resName(outRes(x.out)) + " " + (x.use || []).map(y => resName(y.r)).join(" ")).join(" ")).toLowerCase();
+        return text.includes(q);
+      });
+      if (q && !list.length) continue;
+      side += `<section class="branch"><h3><span class="dot" style="background:${esc(b.color)}"></span>${esc(b.name)}
+        <button class="add" data-add="${esc(b.id)}" aria-label="Добавить здание в ветку ${esc(b.name)}">+ здание</button></h3>`;
+      for (const [id, n] of list) {
+        const d = depthOf(id);
+        side += `<button class="nodebtn" data-node="${esc(id)}" aria-current="${id === S.sel}" style="padding-left:${10 + d * 14}px">
+          ${nodeIcon(n) ? ico(nodeIcon(n), true) : ""}<span class="txt"><span class="n">${d ? "└ " : ""}${esc(n.name)}</span><span class="s">${esc(nodeSummary(n) || n.opens || "")}</span></span></button>`;
+      }
+      side += `</section>`;
+    }
+    $("#main").innerHTML = `<div class="tree"><nav class="side" aria-label="Здания">${side}</nav><section class="editor" id="ed"></section></div>`;
+    const nf = $("#nf");
+    nf.oninput = () => { S.filter = nf.value; const pos = nf.selectionStart; renderTree(); const again = $("#nf"); again.focus(); again.setSelectionRange(pos, pos); };
+    $("#main").querySelectorAll("[data-node]").forEach(b => b.onclick = () => { S.sel = b.dataset.node; S.level = 0; S.confirmDelete = false; renderTree(); });
+    $("#main").querySelectorAll("[data-add]").forEach(b => b.onclick = () => addNode(b.dataset.add));
+    renderEditor();
+  }
+
+  function resSelect(value, attrs) {
+    let h = `<select ${attrs}><option value="">— ресурс —</option>`;
+    for (const c of S.catalog.cats) {
+      const rs = S.catalog.resources.filter(r => r.cat === c.id);
+      if (!rs.length) continue;
+      h += `<optgroup label="${esc(c.name)}">` + rs.map(r => `<option value="${esc(r.id)}"${r.id === value ? " selected" : ""}>${esc(r.name)}</option>`).join("") + `</optgroup>`;
+    }
+    if (value && !S.catalog.resources.some(r => r.id === value)) h += `<option value="${esc(value)}" selected>${esc(value)} (нет в каталоге)</option>`;
+    return h + `</select>`;
+  }
+
+  function rowsTable(list, path, withChance) {
+    let h = `<div class="rows"><table class="rt"><thead><tr><th style="width:36%">Ресурс</th><th>В день</th>${withChance ? "<th>Шанс, %</th>" : ""}<th>Заметка</th><th></th></tr></thead><tbody>`;
+    list.forEach((row, i) => {
+      h += `<tr>
+        <td><div class="cellres">${row.r ? ico(row.r) : `<span class="ico-x">?</span>`}${resSelect(row.r, `data-path="${path}" data-i="${i}" data-k="r" aria-label="Ресурс"`)}</div></td>
+        <td><input type="number" step="1" min="0" value="${row.n ?? ""}" data-path="${path}" data-i="${i}" data-k="n" aria-label="Количество"></td>
+        ${withChance ? `<td><input type="number" step="5" min="0" max="100" value="${row.p ?? 100}" data-path="${path}" data-i="${i}" data-k="p" aria-label="Шанс"></td>` : ""}
+        <td><input type="text" class="note" value="${esc(row.t || "")}" data-path="${path}" data-i="${i}" data-k="t" aria-label="Заметка"></td>
+        <td><button class="x" data-del="${path}" data-i="${i}" aria-label="Убрать строку">✕</button></td></tr>`;
+    });
+    return h + `</tbody></table></div><button class="add" data-addrow="${path}">+ добавить</button>`;
+  }
+
+  function getList(n, path) {
+    // path: "unlock" or "L<i>.make|use|cost"
+    if (path === "unlock") return (n.unlock ||= []);
+    const [l, k] = path.split(".");
+    const L = n.levels[+l.slice(1)];
+    return (L[k] ||= []);
+  }
+
+  function renderEditor() {
+    const ed = $("#ed");
+    const id = S.sel, n = S.nodes[id];
+    if (!n) { ed.innerHTML = `<p>Выберите здание слева.</p>`; return; }
+    n.levels ||= [{ use: [], cost: [] }];
+    n.recipes ||= [];
+    if (S.level >= n.levels.length) S.level = 0;
+    const L = n.levels[S.level];
+    const parents = sortedNodes().filter(([pid]) => pid !== id);
+    let h = `<h2 class="cellres">${nodeIcon(n) ? ico(nodeIcon(n), true) : ""}${esc(n.name)}</h2><div class="id">${esc(id)} · ветка «${esc(branchOf(n.branch).name)}»</div>
+      <div class="grid">
+        <label class="f">Название<input type="text" data-f="name" value="${esc(n.name)}"></label>
+        <label class="f">Ветка<select data-f="branch">${S.branches.map(b => `<option value="${esc(b.id)}"${b.id === n.branch ? " selected" : ""}>${esc(b.name)}</option>`).join("")}</select></label>
+        <label class="f">Растёт из<select data-f="parent"><option value="">— корень ветки —</option>${parents.map(([pid, p]) => `<option value="${esc(pid)}"${pid === n.parent ? " selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
+        <label class="f">Работников<input type="number" min="0" step="1" data-f="workers" value="${n.workers ?? 0}"></label>
+        <label class="f">Мест для сна<input type="number" min="0" step="1" data-f="beds" value="${n.beds ?? 0}"></label>
+        <label class="f">Иконка<span class="cellres">${nodeIcon(n) ? ico(nodeIcon(n), true) : ""}${resSelect(n.icon && !n.icon.startsWith("b:") ? n.icon : "", `data-f="icon" aria-label="Иконка здания"`).replace('<option value="">— ресурс —</option>', `<option value="${esc(n.icon && n.icon.startsWith("b:") ? n.icon : "")}">своя иконка здания</option>`)}</span></label>
+        <label class="f wide">Когда открывается<input type="text" data-f="opens" value="${esc(n.opens || "")}" placeholder="напр. Дом шахтёров 2 ур. + 6 жителей"></label>
+        <label class="f wide">Заметка о здании<textarea data-f="note">${esc(n.note || "")}</textarea></label>
+      </div>
+      <div class="block cost"><h4>Открыть узел стоит<span class="hint">один раз, дороже самой постройки</span></h4>${rowsTable(n.unlock || [], "unlock", false)}</div>
+      <div class="levels" role="tablist" aria-label="Уровни">${n.levels.map((_, i) => `<button role="tab" data-lvl="${i}" aria-selected="${i === S.level}">Уровень ${i + 1}</button>`).join("")}
+        ${n.levels.length < 5 ? `<button data-addlvl="1" aria-label="Добавить уровень">+</button>` : ""}</div>
+      <div class="lvl" role="tabpanel">
+        <div class="blocks">
+          <label class="f" style="max-width:220px">Работников на этом уровне<input type="number" min="0" step="1" data-lw="1" value="${workersAt(n, S.level)}"></label>
+          <div class="block use"><h4>Содержание в день<span class="hint">не сырьё рецептов: износ инструментов, свет, еда жильцов; шанс — если тратится не каждый день</span></h4>${rowsTable(L.use || [], "L" + S.level + ".use", true)}</div>
+          <div class="block cost"><h4>${S.level === 0 ? "Постройка стоит" : "Улучшение до этого уровня стоит"}</h4>${rowsTable(L.cost || [], "L" + S.level + ".cost", false)}</div>
+          <label class="f">Что даёт уровень<textarea data-lf="note">${esc(L.note || "")}</textarea></label>
+        </div>
+        ${n.levels.length > 1 ? `<button class="btn ghost" data-dellvl="1" style="margin-top:10px">Убрать уровень ${S.level + 1}</button>` : ""}
+      </div>
+      <div class="block make" style="margin-top:18px"><h4>Рецепты<span class="hint">один рецепт — один товар; пропорции как в Minecraft; «раз в день» — сколько раз за день его делает один работник. Житель продаёт эти товары и принимает на них заказы.</span></h4>
+        <div class="rows"><table class="rt rec"><thead><tr><th>С ур.</th><th style="width:30%">Товар</th><th>Шт. за раз</th><th>Сырьё на один раз</th><th>Раз в день</th><th>Шанс, %</th><th></th></tr></thead><tbody>
+        ${n.recipes.map((x, i) => `<tr>
+          <td><input type="number" min="1" max="5" step="1" value="${x.lvl || 1}" data-rc="${i}" data-k="lvl" aria-label="С уровня"></td>
+          <td><div class="cellres">${x.out && (x.out.i || x.out.r) ? ico(outIco(x.out)) : `<span class="ico-x">?</span>`}${outSelect(x.out, `data-rc="${i}" data-k="out" aria-label="Товар"`)}</div></td>
+          <td><input type="number" min="1" step="1" value="${x.out?.n ?? 1}" data-rc="${i}" data-k="on" aria-label="Штук за раз"></td>
+          <td><div class="ins">${(x.use || []).map((y, j) => `<div>${y.r ? ico(y.r) : `<span class="ico-x">?</span>`}${resSelect(y.r, `data-ri="${i}" data-ii="${j}" data-k="r" aria-label="Сырьё"`)}<input type="number" min="1" step="1" value="${y.n ?? 1}" data-ri="${i}" data-ii="${j}" data-k="n" aria-label="Сколько"><button class="x" data-rid="${i}" data-ii="${j}" aria-label="Убрать сырьё">✕</button></div>`).join("")}
+            <button class="add" data-ria="${i}" style="margin-top:0">+ сырьё</button></div></td>
+          <td><input type="number" min="1" step="1" value="${x.per ?? 1}" data-rc="${i}" data-k="per" aria-label="Раз в день"></td>
+          <td><input type="number" min="1" max="100" step="5" value="${x.p ?? 100}" data-rc="${i}" data-k="p" aria-label="Шанс"></td>
+          <td><button class="x" data-recdel="${i}" aria-label="Убрать рецепт">✕</button></td></tr>`).join("")}
+        </tbody></table></div><button class="add" id="addrec">+ рецепт</button></div>
+      <div style="margin-top:16px">${recipeHead}${n.levels.map((LL, i) => recipe(n, LL, i, true)).join("")}</div>
+      <div class="foot">
+        ${S.confirmDelete ? `<span>Удалить «${esc(n.name)}» из древа?</span><button class="btn danger" data-delnode="yes">Да, удалить</button><button class="btn ghost" data-delnode="no">Отмена</button>`
+                          : `<button class="btn ghost" data-delnode="ask">Удалить здание</button>`}
+      </div>`;
+    ed.innerHTML = h;
+
+    ed.querySelectorAll("[data-f]").forEach(el => {
+      el.addEventListener(el.tagName === "SELECT" ? "change" : "input", () => {
+        const f = el.dataset.f;
+        n[f] = el.type === "number" ? num(el.value) : el.value;
+        saveNode(id);
+        if (f === "branch" || f === "parent" || f === "icon") renderTree();
+        else if (f === "name") { const b = document.querySelector(`[data-node="${CSS.escape(id)}"] .n`); if (b) b.textContent = (depthOf(id) ? "└ " : "") + n.name; ed.querySelector("h2").textContent = n.name; }
+      });
+    });
+    ed.querySelectorAll("[data-lf]").forEach(el => el.addEventListener("input", () => { L.note = el.value; saveNode(id); }));
+    ed.querySelectorAll("[data-lw]").forEach(el => el.addEventListener("input", () => { L.workers = num(el.value); saveNode(id); }));
+    ed.querySelectorAll("[data-rc]").forEach(el => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", () => {
+      const x = n.recipes[+el.dataset.rc], k = el.dataset.k;
+      if (k === "out") { const [t, v] = el.value.split(":"); x.out = { [t]: v, n: x.out?.n ?? 1 }; if (!v) x.out = { n: x.out.n }; saveNode(id); renderEditor(); return; }
+      if (k === "on") x.out = { ...(x.out || {}), n: Math.max(1, Math.round(num(el.value))) };
+      else if (k === "p") { const v = Math.round(num(el.value)); if (v >= 100 || v <= 0) delete x.p; else x.p = v; }
+      else x[k] = Math.max(1, Math.round(num(el.value)));
+      saveNode(id);
+    }));
+    ed.querySelectorAll("[data-ri]").forEach(el => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", () => {
+      const y = n.recipes[+el.dataset.ri].use[+el.dataset.ii];
+      if (el.dataset.k === "r") { y.r = el.value; saveNode(id); renderEditor(); } else { y.n = Math.max(1, Math.round(num(el.value))); saveNode(id); }
+    }));
+    ed.querySelectorAll("[data-rid]").forEach(b => b.onclick = () => { n.recipes[+b.dataset.rid].use.splice(+b.dataset.ii, 1); saveNode(id); renderEditor(); });
+    ed.querySelectorAll("[data-ria]").forEach(b => b.onclick = () => { (n.recipes[+b.dataset.ria].use ||= []).push({ r: "", n: 1 }); saveNode(id); renderEditor(); });
+    ed.querySelectorAll("[data-recdel]").forEach(b => b.onclick = () => { n.recipes.splice(+b.dataset.recdel, 1); saveNode(id); renderEditor(); });
+    const ar = ed.querySelector("#addrec");
+    if (ar) ar.onclick = () => { n.recipes.push({ lvl: S.level + 1, out: { n: 1 }, use: [], per: 1 }); saveNode(id); renderEditor(); };
+    ed.querySelectorAll("[data-path]").forEach(el => {
+      el.addEventListener(el.tagName === "SELECT" ? "change" : "input", () => {
+        const row = getList(n, el.dataset.path)[+el.dataset.i];
+        const k = el.dataset.k;
+        if (k === "r" || k === "t") row[k] = el.value;
+        else if (k === "p") { const v = num(el.value); if (v >= 100) delete row.p; else row.p = v; }
+        else row[k] = num(el.value);
+        saveNode(id);
+        if (k === "r") renderEditor();
+      });
+    });
+    ed.querySelectorAll("[data-addrow]").forEach(b => b.onclick = () => { getList(n, b.dataset.addrow).push({ r: "", n: 1 }); saveNode(id); renderEditor(); });
+    ed.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { getList(n, b.dataset.del).splice(+b.dataset.i, 1); saveNode(id); renderEditor(); });
+    ed.querySelectorAll("[data-lvl]").forEach(b => b.onclick = () => { S.level = +b.dataset.lvl; renderEditor(); });
+    const addl = ed.querySelector("[data-addlvl]");
+    if (addl) addl.onclick = () => { n.levels.push({ use: [], cost: [], note: "", workers: workersAt(n, n.levels.length - 1) }); S.level = n.levels.length - 1; saveNode(id); renderEditor(); };
+    const dell = ed.querySelector("[data-dellvl]");
+    if (dell) dell.onclick = () => { n.levels.splice(S.level, 1); S.level = Math.max(0, S.level - 1); saveNode(id); renderEditor(); };
+    ed.querySelectorAll("[data-delnode]").forEach(b => b.onclick = async () => {
+      if (b.dataset.delnode === "ask") { S.confirmDelete = true; renderEditor(); return; }
+      if (b.dataset.delnode === "no") { S.confirmDelete = false; renderEditor(); return; }
+      S.confirmDelete = false;
+      try {
+        await S.db.doc("nodes/" + id).delete();
+        delete S.nodes[id];
+        for (const [, o] of sortedNodes()) if (o.parent === id) { o.parent = ""; }
+        S.sel = null;
+        setStatus("удалено");
+        renderTree();
+      } catch (e) { setStatus("не удалилось: " + (e.code || e.message), true); }
+    });
+  }
+
+  function addNode(branch, parent, stay) {
+    let base = "new_" + branch, id = base, i = 1;
+    while (S.nodes[id]) id = base + "_" + (++i);
+    const order = Math.max(0, ...Object.values(S.nodes).map(n => n.order ?? 0)) + 1;
+    const pn = parent && S.nodes[parent];
+    S.nodes[id] = { name: "Новое здание", branch, parent: parent || "", opens: pn ? pn.name + " 3 ур." : "", unlock: [], beds: 1, workers: 1, note: "", order,
+      recipes: [], levels: [1, 2, 3].map(w => ({ use: [], cost: [], note: "", workers: w })) };
+    S.sel = id; S.level = 0; S.filter = "";
+    saveNode(id);
+    if (stay) { S.gSel = id; renderGraph(); setTimeout(() => { const i = $("#gname"); if (i) { i.focus(); i.select(); } }, 0); }
+    else renderTree();
+    return id;
+  }
+
+  // ------------------------------------------------------------ the tree drawn: a circle round the village's fire
+  const R0 = 190, STEP = 130, GAP = 118;
+  function layout() {
+    const pos = {};
+    const nodes = sortedNodes();
+    const branches = S.branches.filter(b => b.id !== "center");
+    const centre = nodes.filter(([, n]) => n.branch === "center");
+    centre.forEach(([id], i) => pos[id] = { x: (i - (centre.length - 1) / 2) * 100, y: 0, auto: true });
+    const kids = {};
+    for (const [id, n] of nodes) if (n.parent && S.nodes[n.parent] && S.nodes[n.parent].branch === n.branch) (kids[n.parent] ||= []).push(id);
+    const leaves = id => (kids[id] || []).reduce((a, c) => a + leaves(c), 0) || 1;
+    const sector = 2 * Math.PI / Math.max(1, branches.length);
+    const labels = [];
+    const midOf = {};
+    branches.forEach((b, bi) => midOf[b.id] = -Math.PI / 2 + bi * sector);
+    const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
+    branches.forEach((b, bi) => {
+      const mid = midOf[b.id];
+      const lean = id => {
+        const n = S.nodes[id], par = n.parent && S.nodes[n.parent];
+        return par && midOf[par.branch] != null ? wrap(midOf[par.branch] - mid) : 0;
+      };
+      const roots = nodes.filter(([, n]) => n.branch === b.id && !(n.parent && S.nodes[n.parent] && S.nodes[n.parent].branch === n.branch)).map(([id]) => id)
+        .sort((x, y) => lean(x) - lean(y));
+      const total = roots.reduce((a, r) => a + leaves(r), 0) || 1;
+      const span = sector * 0.82;
+      let cursor = mid - span / 2;
+      let deepest = 0;
+      // (far enough out that the leaves side by side are a gap apart along the arc)
+      const base = Math.max(R0, GAP / (span / total));
+      const place = (id, depth, from, width) => {
+        const a = from + width / 2, r = base + depth * STEP;
+        pos[id] = { x: Math.cos(a) * r, y: Math.sin(a) * r, auto: true };
+        deepest = Math.max(deepest, depth);
+        let c = from;
+        for (const k of kids[id] || []) { const w = width * leaves(k) / leaves(id); place(k, depth + 1, c, w); c += w; }
+      };
+      for (const r of roots) { const w = span * leaves(r) / total; place(r, 0, cursor, w); cursor += w; }
+      const lr = base + (deepest + 1) * STEP - 30;
+      labels.push({ b, x: Math.cos(mid) * lr, y: Math.sin(mid) * lr, mid, lr: R0 - 60 });
+    });
+    for (const [id, n] of nodes) if (n.pos && typeof n.pos.x === "number") pos[id] = { x: n.pos.x, y: n.pos.y };
+    // any still too close are pushed apart (the ones placed by hand stay where they were put)
+    const ids = Object.keys(pos);
+    for (let it = 0; it < 60; it++) {
+      let moved = false;
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+          const a = pos[ids[i]], b = pos[ids[j]];
+          let dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
+          if (d >= GAP - 8) continue;
+          if (d < 0.01) { dx = 1; dy = 0; d = 1; }
+          const push = (GAP - 8 - d) / 2, ux = dx / d, uy = dy / d;
+          if (a.auto && b.auto) { a.x -= ux * push; a.y -= uy * push; b.x += ux * push; b.y += uy * push; }
+          else if (a.auto) { a.x -= ux * push * 2; a.y -= uy * push * 2; }
+          else if (b.auto) { b.x += ux * push * 2; b.y += uy * push * 2; }
+          else continue;
+          moved = true;
+        }
+      }
+      if (!moved) break;
+    }
+    return { pos, labels };
+  }
+
+  /** A name in at most two lines of about 14 letters (the rest cut with …). */
+  function nameLines(name) {
+    const words = String(name || "").split(/\s+/), lines = [""];
+    for (const w of words) {
+      const cur = lines[lines.length - 1];
+      if (!cur || (cur + " " + w).length <= 14) lines[lines.length - 1] = cur ? cur + " " + w : w;
+      else if (lines.length < 2) lines.push(w);
+      else { lines[1] += " " + w; }
+    }
+    return lines.map(l => l.length > 18 ? l.slice(0, 17) + "…" : l);
+  }
+
+  function initials(name) {
+    const w = String(name || "?").trim().split(/\s+/);
+    return (w.length > 1 && w[0].length <= 3 ? w[1][0] : w[0][0] || "?").toUpperCase();
+  }
+
+  /** What a building makes (on any level) that the other uses up or is built with: [{r, from:[levels], to:[levels]}]. */
+  function linkInfo(a, b) {
+    const A = S.nodes[a], B = S.nodes[b];
+    if (!A || !B) return [];
+    const made = {};
+    for (const x of A.recipes || []) { const r = outRes(x.out); if (r) (made[r] ||= new Set()).add(x.lvl || 1); }
+    const out = {};
+    const need = (r, lvl, cost) => { if (r && made[r] && r !== "food") (out[r] ||= { r, from: [...made[r]], to: new Set(), cost }).to.add(lvl); };
+    for (const x of B.recipes || []) for (const y of x.use || []) need(y.r, x.lvl || 1, false);
+    (B.levels || []).forEach((L, i) => ["use", "cost"].forEach(k => (L[k] || []).forEach(x => need(x.r, i + 1, k === "cost"))));
+    (B.unlock || []).forEach(x => { if (x.r && made[x.r] && x.r !== "food") (out[x.r] ||= { r: x.r, from: [...made[x.r]], to: new Set(), cost: true }).to.add(0); });
+    return Object.values(out).map(o => ({ ...o, to: [...o.to] }));
+  }
+  const lv = list => list.map(l => l === 0 ? "откр." : l + " ур.").join(", ");
+
+  function renderGraph() {
+    if (S.gSel && !S.nodes[S.gSel]) S.gSel = null;
+    const hc = document.getElementById("hovercard"); if (hc) hc.hidden = true;
+    $("#main").innerHTML = `<div class="graph">
+      <div class="canvas" id="cv">
+        <svg id="svg" role="img" aria-label="Древо развития деревни"></svg>
+        <div class="tools"><button class="btn ghost" id="fit">Показать всё</button><button class="btn ghost" id="relayout">Разложить заново</button>
+          <button class="btn ghost" id="flows" aria-pressed="${S.flows}">${S.flows ? "Потоки ресурсов: вкл" : "Потоки ресурсов: выкл"}</button></div>
+        <div class="legend">Колесо — масштаб, тянуть фон — двигать, узлы можно перетаскивать. Линии кликабельны: что идёт из здания в здание. У выбранного здания зелёные линии — кому оно отдаёт, красные — от кого получает.</div>
+      </div>
+      <aside class="panel" id="gp"></aside></div>`;
+    drawGraph();
+    renderPanel();
+    $("#fit").onclick = fitView;
+    $("#flows").onclick = () => { S.flows = !S.flows; renderGraph(); };
+    $("#relayout").onclick = () => {
+      for (const [id, n] of sortedNodes()) if (n.pos) { delete n.pos; saveNode(id); }
+      drawGraph();
+    };
+    const svg = $("#svg");
+    let pan = null;
+    svg.addEventListener("pointerdown", e => {
+      const g = e.target.closest(".gnode");
+      if (g) {
+        const id = g.dataset.id, w = toWorld(e);
+        const p = S._pos[id];
+        pan = { node: id, dx: w.x - p.x, dy: w.y - p.y, moved: false };
+      } else if (!e.target.closest(".plus")) {
+        const eh = e.target.closest("[data-edge]");
+        pan = { x: e.clientX, y: e.clientY, vx: S.view.x, vy: S.view.y, edge: eh ? eh.dataset.edge : null };
+        svg.classList.add("panning");
+      }
+      if (pan) svg.setPointerCapture(e.pointerId);
+    });
+    svg.addEventListener("pointermove", e => {
+      if (!pan) return;
+      if (pan.node) {
+        const w = toWorld(e);
+        const n = S.nodes[pan.node];
+        const nx = Math.round(w.x - pan.dx), ny = Math.round(w.y - pan.dy);
+        if (!pan.moved && Math.hypot(nx - S._pos[pan.node].x, ny - S._pos[pan.node].y) < 4) return;
+        pan.moved = true;
+        n.pos = { x: nx, y: ny };
+        drawGraph();
+      } else {
+        S.view.x = pan.vx + (e.clientX - pan.x);
+        S.view.y = pan.vy + (e.clientY - pan.y);
+        applyView();
+      }
+    });
+    const end = e => {
+      if (!pan) return;
+      if (pan.node) {
+        if (pan.moved) saveNode(pan.node);
+        else { S.gSel = pan.node; S.gEdge = null; S.gConfirm = false; drawGraph(); renderPanel(); }
+      } else if (pan.edge && Math.hypot(e.clientX - pan.x, e.clientY - pan.y) < 4) {
+        const [from, to] = pan.edge.split(">");
+        S.gEdge = { from, to }; drawGraph(); renderPanel();
+      }
+      pan = null;
+      svg.classList.remove("panning");
+    };
+    svg.addEventListener("pointerup", end);
+    svg.addEventListener("pointercancel", end);
+    svg.addEventListener("wheel", e => {
+      e.preventDefault();
+      const r = svg.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+      const k = Math.max(0.25, Math.min(2.5, S.view.k * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
+      S.view.x = mx - (mx - S.view.x) * k / S.view.k;
+      S.view.y = my - (my - S.view.y) * k / S.view.k;
+      S.view.k = k;
+      applyView();
+    }, { passive: false });
+    if (!S._viewSet) { fitView(); S._viewSet = true; }
+  }
+
+  function toWorld(e) {
+    const r = $("#svg").getBoundingClientRect();
+    return { x: (e.clientX - r.left - S.view.x) / S.view.k, y: (e.clientY - r.top - S.view.y) / S.view.k };
+  }
+  function applyView() { const g = $("#world"); if (g) g.setAttribute("transform", `translate(${S.view.x} ${S.view.y}) scale(${S.view.k})`); }
+  function fitView() {
+    const svg = $("#svg"); if (!svg || !S._pos) return;
+    const ps = Object.values(S._pos).concat(S._labels || []);
+    if (!ps.length) return;
+    const xs = ps.map(p => p.x), ys = ps.map(p => p.y);
+    const minX = Math.min(...xs) - 90, maxX = Math.max(...xs) + 90, minY = Math.min(...ys) - 70, maxY = Math.max(...ys) + 70;
+    const r = svg.getBoundingClientRect();
+    const k = Math.max(0.25, Math.min(1.4, Math.min(r.width / (maxX - minX), r.height / (maxY - minY))));
+    S.view = { k, x: r.width / 2 - (minX + maxX) / 2 * k, y: r.height / 2 - (minY + maxY) / 2 * k };
+    applyView();
+  }
+
+  function drawGraph() {
+    const { pos, labels } = layout();
+    S._pos = pos;
+    S._labels = labels.map(l => ({ x: l.x, y: l.y }));
+    const nodes = sortedNodes();
+    let edges = "", body = "", lab = "";
+    for (const [id, n] of nodes) {
+      const p = pos[id];
+      const par = n.parent && pos[n.parent];
+      if (par) {
+        const same = S.nodes[n.parent].branch === n.branch;
+        const col = branchOf(n.branch).color;
+        const mx = (par.x + p.x) / 2 + (p.y - par.y) * 0.08, my = (par.y + p.y) / 2 - (p.x - par.x) * 0.08;
+        const on = S.gEdge && S.gEdge.from === n.parent && S.gEdge.to === id;
+        const d = `M${par.x},${par.y} Q${mx},${my} ${p.x},${p.y}`;
+        edges += `<path class="ehit" data-edge="${esc(n.parent)}>${esc(id)}" d="${d}"><title>${esc(S.nodes[n.parent].name)} → ${esc(n.name)}</title></path><path class="edge${same ? "" : " cross"}${on ? " on" : ""}" stroke="${esc(col)}" d="${d}"/>`;
+      } else if (n.branch !== "center") {
+        edges += `<path class="edge cross" stroke="${esc(branchOf(n.branch).color)}" d="M0,0 L${p.x},${p.y}"/>`;
+      }
+    }
+    for (const l of labels) {
+      const col = esc(l.b.color);
+      lab += `<text class="blabel" x="${l.x}" y="${l.y}" text-anchor="middle" fill="${col}">${esc(l.b.name)}</text>`;
+      const px = Math.cos(l.mid) * (R0 - 70), py = Math.sin(l.mid) * (R0 - 70);
+      lab += `<g class="plus" data-addbranch="${esc(l.b.id)}" transform="translate(${px} ${py})" role="button" aria-label="Добавить здание в ветку ${esc(l.b.name)}" tabindex="0">
+        <title>Новое здание в ветке «${esc(l.b.name)}»</title><circle r="11"/><text text-anchor="middle" y="5">+</text></g>`;
+    }
+    for (const [id, n] of nodes) {
+      const p = pos[id], col = branchOf(n.branch).color, lv = (n.levels || []).length;
+      const first = nodeSummary(n);
+      body += `<g class="gnode${id === S.gSel ? " sel" : ""}" data-id="${esc(id)}" transform="translate(${p.x} ${p.y})" tabindex="0" role="button" aria-label="${esc(n.name)}">
+        <title>${esc(n.name)}${first ? " — " + esc(first) : ""}</title>
+        ${id === S.gSel ? `<circle class="ring" r="29"/>` : ""}
+        <circle class="body" r="23" fill="${esc(col)}"/>
+        ${ICONS[nodeIcon(n)] ? `<circle r="17" fill="var(--page)" opacity=".92"/><image href="${ICONS[nodeIcon(n)]}" x="-13" y="-13" width="26" height="26"/>` : `<text class="ic" text-anchor="middle" y="5">${esc(initials(n.name))}</text>`}
+        <circle r="8" cx="17" cy="-17" fill="var(--wood)"/><text class="badge" x="17" y="-13.5" text-anchor="middle">${lv}</text>
+        ${nameLines(n.name).map((l, i) => `<text text-anchor="middle" y="${40 + i * 14}">${esc(l)}</text>`).join("")}</g>`;
+    }
+    // the picked building's trade in resources with the others
+    let flows = "";
+    if (S.flows && S.gSel && pos[S.gSel]) {
+      const a = pos[S.gSel];
+      for (const [id] of nodes) {
+        if (id === S.gSel || !pos[id]) continue;
+        const b = pos[id];
+        for (const [dir, from, to] of [["out", S.gSel, id], ["in", id, S.gSel]]) {
+          if (!linkInfo(from, to).length) continue;
+          const bend = dir === "out" ? 0.12 : -0.12;
+          const mx = (a.x + b.x) / 2 + (b.y - a.y) * bend, my = (a.y + b.y) / 2 - (b.x - a.x) * bend;
+          const d = `M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}`;
+          flows += `<path class="fhit" data-edge="${esc(from)}>${esc(to)}" d="${d}"><title>${esc(S.nodes[from].name)} → ${esc(S.nodes[to].name)}</title></path><path class="flow ${dir}" d="${d}"/>`;
+        }
+      }
+    }
+    $("#svg").innerHTML = `<g id="world">${flows}${edges}${lab}
+      <g><circle r="34" fill="var(--brass-soft)" stroke="var(--brass)" stroke-width="2" opacity=".6"/></g>${body}</g>`;
+    applyView();
+    $("#svg").querySelectorAll("[data-addbranch]").forEach(g => {
+      const add = () => addNode(g.dataset.addbranch, "", true);
+      g.addEventListener("click", add);
+      g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); add(); } });
+    });
+    let card = document.getElementById("hovercard");
+    if (!card) { card = document.createElement("div"); card.id = "hovercard"; card.className = "hovercard"; card.hidden = true; document.body.appendChild(card); }
+    $("#svg").querySelectorAll(".gnode").forEach(g => {
+      g.addEventListener("pointerenter", e => {
+        const n = S.nodes[g.dataset.id]; if (!n) return;
+        card.innerHTML = `<h3>${nodeIcon(n) ? ico(nodeIcon(n), true) : ""}${esc(n.name)}</h3>${recipeHead}${(n.levels || []).map((L, i) => recipe(n, L, i, false)).join("")}${counter(n)}`;
+        card.hidden = false;
+      });
+      g.addEventListener("pointermove", e => {
+        const w = card.offsetWidth, h = card.offsetHeight;
+        card.style.left = Math.min(window.innerWidth - w - 8, e.clientX + 18) + "px";
+        card.style.top = Math.max(8, Math.min(window.innerHeight - h - 8, e.clientY - 20)) + "px";
+      });
+      g.addEventListener("pointerleave", () => { card.hidden = true; });
+    });
+    $("#svg").querySelectorAll(".gnode").forEach(g => g.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); S.gSel = g.dataset.id; S.gConfirm = false; drawGraph(); renderPanel(); }
+    }));
+  }
+
+  function renderLink(gp) {
+    const { from, to } = S.gEdge, A = S.nodes[from], B = S.nodes[to];
+    const fwd = linkInfo(from, to), back = linkInfo(to, from);
+    const table = (list, X, Y) => `<div class="flowrow">${nodeIcon(X) ? ico(nodeIcon(X), true) : ""}<span class="arrow" style="color:var(--good)">▶</span>${list.map(x => `<span class="slot" title="${esc(resName(x.r))}: ${esc(lv(x.from))} → ${esc(lv(x.to))}${x.cost ? ", на стройку" : ""}">${ico(x.r)}</span>`).join("")}<span class="arrow" style="color:var(--good)">▶</span>${nodeIcon(Y) ? ico(nodeIcon(Y), true) : ""}</div>
+      <table class="lk">${list.map(x => `<tr><td class="cellres">${ico(x.r)}${esc(resName(x.r))}</td><td class="l">${esc(lv(x.from))} → ${esc(lv(x.to))}${x.cost ? " · стройка" : ""}</td></tr>`).join("")}</table>`;
+    const tree = B.parent === from ? `<p>«${esc(B.name)}» растёт из «${esc(A.name)}» в древе развития.<br><span style="color:var(--muted)">Открывается: ${esc(B.opens || "условие не задано")}</span></p>`
+      : A.parent === to ? `<p>«${esc(A.name)}» растёт из «${esc(B.name)}».</p>` : `<p style="color:var(--muted)">В древе они не связаны — только ресурсами.</p>`;
+    gp.innerHTML = `<h2 class="cellres">${nodeIcon(A) ? ico(nodeIcon(A), true) : ""}<span class="arrow">→</span>${nodeIcon(B) ? ico(nodeIcon(B), true) : ""}</h2><h2 style="font-size:17px">${esc(A.name)} → ${esc(B.name)}</h2>
+      <div class="id">${esc(branchOf(A.branch).name)} → ${esc(branchOf(B.branch).name)}</div>
+      ${tree}
+      <div class="lv"><b>Что «${esc(A.name)}» даёт «${esc(B.name)}»</b>${fwd.length ? table(fwd, A, B) : `<p style="color:var(--muted);margin:4px 0">Ничего из того, что производит первое, второе не тратит.</p>`}</div>
+      <div class="lv"><b>И обратно</b>${back.length ? table(back, B, A) : `<p style="color:var(--muted);margin:4px 0">Ничего.</p>`}</div>
+      <p style="color:var(--muted);font-size:12px">Уровни: «2 ур. → 1 ур.» — производится на 2-м уровне первого, нужно на 1-м второго. «стройка» — идёт на постройку или улучшение. Еда работников здесь не показана.</p>
+      <div class="acts"><button class="btn ghost" data-gsel="${esc(from)}">← ${esc(A.name)}</button><button class="btn ghost" data-gsel="${esc(to)}">${esc(B.name)} →</button></div>`;
+    gp.querySelectorAll("[data-gsel]").forEach(b => b.onclick = () => { S.gSel = b.dataset.gsel; S.gEdge = null; drawGraph(); renderPanel(); });
+  }
+
+  function renderPanel() {
+    const gp = $("#gp"); if (!gp) return;
+    if (S.gEdge && S.nodes[S.gEdge.from] && S.nodes[S.gEdge.to]) { renderLink(gp); return; }
+    S.gEdge = null;
+    const id = S.gSel, n = S.nodes[id];
+    if (!n) {
+      gp.innerHTML = `<h2>Древо развития</h2><p style="color:var(--muted)">Выберите здание на рисунке — здесь появится, что оно даёт по уровням, и можно будет добавить здание, которое из него растёт.</p>
+        <p style="color:var(--muted);font-size:13px">Цифра на кружке — сколько у здания уровней. Пунктир — связь с другой веткой или с центром.</p>`;
+      return;
+    }
+    const kids = sortedNodes().filter(([, o]) => o.parent === id);
+    gp.innerHTML = `<h2 class="cellres">${nodeIcon(n) ? ico(nodeIcon(n), true) : ""}${esc(n.name)}</h2><div class="id">${esc(branchOf(n.branch).name)}${n.parent && S.nodes[n.parent] ? " · растёт из «" + esc(S.nodes[n.parent].name) + "»" : ""}</div>
+      <label class="f">Название<input type="text" id="gname" value="${esc(n.name)}"></label>
+      <label class="f">Когда открывается<input type="text" id="gopens" value="${esc(n.opens || "")}"></label>
+      ${recipeHead}${(n.levels || []).map((L, i) => recipe(n, L, i, true)).join("")}
+      ${counter(n)}
+      ${kids.length ? `<div class="lv"><b>Из него растут</b><div class="chips">${kids.map(([k, o]) => `<button class="chip" data-gsel="${esc(k)}" style="cursor:pointer">${esc(o.name)}</button>`).join("")}</div></div>` : ""}
+      <div class="acts">
+        <button class="btn" id="gchild">+ здание отсюда</button>
+        <button class="btn ghost" id="gedit">Открыть в редакторе</button>
+        ${S.gConfirm ? `<button class="btn danger" id="gdelyes">Да, удалить</button><button class="btn ghost" id="gdelno">Отмена</button>` : `<button class="btn ghost" id="gdel">Удалить</button>`}
+      </div>`;
+    $("#gname").oninput = e => { n.name = e.target.value; saveNode(id); drawGraph(); };
+    $("#gopens").oninput = e => { n.opens = e.target.value; saveNode(id); };
+    $("#gchild").onclick = () => addNode(n.branch, id, true);
+    $("#gedit").onclick = () => { S.sel = id; S.level = 0; showTab("tree"); };
+    gp.querySelectorAll("[data-gsel]").forEach(b => b.onclick = () => { S.gSel = b.dataset.gsel; S.gConfirm = false; drawGraph(); renderPanel(); });
+    // who it trades resources with
+    const partners = sortedNodes().filter(([o]) => o !== id).map(([o, on]) => ({ o, on, out: linkInfo(id, o), inn: linkInfo(o, id) })).filter(x => x.out.length || x.inn.length);
+    if (partners.length) {
+      const box = document.createElement("div");
+      box.className = "lv";
+      box.innerHTML = `<b>Связи по ресурсам</b><table class="lk">${partners.map(x => `<tr><td><button class="chip i" data-edgeto="${esc(x.o)}" style="cursor:pointer">${nodeIcon(x.on) ? ico(nodeIcon(x.on)) : ""}${esc(x.on.name)}</button></td>
+        <td>${x.out.length ? `<span style="color:var(--good);font-weight:700">→</span> ${x.out.map(y => ico(y.r)).join("")}` : ""}${x.out.length && x.inn.length ? "<br>" : ""}${x.inn.length ? `<span style="color:var(--bad);font-weight:700">←</span> ${x.inn.map(y => ico(y.r)).join("")}` : ""}</td></tr>`).join("")}</table>`;
+      gp.insertBefore(box, gp.querySelector(".acts"));
+      box.querySelectorAll("[data-edgeto]").forEach(b => b.onclick = () => {
+        const o = b.dataset.edgeto;
+        S.gEdge = linkInfo(id, o).length ? { from: id, to: o } : { from: o, to: id };
+        drawGraph(); renderPanel();
+      });
+    }
+    const del = $("#gdel"); if (del) del.onclick = () => { S.gConfirm = true; renderPanel(); };
+    const no = $("#gdelno"); if (no) no.onclick = () => { S.gConfirm = false; renderPanel(); };
+    const yes = $("#gdelyes");
+    if (yes) yes.onclick = async () => {
+      S.gConfirm = false;
+      try {
+        await S.db.doc("nodes/" + id).delete();
+        delete S.nodes[id];
+        for (const [kid, o] of sortedNodes()) if (o.parent === id) { o.parent = n.parent || ""; saveNode(kid); }
+        S.gSel = null;
+        setStatus("удалено");
+        drawGraph(); renderPanel();
+      } catch (e) { setStatus("не удалилось: " + (e.code || e.message), true); }
+    };
+  }
+
+  // ------------------------------------------------------------ the resources
+  function renderRes() {
+    const fl = flows();
+    const q = S.resQuery.trim().toLowerCase();
+    const stateOf = r => {
+      const f = fl[r.id] || { make: [], use: [], cost: [] };
+      const made = f.make.length > 0, used = f.use.length + f.cost.length > 0;
+      return made && !used ? "sink" : !made && used ? "src" : !made && !used ? "none" : "ok";
+    };
+    const counts = { all: 0, sink: 0, src: 0, none: 0 };
+    for (const r of S.catalog.resources) { counts.all++; const s = stateOf(r); if (s !== "ok") counts[s]++; }
+    const pills = [["all", `Все (${counts.all})`], ["sink", `Некуда девать (${counts.sink})`], ["src", `Нет источника (${counts.src})`], ["none", `Не используются (${counts.none})`]];
+    let h = `<div class="rbar"><input type="search" id="rq" placeholder="Найти ресурс…" value="${esc(S.resQuery)}" aria-label="Поиск ресурса">
+      ${pills.map(([k, t]) => `<button class="pill" data-rf="${k}" aria-pressed="${S.resFilter === k}">${t}</button>`).join("")}</div>
+      <p style="margin:0 0 10px;color:var(--muted);font-size:13px;max-width:90ch">«Некуда девать» — производится, но ни одно здание его не тратит: нужен потребитель (иначе склады переполнятся).
+      «Нет источника» — здания его тратят, а производить некому: нужно здание или торговля.</p>
+      <div class="tablewrap"><table class="res"><thead><tr><th style="width:22%">Ресурс</th><th style="width:14%">Группа</th><th>Производят</th><th>Потребляют / стоит</th><th style="width:11%">Итог</th><th></th></tr></thead><tbody>`;
+    for (const c of S.catalog.cats) {
+      const rows = S.catalog.resources.filter(r => r.cat === c.id)
+        .filter(r => !q || (r.name + " " + r.id).toLowerCase().includes(q))
+        .filter(r => S.resFilter === "all" || stateOf(r) === S.resFilter);
+      if (!rows.length) continue;
+      h += `<tr class="cat"><td colspan="6">${esc(c.name)}</td></tr>`;
+      for (const r of rows) {
+        const f = fl[r.id] || { make: [], use: [], cost: [] };
+        const chip = (x, cls) => `<button class="chip i ${cls}" data-go="${esc(x.id)}" style="cursor:pointer" title="${esc(S.nodes[x.id]?.name || x.id)}">${nodeIcon(S.nodes[x.id]) ? ico(nodeIcon(S.nodes[x.id])) : ""}${esc(S.nodes[x.id]?.name || x.id)}${x.lvl ? " " + x.lvl : ""}</button>`;
+        const st = stateOf(r);
+        const flag = st === "sink" ? `<span class="flag sink">некуда девать</span>` : st === "src" ? `<span class="flag src">нет источника</span>` : st === "none" ? `<span class="flag ok">не используется</span>` : `<span class="flag ok">ок</span>`;
+        h += `<tr><td><div class="cellres">${ico(r.id, true)}<input type="text" value="${esc(r.name)}" data-rn="${esc(r.id)}" aria-label="Название"></div><div class="id">${esc(r.id)}</div></td>
+          <td><select data-rc="${esc(r.id)}" aria-label="Категория">${S.catalog.cats.map(cc => `<option value="${esc(cc.id)}"${cc.id === r.cat ? " selected" : ""}>${esc(cc.name)}</option>`).join("")}</select></td>
+          <td><div class="chips">${f.make.map(x => chip(x, "g")).join("") || "—"}</div></td>
+          <td><div class="chips">${f.use.map(x => chip(x, "b")).join("")}${f.cost.map(x => chip(x, "")).join("")}${!f.use.length && !f.cost.length ? "—" : ""}</div></td>
+          <td>${flag}</td>
+          <td><button class="x" data-rdel="${esc(r.id)}" aria-label="Удалить ресурс">✕</button></td></tr>`;
+      }
+    }
+    h += `</tbody></table></div>
+      <form class="addres" id="addres"><label class="f">Новый ресурс<input type="text" id="nr-name" placeholder="напр. Мука" required></label>
+      <label class="f">Код (латиницей)<input type="text" id="nr-id" placeholder="flour" pattern="[a-z0-9_]+" required></label>
+      <label class="f">Категория<select id="nr-cat">${S.catalog.cats.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("")}</select></label>
+      <button class="btn" type="submit">Добавить ресурс</button><span id="nr-msg" class="id"></span></form>`;
+    $("#main").innerHTML = h;
+    const rq = $("#rq");
+    rq.oninput = () => { S.resQuery = rq.value; const pos = rq.selectionStart; renderRes(); const a = $("#rq"); a.focus(); a.setSelectionRange(pos, pos); };
+    $("#main").querySelectorAll("[data-rf]").forEach(b => b.onclick = () => { S.resFilter = b.dataset.rf; renderRes(); });
+    $("#main").querySelectorAll("[data-go]").forEach(b => b.onclick = () => { S.sel = b.dataset.go; S.level = 0; showTab("tree"); });
+    $("#main").querySelectorAll("[data-rn]").forEach(el => el.oninput = () => { const r = S.catalog.resources.find(x => x.id === el.dataset.rn); r.name = el.value; saveCatalog(); });
+    $("#main").querySelectorAll("[data-rc]").forEach(el => el.onchange = () => { const r = S.catalog.resources.find(x => x.id === el.dataset.rc); r.cat = el.value; saveCatalog(); renderRes(); });
+    $("#main").querySelectorAll("[data-rdel]").forEach(b => b.onclick = () => {
+      const id = b.dataset.rdel;
+      if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "точно?"; b.style.width = "auto"; return; }
+      S.catalog.resources = S.catalog.resources.filter(x => x.id !== id); saveCatalog(); renderRes();
+    });
+    $("#addres").onsubmit = e => {
+      e.preventDefault();
+      const name = $("#nr-name").value.trim(), id = $("#nr-id").value.trim().toLowerCase(), cat = $("#nr-cat").value;
+      if (!name || !/^[a-z0-9_]+$/.test(id)) { $("#nr-msg").textContent = "Код: латинские буквы, цифры, _"; return; }
+      if (S.catalog.resources.some(r => r.id === id)) { $("#nr-msg").textContent = "Такой код уже есть"; return; }
+      S.catalog.resources.push({ id, name, cat }); saveCatalog(); renderRes();
+    };
+  }
+
+  // ------------------------------------------------------------ the counters: who sells what, and the items
+  function renderSell() {
+    const q = S.sellQuery.trim().toLowerCase();
+    let h = `<p style="margin:0 0 12px;color:var(--muted);max-width:95ch">Склад деревни считает категории. Конкретный предмет делает житель по рецепту своего здания: его можно купить из запаса или заказать.
+      На складе предмет весит столько единиц своей категории, сколько указано у предмета. Цифра на ячейке — с какого уровня здания, внизу — сколько штук в день делает один работник.</p>
+      <h2 style="font:700 20px var(--display);margin:6px 0">Кто что делает</h2><div class="summary" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">`;
+    for (const b of S.branches) for (const [id, n] of sortedNodes().filter(([, n]) => n.branch === b.id && (n.recipes || []).some(x => x.out && x.out.i))) {
+      h += `<div class="card"><b class="cellres" style="cursor:pointer" data-go="${esc(id)}">${nodeIcon(n) ? ico(nodeIcon(n), true) : ""}${esc(n.name)}</b>
+        <div class="chips">${(n.recipes || []).filter(x => x.out && x.out.i).map(x => itemSlot({ item: x.out.i, lvl: x.lvl || 1, n: (x.out.n || 1) * (x.per || 1) })).join("")}</div></div>`;
+    }
+    h += `</div><h2 style="font:700 20px var(--display);margin:22px 0 6px">Предметы</h2>
+      <div class="rbar"><input type="search" id="sq" placeholder="Найти предмет…" value="${esc(S.sellQuery)}" aria-label="Поиск предмета">
+      ${[["all", "Все"], ["none", "Никто не делает"], ["many", "Делают несколько"]].map(([k, t]) => `<button class="pill" data-sf="${k}" aria-pressed="${S.sellFilter === k}">${t}</button>`).join("")}</div>
+      <div class="tablewrap"><table class="res"><thead><tr><th style="width:30%">Предмет</th><th style="width:20%">Категория склада</th><th style="width:10%">Единиц</th><th>Кто делает (с какого уровня)</th><th></th></tr></thead><tbody>`;
+    for (const c of S.catalog.resources) {
+      const rows = S.items.filter(x => x.res === c.id).filter(x => !q || x.name.toLowerCase().includes(q) || x.id.includes(q))
+        .filter(x => { const k = sellers(x.id).length; return S.sellFilter === "all" || (S.sellFilter === "none" ? k === 0 : k > 1); });
+      if (!rows.length) continue;
+      h += `<tr class="cat"><td colspan="5"><span class="cellres">${ico(c.id)}${esc(c.name)}</span></td></tr>`;
+      for (const x of rows) {
+        const who = sellers(x.id);
+        h += `<tr><td><div class="cellres">${ico("i:" + x.id, true)}<input type="text" value="${esc(x.name)}" data-in="${esc(x.id)}" aria-label="Название"></div></td>
+          <td><select data-ic="${esc(x.id)}" aria-label="Категория">${S.catalog.resources.map(r => `<option value="${esc(r.id)}"${r.id === x.res ? " selected" : ""}>${esc(r.name)}</option>`).join("")}</select></td>
+          <td><input type="number" min="0" step="0.5" value="${x.units}" data-iu="${esc(x.id)}" aria-label="Единиц категории" style="width:70px"></td>
+          <td><div class="chips">${who.map(w => `<button class="chip i" data-go="${esc(w.id)}" style="cursor:pointer">${nodeIcon(S.nodes[w.id]) ? ico(nodeIcon(S.nodes[w.id])) : ""}${esc(S.nodes[w.id].name)} ${w.lvl}</button>`).join("") || `<span class="flag src">никто</span>`}</div></td>
+          <td><button class="x" data-idel="${esc(x.id)}" aria-label="Удалить предмет">✕</button></td></tr>`;
+      }
+    }
+    h += `</tbody></table></div>
+      <form class="addres" id="additem"><label class="f">Новый предмет<input type="text" id="ni-name" placeholder="напр. Медный фонарь" required></label>
+      <label class="f">Код<input type="text" id="ni-id" placeholder="copper_lantern" pattern="[a-z0-9_]+" required></label>
+      <label class="f">Категория<select id="ni-cat">${S.catalog.resources.map(r => `<option value="${esc(r.id)}">${esc(r.name)}</option>`).join("")}</select></label>
+      <label class="f">Единиц<input type="number" id="ni-u" value="1" min="0" step="0.5" style="width:80px"></label>
+      <button class="btn" type="submit">Добавить</button><span id="ni-msg" class="id"></span></form>`;
+    $("#main").innerHTML = h;
+    const sq = $("#sq");
+    sq.oninput = () => { S.sellQuery = sq.value; const pos = sq.selectionStart; renderSell(); const a = $("#sq"); a.focus(); a.setSelectionRange(pos, pos); };
+    $("#main").querySelectorAll("[data-sf]").forEach(b => b.onclick = () => { S.sellFilter = b.dataset.sf; renderSell(); });
+    $("#main").querySelectorAll("[data-go]").forEach(b => b.onclick = () => { S.sel = b.dataset.go; S.level = 0; showTab("tree"); });
+    $("#main").querySelectorAll("[data-in]").forEach(el => el.oninput = () => { itemOf(el.dataset.in).name = el.value; saveItems(); });
+    $("#main").querySelectorAll("[data-ic]").forEach(el => el.onchange = () => { itemOf(el.dataset.ic).res = el.value; saveItems(); renderSell(); });
+    $("#main").querySelectorAll("[data-iu]").forEach(el => el.oninput = () => { itemOf(el.dataset.iu).units = num(el.value); saveItems(); });
+    $("#main").querySelectorAll("[data-idel]").forEach(b => b.onclick = () => {
+      if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "точно?"; b.style.width = "auto"; return; }
+      S.items = S.items.filter(x => x.id !== b.dataset.idel); saveItems(); renderSell();
+    });
+    $("#additem").onsubmit = e => {
+      e.preventDefault();
+      const name = $("#ni-name").value.trim(), id = $("#ni-id").value.trim().toLowerCase();
+      if (!name || !/^[a-z0-9_]+$/.test(id)) { $("#ni-msg").textContent = "Код: латинские буквы, цифры, _"; return; }
+      if (itemOf(id)) { $("#ni-msg").textContent = "Такой код уже есть"; return; }
+      S.items.push({ id, name, res: $("#ni-cat").value, units: num($("#ni-u").value) || 1 }); saveItems(); renderSell();
+    };
+  }
+
+  // ------------------------------------------------------------ export
+  function renderJson() {
+    const all = { branches: S.branches, catalog: S.catalog, items: S.items, nodes: Object.fromEntries(sortedNodes()) };
+    const text = JSON.stringify(all, null, 2);
+    $("#main").innerHTML = `<div class="rbar"><button class="btn" id="copy">Скопировать всё</button>
+      ${S.local ? `<button class="btn" id="dl">Скачать tree.json</button><button class="btn ghost" id="reset">Вернуть как в файле</button>` : ""}
+      <span class="id" id="copymsg">${S.local ? "Локальная копия: правки хранятся в этом браузере; чтобы они попали в проект, скачайте tree.json и положите в docs/village-tree/." : "Всё сохраняется само — это только для копии."}</span></div><pre class="json" id="jt">${esc(text)}</pre>`;
+    const dl = $("#dl");
+    if (dl) dl.onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "application/json" })); a.download = "tree.json"; a.click(); };
+    const rs = $("#reset");
+    if (rs) rs.onclick = () => { try { localStorage.removeItem("vt-local"); } catch (e) {} location.reload(); };
+    $("#copy").onclick = async () => {
+      try { await navigator.clipboard.writeText(text); $("#copymsg").textContent = "Скопировано."; }
+      catch (e) { const r = document.createRange(); r.selectNodeContents($("#jt")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $("#copymsg").textContent = "Выделено — нажмите Ctrl+C."; }
+    };
+  }
+
+  // ------------------------------------------------------------ the local copy (a file in the project, no store)
+  function startLocal() {
+    let data = window.TREE_DATA;
+    try { const kept = JSON.parse(localStorage.getItem("vt-local") || "null"); if (kept && kept.items) data = kept; } catch (e) {}
+    S.branches = data.branches || [];
+    S.catalog = data.catalog || { resources: [], cats: [] };
+    S.items = data.items || [];
+    S.nodes = JSON.parse(JSON.stringify(data.nodes || {}));
+    S.local = true;
+    const keep = () => { try { localStorage.setItem("vt-local", JSON.stringify({ branches: S.branches, catalog: S.catalog, items: S.items, nodes: S.nodes })); } catch (e) {} };
+    // (the same calls as the store's: kept in this browser)
+    S.db = { doc: path => ({
+      set: async d => { const [c, id] = path.split("/"); if (c === "nodes") S.nodes[id] = d; else if (id === "catalog") S.catalog = d; else if (id === "items") S.items = d.items || []; keep(); },
+      delete: async () => { const [c, id] = path.split("/"); if (c === "nodes") delete S.nodes[id]; keep(); },
+    }) };
+    setStatus("локальная копия");
+    render();
+  }
+
+  // ------------------------------------------------------------ the store
+  (async () => {
+    const db = window.claude?.use ? await window.claude.use("db") : null;
+    if (!db && window.TREE_DATA) { startLocal(); return; }
+    if (!db) {
+      setStatus("нет базы", true);
+      $("#main").innerHTML = `<div class="notice"><b>Древо хранится в общей базе этой страницы, а в этом просмотре она недоступна.</b><br>Откройте страницу на claude.ai, войдя в аккаунт.</div>`;
+      return;
+    }
+    S.db = db;
+    let got = { nodes: false, cat: false, br: false, items: false };
+    const ready = () => { if (got.nodes && got.cat && got.br && got.items) { setStatus("сохранено"); render(); } };
+    db.doc("meta/items").onSnapshot(s => {
+      if (!S.itemsDirty && s.exists) S.items = JSON.parse(JSON.stringify(s.data().items || []));
+      const first = !got.items; got.items = true; if (first) ready(); else if (S.tab === "sell" && !document.activeElement?.closest(".res")) render();
+    }, e => setStatus("база: " + e.code, true));
+    db.collection("nodes").onSnapshot(snap => {
+      for (const ch of snap.docChanges()) {
+        const id = ch.doc.id;
+        if (S.dirty.has(id)) continue;           // (our own edit in flight: keep ours)
+        if (ch.type === "removed") delete S.nodes[id];
+        else S.nodes[id] = JSON.parse(JSON.stringify(ch.doc.data()));
+      }
+      const first = !got.nodes; got.nodes = true;
+      if (first) ready();
+      else if (!document.activeElement || !document.activeElement.closest("#ed, .res, #gp")) render();
+    }, e => setStatus("база: " + e.code, true));
+    db.doc("meta/catalog").onSnapshot(s => {
+      if (!S.catDirty && s.exists) S.catalog = JSON.parse(JSON.stringify(s.data()));
+      const first = !got.cat; got.cat = true; if (first) ready();
+    }, e => setStatus("база: " + e.code, true));
+    db.doc("meta/branches").onSnapshot(s => {
+      if (s.exists) S.branches = s.data().branches || [];
+      const first = !got.br; got.br = true; if (first) ready(); else render();
+    }, e => setStatus("база: " + e.code, true));
+  })();
+  showTab(S.tab);
+})();
+</script>
+

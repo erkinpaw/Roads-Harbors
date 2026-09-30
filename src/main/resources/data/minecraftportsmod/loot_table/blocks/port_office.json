@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [ { "type": "minecraft:item", "name": "minecraftportsmod:port_office" } ],
+      "conditions": [ { "condition": "minecraft:survives_explosion" } ]
+    }
+  ],
+  "random_sequence": "minecraftportsmod:blocks/port_office"
+}

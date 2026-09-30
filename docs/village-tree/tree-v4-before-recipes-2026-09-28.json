@@ -1,0 +1,6909 @@
+{
+ "branches": [
+  {
+   "color": "#C9A55A",
+   "id": "center",
+   "name": "Центр"
+  },
+  {
+   "color": "#8A5A30",
+   "id": "home",
+   "name": "Жильё"
+  },
+  {
+   "color": "#7A5A3A",
+   "id": "store",
+   "name": "Склады"
+  },
+  {
+   "color": "#3A9A6A",
+   "id": "trade",
+   "name": "Торговля и знания"
+  },
+  {
+   "color": "#5E8A3C",
+   "id": "wood",
+   "name": "Лес"
+  },
+  {
+   "color": "#707070",
+   "id": "mine",
+   "name": "Шахта и металл"
+  },
+  {
+   "color": "#9A4A6A",
+   "id": "craft",
+   "name": "Ремесло"
+  },
+  {
+   "color": "#A0703A",
+   "id": "animals",
+   "name": "Животные"
+  },
+  {
+   "color": "#B89A30",
+   "id": "farm",
+   "name": "Еда"
+  }
+ ],
+ "catalog": {
+  "cats": [
+   {
+    "id": "food",
+    "name": "Еда и корм"
+   },
+   {
+    "id": "wood",
+    "name": "Дерево"
+   },
+   {
+    "id": "stone",
+    "name": "Камень и земля"
+   },
+   {
+    "id": "metal",
+    "name": "Руда и металл"
+   },
+   {
+    "id": "goods",
+    "name": "Ремесло"
+   },
+   {
+    "id": "gear",
+    "name": "Снаряжение"
+   },
+   {
+    "id": "home",
+    "name": "Быт"
+   }
+  ],
+  "groups": [
+   {
+    "id": "food",
+    "name": "Еда и корм"
+   },
+   {
+    "id": "wood",
+    "name": "Дерево"
+   },
+   {
+    "id": "stone",
+    "name": "Камень и земля"
+   },
+   {
+    "id": "metal",
+    "name": "Руда и металл"
+   },
+   {
+    "id": "goods",
+    "name": "Ремесло"
+   },
+   {
+    "id": "gear",
+    "name": "Снаряжение"
+   },
+   {
+    "id": "home",
+    "name": "Быт"
+   }
+  ],
+  "resources": [
+   {
+    "cat": "food",
+    "id": "food",
+    "name": "Еда",
+    "note": "Вся еда: хлеб, мясо, рыба, овощи. Житель съедает 6 в день. Разнообразие — позже."
+   },
+   {
+    "cat": "food",
+    "id": "grain",
+    "name": "Зерно и корм",
+    "note": "Пшеница, семена, сено: корм скоту, мука для пекарни."
+   },
+   {
+    "cat": "wood",
+    "id": "log",
+    "name": "Брёвна",
+    "note": "Брёвна любой породы."
+   },
+   {
+    "cat": "wood",
+    "id": "planks",
+    "name": "Доски",
+    "note": "Сырьё для стройки и столярки."
+   },
+   {
+    "cat": "wood",
+    "id": "sticks",
+    "name": "Палки",
+    "note": "Рукояти инструментов, факелы, заборы."
+   },
+   {
+    "cat": "wood",
+    "id": "joinery",
+    "name": "Столярка",
+    "note": "Ступеньки, полублоки, заборы, калитки, двери, люки, лестницы, таблички, сундуки. Делает лесопилка."
+   },
+   {
+    "cat": "wood",
+    "id": "fuel",
+    "name": "Топливо",
+    "note": "Дрова (у дровосека) и уголь (из шахты). Кузница, плавильня, печи."
+   },
+   {
+    "cat": "stone",
+    "id": "stone",
+    "name": "Камень",
+    "note": "Булыжник, камень, гранит, диорит, андезит, сланец."
+   },
+   {
+    "cat": "stone",
+    "id": "cut_stone",
+    "name": "Тёсаный камень",
+    "note": "Каменные кирпичи, ступени, плиты, мостовая."
+   },
+   {
+    "cat": "stone",
+    "id": "sand",
+    "name": "Песок",
+    "note": "Для стекла."
+   },
+   {
+    "cat": "stone",
+    "id": "clay",
+    "name": "Глина",
+    "note": "Для кирпича и гончарки."
+   },
+   {
+    "cat": "metal",
+    "id": "ore",
+    "name": "Руда",
+    "note": "Железная и медная руда."
+   },
+   {
+    "cat": "metal",
+    "id": "metal",
+    "name": "Металл",
+    "note": "Железные и медные слитки, самородки. Делает плавильня."
+   },
+   {
+    "cat": "metal",
+    "id": "metalware",
+    "name": "Металлические изделия",
+    "note": "Вёдра, цепи, решётки, рельсы, фонари, наковальни, компасы. Делает слесарня из металла."
+   },
+   {
+    "cat": "metal",
+    "id": "gold",
+    "name": "Золото",
+    "note": "Руда и слитки золота."
+   },
+   {
+    "cat": "metal",
+    "id": "gems",
+    "name": "Самоцветы",
+    "note": "Алмазы, изумруды, лазурит, редстоун, аметист."
+   },
+   {
+    "cat": "gear",
+    "id": "tools1",
+    "name": "Инструменты I",
+    "note": "Деревянные кирки, топоры, лопаты, мотыги; удочки. Кузница 1 ур."
+   },
+   {
+    "cat": "gear",
+    "id": "tools2",
+    "name": "Инструменты II",
+    "note": "Каменные инструменты. Кузница 2 ур."
+   },
+   {
+    "cat": "gear",
+    "id": "tools3",
+    "name": "Инструменты III",
+    "note": "Железные инструменты, ножницы, огниво. Кузница 3 ур."
+   },
+   {
+    "cat": "goods",
+    "id": "wool",
+    "name": "Ткани",
+    "note": "Шерсть (белая и цветная), нить, ковры, флаги."
+   },
+   {
+    "cat": "goods",
+    "id": "leather",
+    "name": "Кожа и перья",
+    "note": "Кожа, шкурки, перья: коровник, крольчатник, курятник."
+   },
+   {
+    "cat": "goods",
+    "id": "dyes",
+    "name": "Красители",
+    "note": "Все краски; какие цвета есть — зависит от художника и сырья."
+   },
+   {
+    "cat": "goods",
+    "id": "flowers",
+    "name": "Цветы",
+    "note": "Для красителей, пасеки, крылец."
+   },
+   {
+    "cat": "goods",
+    "id": "wax",
+    "name": "Воск и мёд",
+    "note": "Соты: свечи; мёд идёт в еду."
+   },
+   {
+    "cat": "goods",
+    "id": "glass",
+    "name": "Стекло",
+    "note": "Стекло, панели, склянки."
+   },
+   {
+    "cat": "goods",
+    "id": "ceramics",
+    "name": "Керамика",
+    "note": "Кирпич, горшки, терракота, расписные горшки."
+   },
+   {
+    "cat": "goods",
+    "id": "paper",
+    "name": "Бумага и книги",
+    "note": "Бумага, книги, карты."
+   },
+   {
+    "cat": "home",
+    "id": "lighting",
+    "name": "Освещение",
+    "note": "Факелы, свечи. Фонари — в металлических изделиях."
+   },
+   {
+    "cat": "home",
+    "id": "furnishings",
+    "name": "Мебель",
+    "note": "Бочки, верстаки, кровати, книжные полки, рамки, картины. Делает столяр (картины — художник)."
+   },
+   {
+    "cat": "food",
+    "id": "fertilizer",
+    "name": "Удобрения",
+    "note": "Костная мука и компост: урожай выше."
+   },
+   {
+    "cat": "home",
+    "id": "transport",
+    "name": "Транспорт",
+    "note": "Лодки. Остальное — позже, вместе с животными."
+   }
+  ],
+  "version": 4
+ },
+ "items": [
+  {
+   "id": "wooden_pickaxe",
+   "name": "Деревянная кирка",
+   "res": "tools1",
+   "units": 3
+  },
+  {
+   "id": "wooden_axe",
+   "name": "Деревянный топор",
+   "res": "tools1",
+   "units": 3
+  },
+  {
+   "id": "wooden_shovel",
+   "name": "Деревянная лопата",
+   "res": "tools1",
+   "units": 1
+  },
+  {
+   "id": "wooden_hoe",
+   "name": "Деревянная мотыга",
+   "res": "tools1",
+   "units": 2
+  },
+  {
+   "id": "stone_pickaxe",
+   "name": "Каменная кирка",
+   "res": "tools2",
+   "units": 3
+  },
+  {
+   "id": "stone_axe",
+   "name": "Каменный топор",
+   "res": "tools2",
+   "units": 3
+  },
+  {
+   "id": "stone_shovel",
+   "name": "Каменная лопата",
+   "res": "tools2",
+   "units": 1
+  },
+  {
+   "id": "stone_hoe",
+   "name": "Каменная мотыга",
+   "res": "tools2",
+   "units": 2
+  },
+  {
+   "id": "iron_pickaxe",
+   "name": "Железная кирка",
+   "res": "tools3",
+   "units": 3
+  },
+  {
+   "id": "iron_axe",
+   "name": "Железный топор",
+   "res": "tools3",
+   "units": 3
+  },
+  {
+   "id": "iron_shovel",
+   "name": "Железная лопата",
+   "res": "tools3",
+   "units": 1
+  },
+  {
+   "id": "iron_hoe",
+   "name": "Железная мотыга",
+   "res": "tools3",
+   "units": 2
+  },
+  {
+   "id": "fishing_rod",
+   "name": "Удочка",
+   "res": "tools1",
+   "units": 1
+  },
+  {
+   "id": "shears",
+   "name": "Ножницы",
+   "res": "tools3",
+   "units": 2
+  },
+  {
+   "id": "flint_and_steel",
+   "name": "Огниво",
+   "res": "tools3",
+   "units": 1
+  },
+  {
+   "id": "bucket",
+   "name": "Ведро",
+   "res": "metalware",
+   "units": 3
+  },
+  {
+   "id": "bread",
+   "name": "Хлеб",
+   "res": "food",
+   "units": 5
+  },
+  {
+   "id": "baked_potato",
+   "name": "Печёный картофель",
+   "res": "food",
+   "units": 5
+  },
+  {
+   "id": "carrot",
+   "name": "Морковь",
+   "res": "food",
+   "units": 3
+  },
+  {
+   "id": "potato",
+   "name": "Картофель",
+   "res": "food",
+   "units": 1
+  },
+  {
+   "id": "beetroot",
+   "name": "Свёкла",
+   "res": "food",
+   "units": 1
+  },
+  {
+   "id": "apple",
+   "name": "Яблоко",
+   "res": "food",
+   "units": 4
+  },
+  {
+   "id": "golden_apple",
+   "name": "Золотое яблоко",
+   "res": "food",
+   "units": 12
+  },
+  {
+   "id": "melon_slice",
+   "name": "Ломтик арбуза",
+   "res": "food",
+   "units": 2
+  },
+  {
+   "id": "pumpkin_pie",
+   "name": "Тыквенный пирог",
+   "res": "food",
+   "units": 8
+  },
+  {
+   "id": "sweet_berries",
+   "name": "Сладкие ягоды",
+   "res": "food",
+   "units": 2
+  },
+  {
+   "id": "glow_berries",
+   "name": "Светящиеся ягоды",
+   "res": "food",
+   "units": 2
+  },
+  {
+   "id": "cake",
+   "name": "Торт",
+   "res": "food",
+   "units": 14
+  },
+  {
+   "id": "cookie",
+   "name": "Печенье",
+   "res": "food",
+   "units": 2
+  },
+  {
+   "id": "honey_bottle",
+   "name": "Мёд",
+   "res": "food",
+   "units": 6
+  },
+  {
+   "id": "cooked_cod",
+   "name": "Жареная треска",
+   "res": "food",
+   "units": 5
+  },
+  {
+   "id": "cooked_salmon",
+   "name": "Жареный лосось",
+   "res": "food",
+   "units": 6
+  },
+  {
+   "id": "cod",
+   "name": "Треска",
+   "res": "food",
+   "units": 2
+  },
+  {
+   "id": "salmon",
+   "name": "Лосось",
+   "res": "food",
+   "units": 2
+  },
+  {
+   "id": "tropical_fish",
+   "name": "Тропическая рыба",
+   "res": "food",
+   "units": 1
+  },
+  {
+   "id": "steak",
+   "name": "Стейк",
+   "res": "food",
+   "units": 8
+  },
+  {
+   "id": "cooked_porkchop",
+   "name": "Жареная свинина",
+   "res": "food",
+   "units": 8
+  },
+  {
+   "id": "cooked_mutton",
+   "name": "Жареная баранина",
+   "res": "food",
+   "units": 6
+  },
+  {
+   "id": "cooked_chicken",
+   "name": "Жареная курица",
+   "res": "food",
+   "units": 6
+  },
+  {
+   "id": "rabbit_stew",
+   "name": "Тушёный кролик",
+   "res": "food",
+   "units": 10
+  },
+  {
+   "id": "mushroom_stew",
+   "name": "Грибной суп",
+   "res": "food",
+   "units": 6
+  },
+  {
+   "id": "beetroot_soup",
+   "name": "Свекольный суп",
+   "res": "food",
+   "units": 6
+  },
+  {
+   "id": "dried_kelp",
+   "name": "Сушёная ламинария",
+   "res": "food",
+   "units": 1
+  },
+  {
+   "id": "egg",
+   "name": "Яйцо",
+   "res": "food",
+   "units": 1
+  },
+  {
+   "id": "milk",
+   "name": "Молоко (ведро)",
+   "res": "food",
+   "units": 4
+  },
+  {
+   "id": "sugar",
+   "name": "Сахар",
+   "res": "food",
+   "units": 1
+  },
+  {
+   "id": "wheat",
+   "name": "Пшеница",
+   "res": "grain",
+   "units": 1
+  },
+  {
+   "id": "wheat_seeds",
+   "name": "Семена пшеницы",
+   "res": "grain",
+   "units": 1
+  },
+  {
+   "id": "beetroot_seeds",
+   "name": "Семена свёклы",
+   "res": "grain",
+   "units": 1
+  },
+  {
+   "id": "pumpkin_seeds",
+   "name": "Семена тыквы",
+   "res": "grain",
+   "units": 1
+  },
+  {
+   "id": "melon_seeds",
+   "name": "Семена арбуза",
+   "res": "grain",
+   "units": 1
+  },
+  {
+   "id": "hay_block",
+   "name": "Тюк сена",
+   "res": "grain",
+   "units": 9
+  },
+  {
+   "id": "sugar_cane",
+   "name": "Сахарный тростник",
+   "res": "grain",
+   "units": 1
+  },
+  {
+   "id": "cocoa_beans",
+   "name": "Какао-бобы",
+   "res": "grain",
+   "units": 1
+  },
+  {
+   "id": "pumpkin",
+   "name": "Тыква",
+   "res": "grain",
+   "units": 2
+  },
+  {
+   "id": "oak_log",
+   "name": "Дубовое бревно",
+   "res": "log",
+   "units": 1
+  },
+  {
+   "id": "oak_planks",
+   "name": "Дубовые доски",
+   "res": "planks",
+   "units": 1
+  },
+  {
+   "id": "oak_door",
+   "name": "Дубовая дверь",
+   "res": "joinery",
+   "units": 1
+  },
+  {
+   "id": "spruce_log",
+   "name": "Еловое бревно",
+   "res": "log",
+   "units": 1
+  },
+  {
+   "id": "spruce_planks",
+   "name": "Еловые доски",
+   "res": "planks",
+   "units": 1
+  },
+  {
+   "id": "spruce_door",
+   "name": "Еловая дверь",
+   "res": "joinery",
+   "units": 1
+  },
+  {
+   "id": "birch_log",
+   "name": "Берёзовое бревно",
+   "res": "log",
+   "units": 1
+  },
+  {
+   "id": "birch_planks",
+   "name": "Берёзовые доски",
+   "res": "planks",
+   "units": 1
+  },
+  {
+   "id": "birch_door",
+   "name": "Берёзовая дверь",
+   "res": "joinery",
+   "units": 1
+  },
+  {
+   "id": "jungle_log",
+   "name": "Тропическое бревно",
+   "res": "log",
+   "units": 1
+  },
+  {
+   "id": "jungle_planks",
+   "name": "Тропическые доски",
+   "res": "planks",
+   "units": 1
+  },
+  {
+   "id": "jungle_door",
+   "name": "Тропическая дверь",
+   "res": "joinery",
+   "units": 1
+  },
+  {
+   "id": "acacia_log",
+   "name": "Акациевое бревно",
+   "res": "log",
+   "units": 1
+  },
+  {
+   "id": "acacia_planks",
+   "name": "Акациевые доски",
+   "res": "planks",
+   "units": 1
+  },
+  {
+   "id": "acacia_door",
+   "name": "Акациевая дверь",
+   "res": "joinery",
+   "units": 1
+  },
+  {
+   "id": "dark_oak_log",
+   "name": "Тёмно-дубовое бревно",
+   "res": "log",
+   "units": 1
+  },
+  {
+   "id": "dark_oak_planks",
+   "name": "Тёмно-дубовые доски",
+   "res": "planks",
+   "units": 1
+  },
+  {
+   "id": "dark_oak_door",
+   "name": "Тёмно-дубовая дверь",
+   "res": "joinery",
+   "units": 1
+  },
+  {
+   "id": "mangrove_log",
+   "name": "Мангровое бревно",
+   "res": "log",
+   "units": 1
+  },
+  {
+   "id": "mangrove_planks",
+   "name": "Мангровые доски",
+   "res": "planks",
+   "units": 1
+  },
+  {
+   "id": "mangrove_door",
+   "name": "Мангровая дверь",
+   "res": "joinery",
+   "units": 1
+  },
+  {
+   "id": "cherry_log",
+   "name": "Вишнёвое бревно",
+   "res": "log",
+   "units": 1
+  },
+  {
+   "id": "cherry_planks",
+   "name": "Вишнёвые доски",
+   "res": "planks",
+   "units": 1
+  },
+  {
+   "id": "cherry_door",
+   "name": "Вишнёвая дверь",
+   "res": "joinery",
+   "units": 1
+  },
+  {
+   "id": "pale_oak_log",
+   "name": "Бледно-дубовое бревно",
+   "res": "log",
+   "units": 1
+  },
+  {
+   "id": "pale_oak_planks",
+   "name": "Бледно-дубовые доски",
+   "res": "planks",
+   "units": 1
+  },
+  {
+   "id": "pale_oak_door",
+   "name": "Бледно-дубовая дверь",
+   "res": "joinery",
+   "units": 1
+  },
+  {
+   "id": "bamboo",
+   "name": "Бамбук",
+   "res": "log",
+   "units": 1
+  },
+  {
+   "id": "stick",
+   "name": "Палка ×4",
+   "res": "sticks",
+   "units": 1
+  },
+  {
+   "id": "stairs",
+   "name": "Деревянные ступеньки ×2",
+   "res": "joinery",
+   "units": 1
+  },
+  {
+   "id": "slab",
+   "name": "Деревянные полублоки ×4",
+   "res": "joinery",
+   "units": 1
+  },
+  {
+   "id": "fence",
+   "name": "Забор ×2",
+   "res": "joinery",
+   "units": 1
+  },
+  {
+   "id": "fence_gate",
+   "name": "Калитка",
+   "res": "joinery",
+   "units": 1
+  },
+  {
+   "id": "trapdoor",
+   "name": "Люк",
+   "res": "joinery",
+   "units": 1
+  },
+  {
+   "id": "ladder",
+   "name": "Лестница ×3",
+   "res": "joinery",
+   "units": 1
+  },
+  {
+   "id": "sign",
+   "name": "Табличка",
+   "res": "joinery",
+   "units": 1
+  },
+  {
+   "id": "sapling",
+   "name": "Саженец",
+   "res": "log",
+   "units": 1
+  },
+  {
+   "id": "leaves",
+   "name": "Листва",
+   "res": "log",
+   "units": 1
+  },
+  {
+   "id": "cobblestone",
+   "name": "Булыжник",
+   "res": "stone",
+   "units": 1
+  },
+  {
+   "id": "stone",
+   "name": "Камень",
+   "res": "stone",
+   "units": 1
+  },
+  {
+   "id": "granite",
+   "name": "Гранит",
+   "res": "stone",
+   "units": 1
+  },
+  {
+   "id": "diorite",
+   "name": "Диорит",
+   "res": "stone",
+   "units": 1
+  },
+  {
+   "id": "andesite",
+   "name": "Андезит",
+   "res": "stone",
+   "units": 1
+  },
+  {
+   "id": "deepslate",
+   "name": "Глубинный сланец",
+   "res": "stone",
+   "units": 1
+  },
+  {
+   "id": "tuff",
+   "name": "Туф",
+   "res": "stone",
+   "units": 1
+  },
+  {
+   "id": "calcite",
+   "name": "Кальцит",
+   "res": "stone",
+   "units": 1
+  },
+  {
+   "id": "gravel",
+   "name": "Гравий",
+   "res": "stone",
+   "units": 1
+  },
+  {
+   "id": "flint",
+   "name": "Кремень",
+   "res": "stone",
+   "units": 1
+  },
+  {
+   "id": "dirt",
+   "name": "Земля",
+   "res": "stone",
+   "units": 1
+  },
+  {
+   "id": "stone_bricks",
+   "name": "Каменные кирпичи",
+   "res": "cut_stone",
+   "units": 1
+  },
+  {
+   "id": "smooth_stone",
+   "name": "Гладкий камень",
+   "res": "cut_stone",
+   "units": 1
+  },
+  {
+   "id": "stone_stairs",
+   "name": "Каменные ступени ×2",
+   "res": "cut_stone",
+   "units": 1
+  },
+  {
+   "id": "stone_slab",
+   "name": "Каменные плиты ×4",
+   "res": "cut_stone",
+   "units": 1
+  },
+  {
+   "id": "polished_andesite",
+   "name": "Мостовая",
+   "res": "cut_stone",
+   "units": 1
+  },
+  {
+   "id": "sandstone",
+   "name": "Песчаник",
+   "res": "cut_stone",
+   "units": 1
+  },
+  {
+   "id": "sand",
+   "name": "Песок",
+   "res": "sand",
+   "units": 1
+  },
+  {
+   "id": "red_sand",
+   "name": "Красный песок",
+   "res": "sand",
+   "units": 1
+  },
+  {
+   "id": "clay_ball",
+   "name": "Глина",
+   "res": "clay",
+   "units": 1
+  },
+  {
+   "id": "obsidian",
+   "name": "Обсидиан",
+   "res": "stone",
+   "units": 4
+  },
+  {
+   "id": "coal",
+   "name": "Уголь",
+   "res": "fuel",
+   "units": 1
+  },
+  {
+   "id": "raw_iron",
+   "name": "Железная руда",
+   "res": "ore",
+   "units": 1
+  },
+  {
+   "id": "raw_copper",
+   "name": "Медная руда",
+   "res": "ore",
+   "units": 1
+  },
+  {
+   "id": "iron_ingot",
+   "name": "Железный слиток",
+   "res": "metal",
+   "units": 1
+  },
+  {
+   "id": "copper_ingot",
+   "name": "Медный слиток",
+   "res": "metal",
+   "units": 1
+  },
+  {
+   "id": "iron_nugget",
+   "name": "Железные самородки ×9",
+   "res": "metal",
+   "units": 1
+  },
+  {
+   "id": "chain",
+   "name": "Цепь",
+   "res": "metalware",
+   "units": 1
+  },
+  {
+   "id": "iron_bars",
+   "name": "Решётка ×4",
+   "res": "metalware",
+   "units": 1
+  },
+  {
+   "id": "rail",
+   "name": "Рельсы ×8",
+   "res": "metalware",
+   "units": 3
+  },
+  {
+   "id": "anvil",
+   "name": "Наковальня",
+   "res": "metalware",
+   "units": 31
+  },
+  {
+   "id": "raw_gold",
+   "name": "Золотая руда",
+   "res": "gold",
+   "units": 1
+  },
+  {
+   "id": "gold_ingot",
+   "name": "Золотой слиток",
+   "res": "gold",
+   "units": 1
+  },
+  {
+   "id": "diamond",
+   "name": "Алмаз",
+   "res": "gems",
+   "units": 8
+  },
+  {
+   "id": "emerald",
+   "name": "Изумруд",
+   "res": "gems",
+   "units": 6
+  },
+  {
+   "id": "lapis",
+   "name": "Лазурит",
+   "res": "gems",
+   "units": 1
+  },
+  {
+   "id": "redstone",
+   "name": "Редстоун",
+   "res": "gems",
+   "units": 1
+  },
+  {
+   "id": "amethyst_shard",
+   "name": "Осколок аметиста",
+   "res": "gems",
+   "units": 2
+  },
+  {
+   "id": "white_dye",
+   "name": "Белая краска",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "light_gray_dye",
+   "name": "Светло-серая краска",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "gray_dye",
+   "name": "Серая краска",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "black_dye",
+   "name": "Чёрная краска",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "brown_dye",
+   "name": "Коричневая краска",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "red_dye",
+   "name": "Красная краска",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "orange_dye",
+   "name": "Оранжевая краска",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "yellow_dye",
+   "name": "Жёлтая краска",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "lime_dye",
+   "name": "Лаймовая краска",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "green_dye",
+   "name": "Зелёная краска",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "cyan_dye",
+   "name": "Бирюзовая краска",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "light_blue_dye",
+   "name": "Голубая краска",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "blue_dye",
+   "name": "Синяя краска",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "purple_dye",
+   "name": "Фиолетовая краска",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "magenta_dye",
+   "name": "Сиреневая краска",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "pink_dye",
+   "name": "Розовая краска",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "white_wool",
+   "name": "Белая шерсть",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "light_gray_wool",
+   "name": "Светло-серая шерсть",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "gray_wool",
+   "name": "Серая шерсть",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "black_wool",
+   "name": "Чёрная шерсть",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "brown_wool",
+   "name": "Коричневая шерсть",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "red_wool",
+   "name": "Красная шерсть",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "orange_wool",
+   "name": "Оранжевая шерсть",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "yellow_wool",
+   "name": "Жёлтая шерсть",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "lime_wool",
+   "name": "Лаймовая шерсть",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "green_wool",
+   "name": "Зелёная шерсть",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "cyan_wool",
+   "name": "Бирюзовая шерсть",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "light_blue_wool",
+   "name": "Голубая шерсть",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "blue_wool",
+   "name": "Синяя шерсть",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "purple_wool",
+   "name": "Фиолетовая шерсть",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "magenta_wool",
+   "name": "Сиреневая шерсть",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "pink_wool",
+   "name": "Розовая шерсть",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "string",
+   "name": "Нить ×4",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "carpet",
+   "name": "Ковёр ×3",
+   "res": "wool",
+   "units": 1
+  },
+  {
+   "id": "banner",
+   "name": "Флаг",
+   "res": "wool",
+   "units": 3
+  },
+  {
+   "id": "leather",
+   "name": "Кожа",
+   "res": "leather",
+   "units": 1
+  },
+  {
+   "id": "rabbit_hide",
+   "name": "Кроличья шкурка",
+   "res": "leather",
+   "units": 1
+  },
+  {
+   "id": "book",
+   "name": "Книга",
+   "res": "paper",
+   "units": 3
+  },
+  {
+   "id": "paper",
+   "name": "Бумага ×3",
+   "res": "paper",
+   "units": 1
+  },
+  {
+   "id": "map",
+   "name": "Карта",
+   "res": "paper",
+   "units": 4
+  },
+  {
+   "id": "writable_book",
+   "name": "Книга с пером",
+   "res": "paper",
+   "units": 4
+  },
+  {
+   "id": "compass",
+   "name": "Компас",
+   "res": "metalware",
+   "units": 5
+  },
+  {
+   "id": "clock",
+   "name": "Часы",
+   "res": "gold",
+   "units": 5
+  },
+  {
+   "id": "glass",
+   "name": "Стекло",
+   "res": "glass",
+   "units": 1
+  },
+  {
+   "id": "glass_pane",
+   "name": "Стеклянные панели ×16",
+   "res": "glass",
+   "units": 6
+  },
+  {
+   "id": "glass_bottle",
+   "name": "Склянки ×3",
+   "res": "glass",
+   "units": 1
+  },
+  {
+   "id": "stained_glass",
+   "name": "Витражное стекло",
+   "res": "glass",
+   "units": 1
+  },
+  {
+   "id": "brick",
+   "name": "Кирпич",
+   "res": "ceramics",
+   "units": 1
+  },
+  {
+   "id": "bricks",
+   "name": "Кирпичный блок",
+   "res": "ceramics",
+   "units": 4
+  },
+  {
+   "id": "flower_pot",
+   "name": "Цветочный горшок",
+   "res": "ceramics",
+   "units": 3
+  },
+  {
+   "id": "terracotta",
+   "name": "Терракота",
+   "res": "ceramics",
+   "units": 1
+  },
+  {
+   "id": "decorated_pot",
+   "name": "Расписной горшок",
+   "res": "ceramics",
+   "units": 4
+  },
+  {
+   "id": "honeycomb",
+   "name": "Соты",
+   "res": "wax",
+   "units": 1
+  },
+  {
+   "id": "candle",
+   "name": "Свеча",
+   "res": "lighting",
+   "units": 1
+  },
+  {
+   "id": "torch",
+   "name": "Факелы ×4",
+   "res": "lighting",
+   "units": 1
+  },
+  {
+   "id": "lantern",
+   "name": "Фонарь",
+   "res": "metalware",
+   "units": 3
+  },
+  {
+   "id": "poppy",
+   "name": "Мак",
+   "res": "flowers",
+   "units": 1
+  },
+  {
+   "id": "dandelion",
+   "name": "Одуванчик",
+   "res": "flowers",
+   "units": 1
+  },
+  {
+   "id": "cornflower",
+   "name": "Василёк",
+   "res": "flowers",
+   "units": 1
+  },
+  {
+   "id": "oxeye_daisy",
+   "name": "Ромашка",
+   "res": "flowers",
+   "units": 1
+  },
+  {
+   "id": "allium",
+   "name": "Лук-слизун",
+   "res": "flowers",
+   "units": 1
+  },
+  {
+   "id": "azure_bluet",
+   "name": "Хоустония",
+   "res": "flowers",
+   "units": 1
+  },
+  {
+   "id": "bone_meal",
+   "name": "Костная мука ×3",
+   "res": "fertilizer",
+   "units": 1
+  },
+  {
+   "id": "bone",
+   "name": "Кость",
+   "res": "fertilizer",
+   "units": 3
+  },
+  {
+   "id": "red_bed",
+   "name": "Кровать",
+   "res": "furnishings",
+   "units": 4
+  },
+  {
+   "id": "painting",
+   "name": "Картина",
+   "res": "furnishings",
+   "units": 3
+  },
+  {
+   "id": "item_frame",
+   "name": "Рамка",
+   "res": "furnishings",
+   "units": 2
+  },
+  {
+   "id": "chest",
+   "name": "Сундук",
+   "res": "joinery",
+   "units": 2
+  },
+  {
+   "id": "barrel",
+   "name": "Бочка",
+   "res": "furnishings",
+   "units": 2
+  },
+  {
+   "id": "bookshelf",
+   "name": "Книжная полка",
+   "res": "furnishings",
+   "units": 5
+  },
+  {
+   "id": "oak_boat",
+   "name": "Лодка",
+   "res": "transport",
+   "units": 5
+  },
+  {
+   "id": "minecart",
+   "name": "Вагонетка",
+   "res": "metalware",
+   "units": 5
+  },
+  {
+   "id": "ink_sac",
+   "name": "Чернильный мешок",
+   "res": "dyes",
+   "units": 1
+  },
+  {
+   "id": "feather",
+   "name": "Перо",
+   "res": "leather",
+   "units": 1
+  }
+ ],
+ "nodes": {
+  "apiary": {
+   "beds": 1,
+   "branch": "farm",
+   "icon": "b:apiary",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 2,
+       "r": "wax"
+      },
+      {
+       "n": 3,
+       "r": "food",
+       "t": "мёд"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 1,
+       "r": "glass",
+       "t": "склянки",
+       "p": 50
+      },
+      {
+       "n": 2,
+       "r": "flowers",
+       "t": "опыление"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 3,
+       "r": "wax"
+      },
+      {
+       "n": 4,
+       "r": "food"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 1,
+       "r": "glass",
+       "p": 80
+      },
+      {
+       "n": 3,
+       "r": "flowers"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 4,
+       "r": "wax"
+      },
+      {
+       "n": 5,
+       "r": "food"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 1,
+       "r": "glass"
+      },
+      {
+       "n": 4,
+       "r": "flowers"
+      }
+     ]
+    }
+   ],
+   "name": "Пасека",
+   "note": "",
+   "opens": "Цветник 1 ур.",
+   "order": 29,
+   "parent": "flower_garden",
+   "sells": [
+    {
+     "item": "honey_bottle",
+     "lvl": 1,
+     "n": 4
+    },
+    {
+     "item": "honeycomb",
+     "lvl": 1,
+     "n": 4
+    }
+   ],
+   "unlock": [
+    {
+     "n": 30,
+     "r": "planks"
+    },
+    {
+     "n": 6,
+     "r": "glass"
+    }
+   ],
+   "workers": 1
+  },
+  "artist": {
+   "beds": 1,
+   "branch": "craft",
+   "icon": "b:artist",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 4,
+       "r": "dyes"
+      }
+     ],
+     "note": "4 цвета: красный, жёлтый, белый, зелёный.",
+     "use": [
+      {
+       "n": 4,
+       "r": "flowers"
+      },
+      {
+       "n": 1,
+       "r": "fertilizer",
+       "t": "белая",
+       "p": 50
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 6,
+       "r": "dyes"
+      }
+     ],
+     "note": "Смешанные цвета: оранжевый, розовый, голубой…",
+     "use": [
+      {
+       "n": 5,
+       "r": "flowers"
+      },
+      {
+       "n": 1,
+       "r": "gems",
+       "t": "лазурит → синий",
+       "p": 20
+      },
+      {
+       "n": 1,
+       "r": "fertilizer",
+       "p": 50
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 8,
+       "r": "dyes"
+      },
+      {
+       "n": 1,
+       "r": "furnishings",
+       "t": "картины",
+       "p": 50
+      }
+     ],
+     "note": "Все 16 цветов, картины.",
+     "use": [
+      {
+       "n": 6,
+       "r": "flowers"
+      },
+      {
+       "n": 1,
+       "r": "gems",
+       "p": 30
+      },
+      {
+       "n": 1,
+       "r": "wool",
+       "p": 50
+      },
+      {
+       "n": 2,
+       "r": "sticks"
+      }
+     ]
+    }
+   ],
+   "name": "Дом художника",
+   "note": "",
+   "opens": "Цветник 1 ур.",
+   "order": 36,
+   "parent": "flower_garden",
+   "pos": {
+    "x": -1710,
+    "y": 523
+   },
+   "sells": [
+    {
+     "item": "red_dye",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "yellow_dye",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "white_dye",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "green_dye",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "orange_dye",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "pink_dye",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "light_blue_dye",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "blue_dye",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "black_dye",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "purple_dye",
+     "lvl": 3,
+     "n": 8
+    },
+    {
+     "item": "magenta_dye",
+     "lvl": 3,
+     "n": 8
+    },
+    {
+     "item": "cyan_dye",
+     "lvl": 3,
+     "n": 8
+    },
+    {
+     "item": "red_wool",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "blue_wool",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "yellow_wool",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "painting",
+     "lvl": 3,
+     "n": 1
+    }
+   ],
+   "unlock": [
+    {
+     "n": 40,
+     "r": "planks"
+    },
+    {
+     "n": 6,
+     "r": "glass"
+    }
+   ],
+   "workers": 1
+  },
+  "bakery": {
+   "beds": 1,
+   "branch": "farm",
+   "icon": "b:bakery",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 14,
+       "r": "food"
+      }
+     ],
+     "note": "Хлеб: 8 зерна → 14 еды. Разнообразие → счастье.",
+     "use": [
+      {
+       "n": 8,
+       "r": "grain"
+      },
+      {
+       "n": 1,
+       "r": "fuel"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 20,
+       "r": "food"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 11,
+       "r": "grain"
+      },
+      {
+       "n": 2,
+       "r": "fuel"
+      },
+      {
+       "n": 2,
+       "r": "food",
+       "t": "яйца, молоко"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 26,
+       "r": "food"
+      }
+     ],
+     "note": "Торты, пироги.",
+     "use": [
+      {
+       "n": 14,
+       "r": "grain"
+      },
+      {
+       "n": 2,
+       "r": "fuel"
+      },
+      {
+       "n": 3,
+       "r": "food"
+      },
+      {
+       "n": 1,
+       "r": "wax",
+       "t": "мёд",
+       "p": 50
+      }
+     ]
+    }
+   ],
+   "name": "Пекарня",
+   "note": "",
+   "opens": "Ферма 2 ур.",
+   "order": 28,
+   "parent": "farm",
+   "sells": [
+    {
+     "item": "bread",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "cookie",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "pumpkin_pie",
+     "lvl": 2,
+     "n": 2
+    },
+    {
+     "item": "cake",
+     "lvl": 3,
+     "n": 1
+    },
+    {
+     "item": "sugar",
+     "lvl": 2,
+     "n": 8
+    }
+   ],
+   "unlock": [
+    {
+     "n": 20,
+     "r": "ceramics"
+    },
+    {
+     "n": 30,
+     "r": "planks"
+    }
+   ],
+   "workers": 1
+  },
+  "campfire": {
+   "beds": 0,
+   "branch": "center",
+   "icon": "b:campfire",
+   "levels": [
+    {
+     "cost": [],
+     "make": [],
+     "note": "Место сбора.",
+     "use": [
+      {
+       "n": 1,
+       "r": "log",
+       "t": "топливо"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "",
+     "use": []
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "",
+     "use": []
+    }
+   ],
+   "name": "Костёр",
+   "note": "",
+   "opens": "С самого начала",
+   "order": 0,
+   "parent": "",
+   "pos": {
+    "x": -197,
+    "y": 36
+   },
+   "sells": [],
+   "unlock": [],
+   "workers": 0
+  },
+  "caravanserai": {
+   "beds": 1,
+   "branch": "trade",
+   "icon": "b:caravanserai",
+   "levels": [
+    {
+     "cost": [],
+     "make": [],
+     "note": "Обмен излишками с соседними деревнями.",
+     "use": [
+      {
+       "n": 3,
+       "r": "grain"
+      },
+      {
+       "n": 1,
+       "r": "transport",
+       "p": 2
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "",
+     "use": [
+      {
+       "n": 4,
+       "r": "grain"
+      },
+      {
+       "n": 1,
+       "r": "transport",
+       "p": 3
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "Дороги и рельсы между деревнями.",
+     "use": [
+      {
+       "n": 5,
+       "r": "grain"
+      },
+      {
+       "n": 1,
+       "r": "transport",
+       "p": 5
+      },
+      {
+       "n": 1,
+       "r": "metal",
+       "t": "рельсы",
+       "p": 30
+      }
+     ]
+    }
+   ],
+   "name": "Караван-двор",
+   "note": "",
+   "opens": "Рыночная лавка 3 ур. + Конюшня 1 ур.",
+   "order": 48,
+   "parent": "market",
+   "sells": [
+    {
+     "item": "minecart",
+     "lvl": 3,
+     "n": 1
+    },
+    {
+     "item": "rail",
+     "lvl": 3,
+     "n": 2
+    }
+   ],
+   "unlock": [
+    {
+     "n": 80,
+     "r": "planks"
+    },
+    {
+     "n": 20,
+     "r": "joinery"
+    }
+   ],
+   "workers": 1
+  },
+  "carpenter": {
+   "beds": 1,
+   "branch": "wood",
+   "icon": "b:carpenter",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 2,
+       "r": "furnishings"
+      }
+     ],
+     "note": "Бочки, верстаки.",
+     "use": [
+      {
+       "n": 10,
+       "r": "planks"
+      },
+      {
+       "n": 1,
+       "r": "tools1",
+       "t": "износ",
+       "p": 20
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 3,
+       "r": "furnishings"
+      }
+     ],
+     "note": "Кровати, рамки.",
+     "use": [
+      {
+       "n": 16,
+       "r": "planks"
+      },
+      {
+       "n": 1,
+       "r": "wool",
+       "t": "добавка: шерсть → кровати"
+      },
+      {
+       "n": 1,
+       "r": "tools2",
+       "t": "износ",
+       "p": 20
+      },
+      {
+       "n": 1,
+       "r": "leather",
+       "t": "добавка: кожа → рамки",
+       "p": 20
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 4,
+       "r": "furnishings"
+      }
+     ],
+     "note": "Книжные полки, кафедры.",
+     "use": [
+      {
+       "n": 20,
+       "r": "planks"
+      },
+      {
+       "n": 2,
+       "r": "wool",
+       "t": "добавка: шерсть → кровати"
+      },
+      {
+       "n": 1,
+       "r": "paper",
+       "t": "добавка: книги → книжные полки",
+       "p": 50
+      },
+      {
+       "n": 1,
+       "r": "tools3",
+       "t": "износ",
+       "p": 25
+      }
+     ]
+    }
+   ],
+   "name": "Столярная мастерская",
+   "note": "",
+   "opens": "Лесопилка 2 ур.",
+   "order": 19,
+   "parent": "sawmill",
+   "pos": {
+    "x": 335,
+    "y": 605
+   },
+   "sells": [
+    {
+     "item": "barrel",
+     "lvl": 1,
+     "n": 2
+    },
+    {
+     "item": "red_bed",
+     "lvl": 2,
+     "n": 1
+    },
+    {
+     "item": "bookshelf",
+     "lvl": 3,
+     "n": 2
+    },
+    {
+     "item": "item_frame",
+     "lvl": 2,
+     "n": 2
+    }
+   ],
+   "unlock": [
+    {
+     "n": 60,
+     "r": "planks"
+    },
+    {
+     "n": 3,
+     "r": "metal"
+    }
+   ],
+   "workers": 1
+  },
+  "cartographer": {
+   "beds": 1,
+   "branch": "trade",
+   "icon": "b:cartographer",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 40,
+       "r": "log"
+      },
+      {
+       "n": 20,
+       "r": "planks"
+      },
+      {
+       "n": 10,
+       "r": "stone"
+      }
+     ],
+     "make": [],
+     "note": "Разведчик: 500 блоков.",
+     "use": [
+      {
+       "n": 12,
+       "r": "food",
+       "t": "разведчик ест вдвое"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "900 блоков.",
+     "use": [
+      {
+       "n": 12,
+       "r": "food"
+      },
+      {
+       "n": 1,
+       "r": "paper",
+       "p": 50
+      },
+      {
+       "n": 1,
+       "r": "metalware",
+       "t": "компас",
+       "p": 5
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "1400 блоков.",
+     "use": [
+      {
+       "n": 12,
+       "r": "food"
+      },
+      {
+       "n": 1,
+       "r": "paper"
+      },
+      {
+       "n": 1,
+       "r": "metalware",
+       "p": 5
+      }
+     ]
+    }
+   ],
+   "name": "Дом картографа",
+   "note": "",
+   "opens": "5 взрослых",
+   "order": 45,
+   "parent": "",
+   "sells": [
+    {
+     "item": "map",
+     "lvl": 1,
+     "n": 1
+    }
+   ],
+   "unlock": [
+    {
+     "n": 60,
+     "r": "log"
+    },
+    {
+     "n": 30,
+     "r": "planks"
+    }
+   ],
+   "workers": 1
+  },
+  "cattle_barn": {
+   "beds": 1,
+   "branch": "animals",
+   "icon": "b:cattle_barn",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 10,
+       "r": "food",
+       "t": "молоко, говядина"
+      },
+      {
+       "n": 2,
+       "r": "leather"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 6,
+       "r": "grain"
+      },
+      {
+       "n": 1,
+       "r": "metalware",
+       "t": "вёдра",
+       "p": 5
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 14,
+       "r": "food"
+      },
+      {
+       "n": 2,
+       "r": "leather"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 8,
+       "r": "grain"
+      },
+      {
+       "n": 1,
+       "r": "metalware",
+       "p": 5
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 18,
+       "r": "food"
+      },
+      {
+       "n": 3,
+       "r": "leather"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 10,
+       "r": "grain"
+      },
+      {
+       "n": 1,
+       "r": "metalware",
+       "p": 10
+      }
+     ]
+    }
+   ],
+   "name": "Коровник",
+   "note": "",
+   "opens": "Ферма 2 ур.",
+   "order": 31,
+   "parent": "farm",
+   "sells": [
+    {
+     "item": "milk",
+     "lvl": 1,
+     "n": 2
+    },
+    {
+     "item": "leather",
+     "lvl": 1,
+     "n": 4
+    },
+    {
+     "item": "steak",
+     "lvl": 2,
+     "n": 4
+    }
+   ],
+   "unlock": [
+    {
+     "n": 16,
+     "r": "joinery"
+    },
+    {
+     "n": 30,
+     "r": "planks"
+    }
+   ],
+   "workers": 1
+  },
+  "chandler": {
+   "beds": 1,
+   "branch": "craft",
+   "icon": "b:chandler",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 2,
+       "r": "lighting"
+      }
+     ],
+     "note": "Свечи для домов 2-3 ур.",
+     "use": [
+      {
+       "n": 1,
+       "r": "wax"
+      },
+      {
+       "n": 1,
+       "r": "wool",
+       "t": "фитиль",
+       "p": 50
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 3,
+       "r": "lighting"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 2,
+       "r": "wax"
+      },
+      {
+       "n": 1,
+       "r": "wool",
+       "p": 80
+      },
+      {
+       "n": 1,
+       "r": "dyes",
+       "p": 30
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 4,
+       "r": "lighting"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 2,
+       "r": "wax"
+      },
+      {
+       "n": 1,
+       "r": "wool"
+      }
+     ]
+    }
+   ],
+   "name": "Свечная",
+   "note": "",
+   "opens": "Пасека 1 ур.",
+   "order": 42,
+   "parent": "apiary",
+   "sells": [
+    {
+     "item": "candle",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "torch",
+     "lvl": 1,
+     "n": 8
+    }
+   ],
+   "unlock": [
+    {
+     "n": 30,
+     "r": "planks"
+    }
+   ],
+   "workers": 1
+  },
+  "coop": {
+   "beds": 1,
+   "branch": "animals",
+   "icon": "b:coop",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 8,
+       "r": "food",
+       "t": "яйца, курица"
+      },
+      {
+       "n": 1,
+       "r": "wool",
+       "t": "перья",
+       "p": 50
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 3,
+       "r": "grain",
+       "t": "семена"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 11,
+       "r": "food"
+      },
+      {
+       "n": 1,
+       "r": "wool",
+       "p": 80
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 4,
+       "r": "grain"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 14,
+       "r": "food"
+      },
+      {
+       "n": 1,
+       "r": "wool"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 5,
+       "r": "grain"
+      }
+     ]
+    }
+   ],
+   "name": "Курятник",
+   "note": "",
+   "opens": "Поле 2 ур.",
+   "order": 33,
+   "parent": "field",
+   "pos": {
+    "x": -863,
+    "y": -417
+   },
+   "sells": [
+    {
+     "item": "egg",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "feather",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "cooked_chicken",
+     "lvl": 2,
+     "n": 4
+    }
+   ],
+   "unlock": [
+    {
+     "n": 8,
+     "r": "joinery"
+    },
+    {
+     "n": 16,
+     "r": "planks"
+    }
+   ],
+   "workers": 1
+  },
+  "docks": {
+   "beds": 1,
+   "branch": "farm",
+   "icon": "b:docks",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 1,
+       "r": "transport",
+       "p": 30
+      }
+     ],
+     "note": "Лодки; основа порта.",
+     "use": [
+      {
+       "n": 5,
+       "r": "planks"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 1,
+       "r": "transport",
+       "p": 50
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 8,
+       "r": "planks"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "",
+     "use": []
+    }
+   ],
+   "name": "Причал",
+   "note": "",
+   "opens": "Хижина рыбаков 3 ур.",
+   "order": 23,
+   "parent": "fish_hut",
+   "sells": [
+    {
+     "item": "oak_boat",
+     "lvl": 1,
+     "n": 1
+    }
+   ],
+   "unlock": [
+    {
+     "n": 80,
+     "r": "planks"
+    },
+    {
+     "n": 20,
+     "r": "joinery"
+    }
+   ],
+   "workers": 1
+  },
+  "farm": {
+   "beds": 1,
+   "branch": "farm",
+   "icon": "b:farm",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 45,
+       "r": "log"
+      },
+      {
+       "n": 20,
+       "r": "stone"
+      }
+     ],
+     "make": [
+      {
+       "n": 14,
+       "r": "food"
+      },
+      {
+       "n": 1,
+       "r": "fertilizer",
+       "t": "компост"
+      }
+     ],
+     "note": "Больше полей (+1 за уровень), компостер.",
+     "use": [
+      {
+       "n": 4,
+       "r": "grain"
+      },
+      {
+       "n": 1,
+       "r": "tools1",
+       "t": "мотыги",
+       "p": 30
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 18,
+       "r": "food"
+      },
+      {
+       "n": 2,
+       "r": "fertilizer"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 5,
+       "r": "grain"
+      },
+      {
+       "n": 1,
+       "r": "tools2",
+       "t": "износ",
+       "p": 30
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 22,
+       "r": "food"
+      },
+      {
+       "n": 2,
+       "r": "fertilizer"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 6,
+       "r": "grain"
+      },
+      {
+       "n": 1,
+       "r": "tools3",
+       "t": "износ",
+       "p": 35
+      }
+     ]
+    }
+   ],
+   "name": "Ферма",
+   "note": "",
+   "opens": "Поле 3 ур.",
+   "order": 25,
+   "parent": "field",
+   "sells": [
+    {
+     "item": "wooden_hoe",
+     "lvl": 1,
+     "n": 2
+    },
+    {
+     "item": "stone_hoe",
+     "lvl": 2,
+     "n": 2
+    },
+    {
+     "item": "iron_hoe",
+     "lvl": 3,
+     "n": 1
+    },
+    {
+     "item": "wheat_seeds",
+     "lvl": 1,
+     "n": 16
+    },
+    {
+     "item": "wheat",
+     "lvl": 1,
+     "n": 16
+    },
+    {
+     "item": "potato",
+     "lvl": 1,
+     "n": 16
+    },
+    {
+     "item": "carrot",
+     "lvl": 1,
+     "n": 16
+    },
+    {
+     "item": "beetroot_seeds",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "pumpkin",
+     "lvl": 2,
+     "n": 4
+    },
+    {
+     "item": "melon_seeds",
+     "lvl": 2,
+     "n": 4
+    },
+    {
+     "item": "sugar_cane",
+     "lvl": 3,
+     "n": 8
+    },
+    {
+     "item": "cocoa_beans",
+     "lvl": 3,
+     "n": 8
+    },
+    {
+     "item": "bone_meal",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "hay_block",
+     "lvl": 2,
+     "n": 4
+    }
+   ],
+   "unlock": [
+    {
+     "n": 80,
+     "r": "log"
+    },
+    {
+     "n": 40,
+     "r": "stone"
+    }
+   ],
+   "workers": 1
+  },
+  "field": {
+   "beds": 0,
+   "branch": "farm",
+   "icon": "b:field",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 6,
+       "r": "log"
+      }
+     ],
+     "make": [
+      {
+       "n": 10,
+       "r": "grain"
+      },
+      {
+       "n": 4,
+       "r": "food",
+       "t": "картофель, морковь"
+      }
+     ],
+     "note": "Работают фермеры. Посев — в меню поля.",
+     "use": [
+      {
+       "n": 1,
+       "r": "fertilizer",
+       "t": "по желанию",
+       "p": 30
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 2,
+       "r": "joinery"
+      }
+     ],
+     "make": [
+      {
+       "n": 13,
+       "r": "grain"
+      },
+      {
+       "n": 5,
+       "r": "food"
+      }
+     ],
+     "note": "Пугало. Тыквы, арбузы.",
+     "use": [
+      {
+       "n": 1,
+       "r": "fertilizer",
+       "p": 50
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 2,
+       "r": "lighting"
+      }
+     ],
+     "make": [
+      {
+       "n": 16,
+       "r": "grain"
+      },
+      {
+       "n": 6,
+       "r": "food"
+      }
+     ],
+     "note": "Тростник, какао, ягоды.",
+     "use": [
+      {
+       "n": 1,
+       "r": "fertilizer",
+       "p": 80
+      }
+     ]
+    }
+   ],
+   "name": "Поле",
+   "note": "",
+   "opens": "С самого начала",
+   "order": 24,
+   "parent": "",
+   "sells": [],
+   "unlock": [],
+   "workers": 0
+  },
+  "fish_hut": {
+   "beds": 1,
+   "branch": "farm",
+   "icon": "b:fish_hut",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 40,
+       "r": "log"
+      },
+      {
+       "n": 10,
+       "r": "stone"
+      }
+     ],
+     "make": [
+      {
+       "n": 16,
+       "r": "food"
+      },
+      {
+       "n": 1,
+       "r": "fertilizer",
+       "t": "кости",
+       "p": 30
+      }
+     ],
+     "note": "Рыба — в еду.",
+     "use": [
+      {
+       "n": 1,
+       "r": "tools1",
+       "t": "удочки",
+       "p": 30
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 20,
+       "r": "food"
+      },
+      {
+       "n": 1,
+       "r": "fertilizer",
+       "p": 50
+      },
+      {
+       "n": 1,
+       "r": "dyes",
+       "t": "чернила",
+       "p": 30
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 1,
+       "r": "tools2",
+       "t": "износ",
+       "p": 30
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 24,
+       "r": "food"
+      },
+      {
+       "n": 1,
+       "r": "fertilizer",
+       "p": 50
+      },
+      {
+       "n": 1,
+       "r": "dyes",
+       "p": 50
+      }
+     ],
+     "note": "Лодки: сокровища, наутилусы, сёдла, бирки.",
+     "use": [
+      {
+       "n": 1,
+       "r": "tools3",
+       "t": "износ",
+       "p": 35
+      },
+      {
+       "n": 1,
+       "r": "transport",
+       "t": "лодки",
+       "p": 2
+      }
+     ]
+    }
+   ],
+   "name": "Хижина рыбаков",
+   "note": "",
+   "opens": "Есть рыбак",
+   "order": 21,
+   "parent": "",
+   "sells": [
+    {
+     "item": "fishing_rod",
+     "lvl": 1,
+     "n": 2
+    },
+    {
+     "item": "cod",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "salmon",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "tropical_fish",
+     "lvl": 2,
+     "n": 4
+    },
+    {
+     "item": "ink_sac",
+     "lvl": 2,
+     "n": 2
+    }
+   ],
+   "unlock": [
+    {
+     "n": 70,
+     "r": "log"
+    },
+    {
+     "n": 20,
+     "r": "stone"
+    }
+   ],
+   "workers": 1
+  },
+  "flower_garden": {
+   "beds": 1,
+   "branch": "farm",
+   "icon": "b:flower_garden",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 6,
+       "r": "flowers"
+      }
+     ],
+     "note": "Цветы для художника, пасеки, крылец.",
+     "use": [
+      {
+       "n": 1,
+       "r": "fertilizer",
+       "p": 50
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 9,
+       "r": "flowers"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 1,
+       "r": "fertilizer",
+       "p": 80
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 12,
+       "r": "flowers"
+      }
+     ],
+     "note": "Редкие цветы.",
+     "use": [
+      {
+       "n": 1,
+       "r": "fertilizer"
+      }
+     ]
+    }
+   ],
+   "name": "Цветник",
+   "note": "",
+   "opens": "Поле 2 ур.",
+   "order": 27,
+   "parent": "field",
+   "sells": [
+    {
+     "item": "poppy",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "dandelion",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "cornflower",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "oxeye_daisy",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "allium",
+     "lvl": 3,
+     "n": 4
+    },
+    {
+     "item": "azure_bluet",
+     "lvl": 3,
+     "n": 4
+    },
+    {
+     "item": "flower_pot",
+     "lvl": 2,
+     "n": 2
+    }
+   ],
+   "unlock": [
+    {
+     "n": 20,
+     "r": "log"
+    },
+    {
+     "n": 6,
+     "r": "joinery"
+    }
+   ],
+   "workers": 1
+  },
+  "glassworks": {
+   "beds": 1,
+   "branch": "craft",
+   "icon": "b:glassworks",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 5,
+       "r": "glass"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 5,
+       "r": "sand"
+      },
+      {
+       "n": 2,
+       "r": "fuel"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 7,
+       "r": "glass"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 7,
+       "r": "sand"
+      },
+      {
+       "n": 2,
+       "r": "fuel"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 9,
+       "r": "glass"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 9,
+       "r": "sand"
+      },
+      {
+       "n": 3,
+       "r": "fuel"
+      },
+      {
+       "n": 1,
+       "r": "dyes",
+       "t": "витражи",
+       "p": 50
+      }
+     ]
+    }
+   ],
+   "name": "Стекольня",
+   "note": "",
+   "opens": "Плавильня 2 ур.",
+   "order": 40,
+   "parent": "smelter",
+   "sells": [
+    {
+     "item": "glass",
+     "lvl": 1,
+     "n": 16
+    },
+    {
+     "item": "glass_pane",
+     "lvl": 1,
+     "n": 2
+    },
+    {
+     "item": "glass_bottle",
+     "lvl": 2,
+     "n": 4
+    },
+    {
+     "item": "stained_glass",
+     "lvl": 3,
+     "n": 8
+    }
+   ],
+   "unlock": [
+    {
+     "n": 20,
+     "r": "ceramics"
+    },
+    {
+     "n": 3,
+     "r": "metal"
+    }
+   ],
+   "workers": 1
+  },
+  "house": {
+   "beds": 2,
+   "branch": "home",
+   "icon": "b:house",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 20,
+       "r": "log"
+      },
+      {
+       "n": 20,
+       "r": "planks"
+      },
+      {
+       "n": 6,
+       "r": "joinery"
+      },
+      {
+       "n": 15,
+       "r": "stone"
+      }
+     ],
+     "make": [],
+     "note": "2 места.",
+     "use": [
+      {
+       "n": 12,
+       "r": "food",
+       "t": "жильцы"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 20
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 4,
+       "r": "glass"
+      },
+      {
+       "n": 4,
+       "r": "joinery"
+      }
+     ],
+     "make": [],
+     "note": "",
+     "use": [
+      {
+       "n": 12,
+       "r": "food",
+       "t": "жильцы"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 30
+      },
+      {
+       "n": 1,
+       "r": "furnishings",
+       "p": 5
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 3,
+       "r": "furnishings"
+      },
+      {
+       "n": 4,
+       "r": "joinery"
+      }
+     ],
+     "make": [],
+     "note": "",
+     "use": [
+      {
+       "n": 12,
+       "r": "food",
+       "t": "жильцы"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 30
+      },
+      {
+       "n": 1,
+       "r": "furnishings",
+       "p": 10
+      }
+     ]
+    }
+   ],
+   "name": "Деревянный дом",
+   "note": "",
+   "opens": "Хижина 3 ур.",
+   "order": 5,
+   "parent": "hut",
+   "sells": [],
+   "unlock": [
+    {
+     "n": 60,
+     "r": "planks"
+    },
+    {
+     "n": 10,
+     "r": "joinery"
+    }
+   ],
+   "workers": 0
+  },
+  "house_tall": {
+   "beds": 3,
+   "branch": "home",
+   "icon": "b:house_tall",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 30,
+       "r": "log"
+      },
+      {
+       "n": 40,
+       "r": "planks"
+      },
+      {
+       "n": 12,
+       "r": "joinery"
+      },
+      {
+       "n": 6,
+       "r": "glass"
+      }
+     ],
+     "make": [],
+     "note": "3 места.",
+     "use": [
+      {
+       "n": 18,
+       "r": "food",
+       "t": "жильцы"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 30
+      },
+      {
+       "n": 1,
+       "r": "furnishings",
+       "p": 5
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 3,
+       "r": "furnishings"
+      }
+     ],
+     "make": [],
+     "note": "",
+     "use": [
+      {
+       "n": 18,
+       "r": "food",
+       "t": "жильцы"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 40
+      },
+      {
+       "n": 1,
+       "r": "furnishings",
+       "p": 10
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 4,
+       "r": "furnishings"
+      },
+      {
+       "n": 4,
+       "r": "ceramics"
+      }
+     ],
+     "make": [],
+     "note": "",
+     "use": [
+      {
+       "n": 18,
+       "r": "food",
+       "t": "жильцы"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 40
+      },
+      {
+       "n": 1,
+       "r": "furnishings",
+       "p": 15
+      }
+     ]
+    }
+   ],
+   "name": "Двухэтажный деревянный дом",
+   "note": "",
+   "opens": "Деревянный дом 3 ур.",
+   "order": 6,
+   "parent": "house",
+   "sells": [],
+   "unlock": [
+    {
+     "n": 80,
+     "r": "planks"
+    },
+    {
+     "n": 20,
+     "r": "joinery"
+    }
+   ],
+   "workers": 0
+  },
+  "hut": {
+   "beds": 2,
+   "branch": "home",
+   "icon": "b:hut",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 20,
+       "r": "log"
+      },
+      {
+       "n": 6,
+       "r": "stone"
+      }
+     ],
+     "make": [],
+     "note": "2 места.",
+     "use": [
+      {
+       "n": 12,
+       "r": "food",
+       "t": "жильцы"
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 2,
+       "r": "ceramics"
+      },
+      {
+       "n": 2,
+       "r": "joinery"
+      }
+     ],
+     "make": [],
+     "note": "",
+     "use": [
+      {
+       "n": 12,
+       "r": "food",
+       "t": "жильцы"
+      },
+      {
+       "n": 1,
+       "r": "flowers",
+       "t": "горшки",
+       "p": 10
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 8,
+       "r": "stone"
+      },
+      {
+       "n": 2,
+       "r": "lighting"
+      }
+     ],
+     "make": [],
+     "note": "",
+     "use": [
+      {
+       "n": 12,
+       "r": "food",
+       "t": "жильцы"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 20
+      }
+     ]
+    }
+   ],
+   "name": "Хижина",
+   "note": "",
+   "opens": "С самого начала",
+   "order": 4,
+   "parent": "",
+   "sells": [],
+   "unlock": [],
+   "workers": 0
+  },
+  "library": {
+   "beds": 1,
+   "branch": "trade",
+   "icon": "b:library",
+   "levels": [
+    {
+     "cost": [],
+     "make": [],
+     "note": "Знания: дешевле открывать узлы (идея).",
+     "use": [
+      {
+       "n": 1,
+       "r": "paper"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 30
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "",
+     "use": [
+      {
+       "n": 2,
+       "r": "paper"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 40
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "Школа: дети быстрее осваивают ремесло (идея).",
+     "use": [
+      {
+       "n": 2,
+       "r": "paper"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 50
+      }
+     ]
+    }
+   ],
+   "name": "Библиотека",
+   "note": "",
+   "opens": "Дом картографа 2 ур. + Бумажная 2 ур.",
+   "order": 47,
+   "parent": "cartographer",
+   "sells": [
+    {
+     "item": "book",
+     "lvl": 1,
+     "n": 2
+    },
+    {
+     "item": "writable_book",
+     "lvl": 2,
+     "n": 1
+    },
+    {
+     "item": "bookshelf",
+     "lvl": 3,
+     "n": 1
+    }
+   ],
+   "unlock": [
+    {
+     "n": 10,
+     "r": "furnishings"
+    },
+    {
+     "n": 40,
+     "r": "planks"
+    }
+   ],
+   "workers": 1
+  },
+  "locksmith": {
+   "beds": 1,
+   "branch": "mine",
+   "icon": "b:locksmith",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 30,
+       "r": "log"
+      },
+      {
+       "n": 30,
+       "r": "stone"
+      }
+     ],
+     "make": [
+      {
+       "n": 2,
+       "r": "metalware"
+      }
+     ],
+     "note": "Вёдра, цепи, решётки.",
+     "use": [
+      {
+       "n": 2,
+       "r": "metal"
+      },
+      {
+       "n": 1,
+       "r": "fuel"
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 20,
+       "r": "planks"
+      },
+      {
+       "n": 20,
+       "r": "cut_stone"
+      }
+     ],
+     "make": [
+      {
+       "n": 3,
+       "r": "metalware"
+      }
+     ],
+     "note": "Фонари, рельсы.",
+     "use": [
+      {
+       "n": 3,
+       "r": "metal"
+      },
+      {
+       "n": 2,
+       "r": "fuel"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "t": "добавка: факелы → фонари",
+       "p": 50
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 10,
+       "r": "metal"
+      }
+     ],
+     "make": [
+      {
+       "n": 4,
+       "r": "metalware"
+      }
+     ],
+     "note": "Наковальни, компасы, вагонетки.",
+     "use": [
+      {
+       "n": 4,
+       "r": "metal"
+      },
+      {
+       "n": 2,
+       "r": "fuel"
+      },
+      {
+       "n": 1,
+       "r": "gems",
+       "t": "добавка: редстоун → компасы",
+       "p": 10
+      }
+     ]
+    }
+   ],
+   "name": "Слесарня",
+   "note": "Плавильня делает из руды металл, слесарня — из металла изделия. Концепт под вопросом.",
+   "opens": "Плавильня 2 ур.",
+   "order": 16,
+   "parent": "smelter",
+   "sells": [
+    {
+     "item": "bucket",
+     "lvl": 1,
+     "n": 1
+    },
+    {
+     "item": "chain",
+     "lvl": 1,
+     "n": 2
+    },
+    {
+     "item": "iron_bars",
+     "lvl": 1,
+     "n": 2
+    },
+    {
+     "item": "lantern",
+     "lvl": 2,
+     "n": 2
+    },
+    {
+     "item": "rail",
+     "lvl": 2,
+     "n": 4
+    },
+    {
+     "item": "anvil",
+     "lvl": 3,
+     "n": 1
+    },
+    {
+     "item": "compass",
+     "lvl": 3,
+     "n": 1
+    },
+    {
+     "item": "minecart",
+     "lvl": 3,
+     "n": 1
+    }
+   ],
+   "unlock": [
+    {
+     "n": 40,
+     "r": "stone"
+    },
+    {
+     "n": 10,
+     "r": "metal"
+    }
+   ],
+   "workers": 1
+  },
+  "market": {
+   "beds": 1,
+   "branch": "trade",
+   "icon": "b:market",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 40,
+       "r": "log"
+      },
+      {
+       "n": 10,
+       "r": "stone"
+      }
+     ],
+     "make": [],
+     "note": "Торговец продаёт понемногу всё со склада, но дороже мастеров; покупает всё.",
+     "use": []
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "Больше товаров, лучше цены.",
+     "use": [
+      {
+       "n": 1,
+       "r": "paper",
+       "t": "счета",
+       "p": 20
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "Караваны в соседние деревни (позже).",
+     "use": [
+      {
+       "n": 1,
+       "r": "paper",
+       "p": 30
+      }
+     ]
+    }
+   ],
+   "name": "Рыночная лавка",
+   "note": "",
+   "opens": "4 взрослых",
+   "order": 44,
+   "parent": "",
+   "sells": [
+    {
+     "item": "bread",
+     "lvl": 1,
+     "n": 4
+    },
+    {
+     "item": "oak_log",
+     "lvl": 1,
+     "n": 16
+    },
+    {
+     "item": "cobblestone",
+     "lvl": 1,
+     "n": 16
+    },
+    {
+     "item": "torch",
+     "lvl": 1,
+     "n": 4
+    },
+    {
+     "item": "emerald",
+     "lvl": 3,
+     "n": 1
+    }
+   ],
+   "unlock": [
+    {
+     "n": 60,
+     "r": "log"
+    },
+    {
+     "n": 20,
+     "r": "stone"
+    }
+   ],
+   "workers": 1
+  },
+  "mine_house": {
+   "beds": 1,
+   "branch": "mine",
+   "icon": "b:mine_house",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 35,
+       "r": "log"
+      },
+      {
+       "n": 40,
+       "r": "stone"
+      }
+     ],
+     "make": [
+      {
+       "n": 12,
+       "r": "stone"
+      },
+      {
+       "n": 3,
+       "r": "fuel"
+      },
+      {
+       "n": 1,
+       "r": "clay"
+      },
+      {
+       "n": 1,
+       "r": "sand"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "t": "факелы из угля",
+       "p": 50
+      }
+     ],
+     "note": "Камень, уголь, немного глины и песка (у воды).",
+     "use": [
+      {
+       "n": 1,
+       "r": "tools1",
+       "t": "кирки",
+       "p": 30
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 20
+      },
+      {
+       "n": 1,
+       "r": "sticks",
+       "p": 50
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 30,
+       "r": "planks"
+      },
+      {
+       "n": 4,
+       "r": "joinery"
+      }
+     ],
+     "make": [
+      {
+       "n": 15,
+       "r": "stone"
+      },
+      {
+       "n": 5,
+       "r": "fuel"
+      },
+      {
+       "n": 4,
+       "r": "ore"
+      },
+      {
+       "n": 1,
+       "r": "clay"
+      },
+      {
+       "n": 1,
+       "r": "sand"
+      }
+     ],
+     "note": "Каменные кирки: появляется руда.",
+     "use": [
+      {
+       "n": 1,
+       "r": "tools2",
+       "t": "износ",
+       "p": 30
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 30
+      },
+      {
+       "n": 1,
+       "r": "planks",
+       "t": "крепь",
+       "p": 50
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 10,
+       "r": "metal"
+      },
+      {
+       "n": 8,
+       "r": "joinery"
+      }
+     ],
+     "make": [
+      {
+       "n": 18,
+       "r": "stone"
+      },
+      {
+       "n": 7,
+       "r": "fuel"
+      },
+      {
+       "n": 6,
+       "r": "ore"
+      },
+      {
+       "n": 1,
+       "r": "gold",
+       "p": 30
+      },
+      {
+       "n": 1,
+       "r": "gems",
+       "p": 30
+      }
+     ],
+     "note": "Глубокие штреки: золото, самоцветы.",
+     "use": [
+      {
+       "n": 1,
+       "r": "tools3",
+       "t": "износ",
+       "p": 35
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 50
+      },
+      {
+       "n": 1,
+       "r": "planks",
+       "t": "крепь"
+      }
+     ]
+    }
+   ],
+   "name": "Дом шахтёров",
+   "note": " До кузницы камни собирает житель руками, при прополке травы (меньше всех).",
+   "opens": "Есть шахтёр",
+   "order": 11,
+   "parent": "",
+   "sells": [
+    {
+     "item": "wooden_pickaxe",
+     "lvl": 1,
+     "n": 2
+    },
+    {
+     "item": "stone_pickaxe",
+     "lvl": 2,
+     "n": 2
+    },
+    {
+     "item": "wooden_shovel",
+     "lvl": 1,
+     "n": 2
+    },
+    {
+     "item": "stone_shovel",
+     "lvl": 2,
+     "n": 2
+    },
+    {
+     "item": "iron_pickaxe",
+     "lvl": 3,
+     "n": 1
+    },
+    {
+     "item": "coal",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "cobblestone",
+     "lvl": 1,
+     "n": 32
+    },
+    {
+     "item": "raw_iron",
+     "lvl": 2,
+     "n": 4
+    },
+    {
+     "item": "raw_copper",
+     "lvl": 2,
+     "n": 4
+    },
+    {
+     "item": "lapis",
+     "lvl": 3,
+     "n": 2
+    },
+    {
+     "item": "redstone",
+     "lvl": 3,
+     "n": 4
+    }
+   ],
+   "unlock": [
+    {
+     "n": 60,
+     "r": "log"
+    },
+    {
+     "n": 60,
+     "r": "stone"
+    }
+   ],
+   "workers": 1
+  },
+  "orchard": {
+   "beds": 1,
+   "branch": "farm",
+   "icon": "b:orchard",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 10,
+       "r": "food"
+      }
+     ],
+     "note": "Яблоки, ягоды.",
+     "use": [
+      {
+       "n": 1,
+       "r": "fertilizer",
+       "p": 50
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 13,
+       "r": "food"
+      },
+      {
+       "n": 2,
+       "r": "grain",
+       "t": "какао"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 1,
+       "r": "fertilizer"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 16,
+       "r": "food"
+      },
+      {
+       "n": 3,
+       "r": "grain"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 1,
+       "r": "fertilizer"
+      },
+      {
+       "n": 1,
+       "r": "gold",
+       "t": "золотые яблоки",
+       "p": 5
+      }
+     ]
+    }
+   ],
+   "name": "Сад",
+   "note": "",
+   "opens": "Ферма 2 ур.",
+   "order": 26,
+   "parent": "farm",
+   "sells": [
+    {
+     "item": "apple",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "sweet_berries",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "glow_berries",
+     "lvl": 2,
+     "n": 4
+    },
+    {
+     "item": "cocoa_beans",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "golden_apple",
+     "lvl": 3,
+     "n": 1
+    }
+   ],
+   "unlock": [
+    {
+     "n": 20,
+     "r": "log"
+    },
+    {
+     "n": 10,
+     "r": "joinery"
+    }
+   ],
+   "workers": 1
+  },
+  "papermill": {
+   "beds": 1,
+   "branch": "craft",
+   "icon": "b:papermill",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 2,
+       "r": "paper"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 3,
+       "r": "grain",
+       "t": "тростник"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 3,
+       "r": "paper"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 4,
+       "r": "grain"
+      },
+      {
+       "n": 1,
+       "r": "leather",
+       "t": "книги",
+       "p": 30
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 4,
+       "r": "paper"
+      }
+     ],
+     "note": "Карты, книги с пером.",
+     "use": [
+      {
+       "n": 5,
+       "r": "grain"
+      },
+      {
+       "n": 1,
+       "r": "leather",
+       "p": 50
+      },
+      {
+       "n": 1,
+       "r": "dyes",
+       "t": "чернила",
+       "p": 20
+      }
+     ]
+    }
+   ],
+   "name": "Бумажная мастерская",
+   "note": "",
+   "opens": "Поле 3 ур.",
+   "order": 41,
+   "parent": "field",
+   "sells": [
+    {
+     "item": "paper",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "book",
+     "lvl": 2,
+     "n": 2
+    },
+    {
+     "item": "map",
+     "lvl": 3,
+     "n": 1
+    },
+    {
+     "item": "writable_book",
+     "lvl": 3,
+     "n": 1
+    }
+   ],
+   "unlock": [
+    {
+     "n": 40,
+     "r": "planks"
+    },
+    {
+     "n": 20,
+     "r": "stone"
+    }
+   ],
+   "workers": 1
+  },
+  "pigsty": {
+   "beds": 1,
+   "branch": "animals",
+   "icon": "b:pigsty",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 12,
+       "r": "food"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 4,
+       "r": "grain",
+       "t": "морковь, картофель"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 16,
+       "r": "food"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 5,
+       "r": "grain"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 20,
+       "r": "food"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 7,
+       "r": "grain"
+      }
+     ]
+    }
+   ],
+   "name": "Свинарник",
+   "note": "",
+   "opens": "Ферма 1 ур.",
+   "order": 32,
+   "parent": "farm",
+   "sells": [
+    {
+     "item": "cooked_porkchop",
+     "lvl": 1,
+     "n": 4
+    }
+   ],
+   "unlock": [
+    {
+     "n": 10,
+     "r": "joinery"
+    },
+    {
+     "n": 16,
+     "r": "planks"
+    }
+   ],
+   "workers": 1
+  },
+  "potter": {
+   "beds": 1,
+   "branch": "craft",
+   "icon": "b:potter",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 3,
+       "r": "ceramics"
+      }
+     ],
+     "note": "Кирпич и горшки.",
+     "use": [
+      {
+       "n": 3,
+       "r": "clay"
+      },
+      {
+       "n": 1,
+       "r": "fuel"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 5,
+       "r": "ceramics"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 5,
+       "r": "clay"
+      },
+      {
+       "n": 2,
+       "r": "fuel"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 7,
+       "r": "ceramics"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 7,
+       "r": "clay"
+      },
+      {
+       "n": 2,
+       "r": "fuel"
+      },
+      {
+       "n": 1,
+       "r": "dyes",
+       "t": "глазурь",
+       "p": 50
+      }
+     ]
+    }
+   ],
+   "name": "Гончарня",
+   "note": "",
+   "opens": "Плавильня 1 ур.",
+   "order": 39,
+   "parent": "smelter",
+   "sells": [
+    {
+     "item": "brick",
+     "lvl": 1,
+     "n": 16
+    },
+    {
+     "item": "flower_pot",
+     "lvl": 1,
+     "n": 4
+    },
+    {
+     "item": "bricks",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "terracotta",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "decorated_pot",
+     "lvl": 3,
+     "n": 1
+    }
+   ],
+   "unlock": [
+    {
+     "n": 30,
+     "r": "stone"
+    },
+    {
+     "n": 20,
+     "r": "clay"
+    }
+   ],
+   "workers": 1
+  },
+  "quarry": {
+   "beds": 1,
+   "branch": "mine",
+   "icon": "b:quarry",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 16,
+       "r": "stone"
+      },
+      {
+       "n": 5,
+       "r": "sand"
+      },
+      {
+       "n": 1,
+       "r": "clay"
+      }
+     ],
+     "note": "Камень блоками, песок, гравий.",
+     "use": [
+      {
+       "n": 1,
+       "r": "tools1",
+       "t": "износ",
+       "p": 30
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 22,
+       "r": "stone"
+      },
+      {
+       "n": 7,
+       "r": "sand"
+      },
+      {
+       "n": 3,
+       "r": "clay"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 1,
+       "r": "tools2",
+       "t": "износ",
+       "p": 30
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 28,
+       "r": "stone"
+      },
+      {
+       "n": 9,
+       "r": "sand"
+      },
+      {
+       "n": 4,
+       "r": "clay"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 1,
+       "r": "tools3",
+       "t": "износ",
+       "p": 35
+      }
+     ]
+    }
+   ],
+   "name": "Каменоломня",
+   "note": "",
+   "opens": "Дом шахтёров 2 ур.",
+   "order": 12,
+   "parent": "mine_house",
+   "sells": [
+    {
+     "item": "stone",
+     "lvl": 1,
+     "n": 32
+    },
+    {
+     "item": "granite",
+     "lvl": 1,
+     "n": 16
+    },
+    {
+     "item": "diorite",
+     "lvl": 1,
+     "n": 16
+    },
+    {
+     "item": "andesite",
+     "lvl": 1,
+     "n": 16
+    },
+    {
+     "item": "sand",
+     "lvl": 1,
+     "n": 16
+    },
+    {
+     "item": "gravel",
+     "lvl": 1,
+     "n": 16
+    },
+    {
+     "item": "flint",
+     "lvl": 1,
+     "n": 4
+    },
+    {
+     "item": "deepslate",
+     "lvl": 3,
+     "n": 16
+    },
+    {
+     "item": "tuff",
+     "lvl": 3,
+     "n": 16
+    },
+    {
+     "item": "calcite",
+     "lvl": 3,
+     "n": 8
+    }
+   ],
+   "unlock": [
+    {
+     "n": 60,
+     "r": "stone"
+    },
+    {
+     "n": 30,
+     "r": "planks"
+    }
+   ],
+   "workers": 1
+  },
+  "rabbit_hutch": {
+   "beds": 1,
+   "branch": "animals",
+   "icon": "b:rabbit_hutch",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 6,
+       "r": "food"
+      },
+      {
+       "n": 1,
+       "r": "leather",
+       "t": "шкурки"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 3,
+       "r": "grain",
+       "t": "морковь"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 9,
+       "r": "food"
+      },
+      {
+       "n": 2,
+       "r": "leather"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 4,
+       "r": "grain"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 12,
+       "r": "food"
+      },
+      {
+       "n": 2,
+       "r": "leather"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 5,
+       "r": "grain"
+      }
+     ]
+    }
+   ],
+   "name": "Крольчатник",
+   "note": "",
+   "opens": "Курятник 2 ур.",
+   "order": 34,
+   "parent": "coop",
+   "pos": {
+    "x": -1047,
+    "y": -546
+   },
+   "sells": [
+    {
+     "item": "rabbit_hide",
+     "lvl": 1,
+     "n": 4
+    },
+    {
+     "item": "rabbit_stew",
+     "lvl": 2,
+     "n": 2
+    }
+   ],
+   "unlock": [
+    {
+     "n": 8,
+     "r": "joinery"
+    }
+   ],
+   "workers": 1
+  },
+  "sawmill": {
+   "beds": 1,
+   "branch": "wood",
+   "icon": "b:sawmill",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 60,
+       "r": "log"
+      },
+      {
+       "n": 25,
+       "r": "stone"
+      }
+     ],
+     "make": [
+      {
+       "n": 40,
+       "r": "planks"
+      },
+      {
+       "n": 10,
+       "r": "sticks"
+      }
+     ],
+     "note": "Бревно → 4 доски или 8 палок.",
+     "use": [
+      {
+       "n": 12,
+       "r": "log"
+      },
+      {
+       "n": 1,
+       "r": "tools1",
+       "t": "износ",
+       "p": 20
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 44,
+       "r": "planks"
+      },
+      {
+       "n": 10,
+       "r": "sticks"
+      },
+      {
+       "n": 6,
+       "r": "joinery"
+      }
+     ],
+     "note": "Столярка: ступеньки, полублоки, заборы, сундуки.",
+     "use": [
+      {
+       "n": 15,
+       "r": "log"
+      },
+      {
+       "n": 1,
+       "r": "tools2",
+       "t": "износ",
+       "p": 20
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 52,
+       "r": "planks"
+      },
+      {
+       "n": 12,
+       "r": "sticks"
+      },
+      {
+       "n": 10,
+       "r": "joinery"
+      }
+     ],
+     "note": "Двери, люки, таблички, леса.",
+     "use": [
+      {
+       "n": 18,
+       "r": "log"
+      },
+      {
+       "n": 1,
+       "r": "tools3",
+       "t": "износ",
+       "p": 25
+      }
+     ]
+    }
+   ],
+   "name": "Лесопилка",
+   "note": "",
+   "opens": "Дом лесника 3 ур.",
+   "order": 18,
+   "parent": "wood_hut",
+   "sells": [
+    {
+     "item": "oak_planks",
+     "lvl": 1,
+     "n": 32
+    },
+    {
+     "item": "spruce_planks",
+     "lvl": 1,
+     "n": 32
+    },
+    {
+     "item": "stairs",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "slab",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "fence",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "fence_gate",
+     "lvl": 2,
+     "n": 2
+    },
+    {
+     "item": "ladder",
+     "lvl": 2,
+     "n": 4
+    },
+    {
+     "item": "oak_door",
+     "lvl": 3,
+     "n": 2
+    },
+    {
+     "item": "spruce_door",
+     "lvl": 3,
+     "n": 2
+    },
+    {
+     "item": "trapdoor",
+     "lvl": 3,
+     "n": 2
+    },
+    {
+     "item": "sign",
+     "lvl": 3,
+     "n": 4
+    },
+    {
+     "item": "chest",
+     "lvl": 2,
+     "n": 2
+    }
+   ],
+   "unlock": [
+    {
+     "n": 100,
+     "r": "log"
+    },
+    {
+     "n": 40,
+     "r": "stone"
+    }
+   ],
+   "workers": 1
+  },
+  "sheep_pen": {
+   "beds": 1,
+   "branch": "animals",
+   "icon": "b:sheep_pen",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 5,
+       "r": "wool"
+      },
+      {
+       "n": 3,
+       "r": "food",
+       "t": "баранина"
+      }
+     ],
+     "note": "Шерсть и нить.",
+     "use": [
+      {
+       "n": 4,
+       "r": "grain",
+       "t": "корм"
+      },
+      {
+       "n": 1,
+       "r": "tools1",
+       "t": "ножницы",
+       "p": 20
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 7,
+       "r": "wool"
+      },
+      {
+       "n": 4,
+       "r": "food"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 5,
+       "r": "grain"
+      },
+      {
+       "n": 1,
+       "r": "tools2",
+       "t": "износ",
+       "p": 20
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 10,
+       "r": "wool"
+      },
+      {
+       "n": 5,
+       "r": "food"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 7,
+       "r": "grain"
+      },
+      {
+       "n": 1,
+       "r": "tools3",
+       "t": "износ",
+       "p": 25
+      }
+     ]
+    }
+   ],
+   "name": "Овчарня",
+   "note": "",
+   "opens": "Ферма 1 ур.",
+   "order": 30,
+   "parent": "farm",
+   "sells": [
+    {
+     "item": "shears",
+     "lvl": 1,
+     "n": 1
+    },
+    {
+     "item": "white_wool",
+     "lvl": 1,
+     "n": 16
+    },
+    {
+     "item": "string",
+     "lvl": 1,
+     "n": 4
+    },
+    {
+     "item": "cooked_mutton",
+     "lvl": 2,
+     "n": 4
+    }
+   ],
+   "unlock": [
+    {
+     "n": 10,
+     "r": "joinery"
+    },
+    {
+     "n": 20,
+     "r": "planks"
+    }
+   ],
+   "workers": 1
+  },
+  "smelter": {
+   "beds": 1,
+   "branch": "mine",
+   "icon": "b:smelter",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 3,
+       "r": "metal"
+      }
+     ],
+     "note": "Руда → металл. Топливо: уголь или древесный уголь.",
+     "use": [
+      {
+       "n": 3,
+       "r": "ore"
+      },
+      {
+       "n": 2,
+       "r": "sand"
+      },
+      {
+       "n": 3,
+       "r": "fuel",
+       "t": "или древесный уголь"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 5,
+       "r": "metal"
+      },
+      {
+       "n": 1,
+       "r": "gold",
+       "p": 30
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 5,
+       "r": "ore"
+      },
+      {
+       "n": 2,
+       "r": "sand"
+      },
+      {
+       "n": 4,
+       "r": "fuel"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 8,
+       "r": "metal"
+      },
+      {
+       "n": 1,
+       "r": "gold",
+       "p": 50
+      }
+     ],
+     "note": "Плавильные печи: быстрее.",
+     "use": [
+      {
+       "n": 8,
+       "r": "ore"
+      },
+      {
+       "n": 3,
+       "r": "sand"
+      },
+      {
+       "n": 5,
+       "r": "fuel"
+      }
+     ]
+    }
+   ],
+   "name": "Плавильня",
+   "note": "",
+   "opens": "Дом шахтёров 2 ур.",
+   "order": 14,
+   "parent": "mine_house",
+   "sells": [
+    {
+     "item": "iron_ingot",
+     "lvl": 1,
+     "n": 4
+    },
+    {
+     "item": "copper_ingot",
+     "lvl": 1,
+     "n": 4
+    },
+    {
+     "item": "iron_nugget",
+     "lvl": 2,
+     "n": 4
+    },
+    {
+     "item": "gold_ingot",
+     "lvl": 2,
+     "n": 1
+    },
+    {
+     "item": "glass",
+     "lvl": 1,
+     "n": 8
+    }
+   ],
+   "unlock": [
+    {
+     "n": 60,
+     "r": "stone"
+    },
+    {
+     "n": 10,
+     "r": "ceramics"
+    },
+    {
+     "n": 3,
+     "r": "metal"
+    }
+   ],
+   "workers": 1
+  },
+  "smithy": {
+   "beds": 1,
+   "branch": "mine",
+   "icon": "b:smithy",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 40,
+       "r": "log"
+      },
+      {
+       "n": 15,
+       "r": "stone"
+      }
+     ],
+     "make": [
+      {
+       "n": 2,
+       "r": "tools1"
+      }
+     ],
+     "note": "Деревянные инструменты.",
+     "use": [
+      {
+       "n": 4,
+       "r": "log",
+       "t": "тешут из бревна"
+      },
+      {
+       "n": 2,
+       "r": "sticks"
+      },
+      {
+       "n": 1,
+       "r": "fuel"
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 20,
+       "r": "log"
+      },
+      {
+       "n": 30,
+       "r": "stone"
+      }
+     ],
+     "make": [
+      {
+       "n": 2,
+       "r": "tools2"
+      }
+     ],
+     "note": "Каменные инструменты.",
+     "use": [
+      {
+       "n": 3,
+       "r": "log"
+      },
+      {
+       "n": 3,
+       "r": "sticks"
+      },
+      {
+       "n": 4,
+       "r": "stone",
+       "t": "булыжник"
+      },
+      {
+       "n": 2,
+       "r": "fuel"
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 40,
+       "r": "stone"
+      },
+      {
+       "n": 10,
+       "r": "metal"
+      }
+     ],
+     "make": [
+      {
+       "n": 2,
+       "r": "tools3"
+      }
+     ],
+     "note": "Железные инструменты, ножницы, огниво.",
+     "use": [
+      {
+       "n": 3,
+       "r": "log"
+      },
+      {
+       "n": 3,
+       "r": "sticks"
+      },
+      {
+       "n": 3,
+       "r": "stone"
+      },
+      {
+       "n": 3,
+       "r": "metal",
+       "t": "железо"
+      },
+      {
+       "n": 2,
+       "r": "fuel"
+      }
+     ]
+    }
+   ],
+   "name": "Кузница",
+   "note": "Пока кузницы нет, у жителей нет инструментов: работают руками, медленно.",
+   "opens": "С начала, одна из первых построек (рядом со складом)",
+   "order": 10,
+   "parent": "",
+   "pos": {
+    "x": -76,
+    "y": 606
+   },
+   "sells": [
+    {
+     "item": "wooden_pickaxe",
+     "lvl": 1,
+     "n": 1
+    },
+    {
+     "item": "wooden_axe",
+     "lvl": 1,
+     "n": 1
+    },
+    {
+     "item": "wooden_shovel",
+     "lvl": 1,
+     "n": 1
+    },
+    {
+     "item": "wooden_hoe",
+     "lvl": 1,
+     "n": 1
+    },
+    {
+     "item": "stone_pickaxe",
+     "lvl": 2,
+     "n": 1
+    },
+    {
+     "item": "stone_axe",
+     "lvl": 2,
+     "n": 1
+    },
+    {
+     "item": "stone_shovel",
+     "lvl": 2,
+     "n": 1
+    },
+    {
+     "item": "stone_hoe",
+     "lvl": 2,
+     "n": 1
+    },
+    {
+     "item": "iron_pickaxe",
+     "lvl": 3,
+     "n": 1
+    },
+    {
+     "item": "iron_axe",
+     "lvl": 3,
+     "n": 1
+    },
+    {
+     "item": "iron_shovel",
+     "lvl": 3,
+     "n": 1
+    },
+    {
+     "item": "iron_hoe",
+     "lvl": 3,
+     "n": 1
+    },
+    {
+     "item": "shears",
+     "lvl": 3,
+     "n": 1
+    },
+    {
+     "item": "flint_and_steel",
+     "lvl": 3,
+     "n": 1
+    }
+   ],
+   "unlock": [
+    {
+     "n": 30,
+     "r": "log"
+    },
+    {
+     "n": 10,
+     "r": "stone"
+    }
+   ],
+   "workers": 1
+  },
+  "smokehouse": {
+   "beds": 1,
+   "branch": "farm",
+   "icon": "b:smokehouse",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 10,
+       "r": "food"
+      }
+     ],
+     "note": "Жареная еда сытнее: 6 сырой → 10.",
+     "use": [
+      {
+       "n": 6,
+       "r": "food",
+       "t": "сырая рыба и мясо"
+      },
+      {
+       "n": 1,
+       "r": "fuel"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 15,
+       "r": "food"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 9,
+       "r": "food"
+      },
+      {
+       "n": 2,
+       "r": "fuel"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 20,
+       "r": "food"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 12,
+       "r": "food"
+      },
+      {
+       "n": 2,
+       "r": "fuel"
+      }
+     ]
+    }
+   ],
+   "name": "Коптильня",
+   "note": "",
+   "opens": "Хижина рыбаков 2 ур.",
+   "order": 22,
+   "parent": "fish_hut",
+   "sells": [
+    {
+     "item": "cooked_cod",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "cooked_salmon",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "dried_kelp",
+     "lvl": 1,
+     "n": 16
+    },
+    {
+     "item": "steak",
+     "lvl": 2,
+     "n": 4
+    },
+    {
+     "item": "cooked_porkchop",
+     "lvl": 2,
+     "n": 4
+    }
+   ],
+   "unlock": [
+    {
+     "n": 20,
+     "r": "ceramics"
+    },
+    {
+     "n": 30,
+     "r": "planks"
+    }
+   ],
+   "workers": 1
+  },
+  "square": {
+   "beds": 0,
+   "branch": "center",
+   "icon": "b:square",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 30,
+       "r": "cut_stone"
+      },
+      {
+       "n": 4,
+       "r": "joinery"
+      }
+     ],
+     "make": [],
+     "note": "Мощёная площадь.",
+     "use": [
+      {
+       "n": 1,
+       "r": "lighting",
+       "t": "фонари",
+       "p": 50
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "",
+     "use": []
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "",
+     "use": []
+    }
+   ],
+   "name": "Площадь",
+   "note": "",
+   "opens": "4 жителя",
+   "order": 1,
+   "parent": "campfire",
+   "pos": {
+    "x": 0,
+    "y": -6
+   },
+   "sells": [],
+   "unlock": [
+    {
+     "n": 50,
+     "r": "stone"
+    },
+    {
+     "n": 20,
+     "r": "log"
+    }
+   ],
+   "workers": 0
+  },
+  "stable": {
+   "beds": 1,
+   "branch": "animals",
+   "icon": "b:stable",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 1,
+       "r": "transport",
+       "t": "лошади",
+       "p": 10
+      }
+     ],
+     "note": "Лошади для караванов.",
+     "use": [
+      {
+       "n": 6,
+       "r": "grain"
+      },
+      {
+       "n": 1,
+       "r": "food",
+       "t": "яблоки"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 1,
+       "r": "transport",
+       "p": 20
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 8,
+       "r": "grain"
+      },
+      {
+       "n": 2,
+       "r": "food"
+      },
+      {
+       "n": 1,
+       "r": "leather",
+       "t": "сёдла",
+       "p": 20
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 1,
+       "r": "transport",
+       "p": 30
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 10,
+       "r": "grain"
+      },
+      {
+       "n": 2,
+       "r": "food"
+      },
+      {
+       "n": 1,
+       "r": "leather",
+       "p": 30
+      }
+     ]
+    }
+   ],
+   "name": "Конюшня",
+   "note": "",
+   "opens": "Коровник 2 ур.",
+   "order": 35,
+   "parent": "cattle_barn",
+   "sells": [],
+   "unlock": [
+    {
+     "n": 30,
+     "r": "joinery"
+    },
+    {
+     "n": 40,
+     "r": "planks"
+    },
+    {
+     "n": 30,
+     "r": "grain"
+    }
+   ],
+   "workers": 1
+  },
+  "stone_house": {
+   "beds": 2,
+   "branch": "home",
+   "icon": "b:stone_house",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 50,
+       "r": "cut_stone"
+      },
+      {
+       "n": 15,
+       "r": "planks"
+      },
+      {
+       "n": 8,
+       "r": "joinery"
+      },
+      {
+       "n": 4,
+       "r": "glass"
+      }
+     ],
+     "make": [],
+     "note": "Теплее: настроение выше.",
+     "use": [
+      {
+       "n": 12,
+       "r": "food",
+       "t": "жильцы"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 30
+      },
+      {
+       "n": 1,
+       "r": "furnishings",
+       "p": 5
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 3,
+       "r": "furnishings"
+      }
+     ],
+     "make": [],
+     "note": "",
+     "use": [
+      {
+       "n": 12,
+       "r": "food",
+       "t": "жильцы"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 30
+      },
+      {
+       "n": 1,
+       "r": "furnishings",
+       "p": 10
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 4,
+       "r": "furnishings"
+      }
+     ],
+     "make": [],
+     "note": "",
+     "use": [
+      {
+       "n": 12,
+       "r": "food",
+       "t": "жильцы"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 40
+      },
+      {
+       "n": 1,
+       "r": "furnishings",
+       "p": 15
+      }
+     ]
+    }
+   ],
+   "name": "Каменный дом",
+   "note": "",
+   "opens": "Деревянный дом 3 ур.",
+   "order": 7,
+   "parent": "house",
+   "sells": [],
+   "unlock": [
+    {
+     "n": 60,
+     "r": "cut_stone"
+    },
+    {
+     "n": 10,
+     "r": "joinery"
+    }
+   ],
+   "workers": 0
+  },
+  "stone_house_tall": {
+   "beds": 3,
+   "branch": "home",
+   "icon": "b:stone_house_tall",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 80,
+       "r": "cut_stone"
+      },
+      {
+       "n": 25,
+       "r": "planks"
+      },
+      {
+       "n": 14,
+       "r": "joinery"
+      },
+      {
+       "n": 8,
+       "r": "glass"
+      },
+      {
+       "n": 3,
+       "r": "metal"
+      }
+     ],
+     "make": [],
+     "note": "",
+     "use": [
+      {
+       "n": 18,
+       "r": "food",
+       "t": "жильцы"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 40
+      },
+      {
+       "n": 1,
+       "r": "furnishings",
+       "p": 10
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 4,
+       "r": "furnishings"
+      }
+     ],
+     "make": [],
+     "note": "",
+     "use": [
+      {
+       "n": 18,
+       "r": "food",
+       "t": "жильцы"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 50
+      },
+      {
+       "n": 1,
+       "r": "furnishings",
+       "p": 15
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 5,
+       "r": "furnishings"
+      },
+      {
+       "n": 4,
+       "r": "ceramics"
+      }
+     ],
+     "make": [],
+     "note": "",
+     "use": [
+      {
+       "n": 18,
+       "r": "food",
+       "t": "жильцы"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 50
+      },
+      {
+       "n": 1,
+       "r": "furnishings",
+       "p": 20
+      }
+     ]
+    }
+   ],
+   "name": "Двухэтажный каменный дом",
+   "note": "",
+   "opens": "Каменный дом 3 ур.",
+   "order": 8,
+   "parent": "stone_house",
+   "sells": [],
+   "unlock": [
+    {
+     "n": 100,
+     "r": "cut_stone"
+    },
+    {
+     "n": 5,
+     "r": "metal"
+    }
+   ],
+   "workers": 0
+  },
+  "stonemason": {
+   "beds": 1,
+   "branch": "mine",
+   "icon": "b:stonemason",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 8,
+       "r": "cut_stone"
+      }
+     ],
+     "note": "Тёсаный камень для каменных домов и площадей.",
+     "use": [
+      {
+       "n": 10,
+       "r": "stone"
+      },
+      {
+       "n": 1,
+       "r": "tools1",
+       "t": "износ",
+       "p": 20
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 12,
+       "r": "cut_stone"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 15,
+       "r": "stone"
+      },
+      {
+       "n": 1,
+       "r": "tools2",
+       "t": "износ",
+       "p": 20
+      },
+      {
+       "n": 1,
+       "r": "fuel",
+       "t": "гладкий камень"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 16,
+       "r": "cut_stone"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 20,
+       "r": "stone"
+      },
+      {
+       "n": 1,
+       "r": "tools3",
+       "t": "износ",
+       "p": 25
+      },
+      {
+       "n": 2,
+       "r": "fuel"
+      }
+     ]
+    }
+   ],
+   "name": "Каменотёс",
+   "note": "",
+   "opens": "Каменоломня 2 ур.",
+   "order": 13,
+   "parent": "quarry",
+   "sells": [
+    {
+     "item": "stone_bricks",
+     "lvl": 1,
+     "n": 16
+    },
+    {
+     "item": "stone_slab",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "stone_stairs",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "smooth_stone",
+     "lvl": 2,
+     "n": 8
+    },
+    {
+     "item": "polished_andesite",
+     "lvl": 2,
+     "n": 16
+    },
+    {
+     "item": "sandstone",
+     "lvl": 3,
+     "n": 8
+    }
+   ],
+   "unlock": [
+    {
+     "n": 20,
+     "r": "cut_stone"
+    },
+    {
+     "n": 5,
+     "r": "metal"
+    }
+   ],
+   "workers": 1
+  },
+  "storehouse": {
+   "beds": 0,
+   "branch": "store",
+   "icon": "b:storehouse",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 20,
+       "r": "log"
+      },
+      {
+       "n": 4,
+       "r": "stone"
+      }
+     ],
+     "make": [],
+     "note": "+480 к вместимости каждой категории.",
+     "use": []
+    },
+    {
+     "cost": [
+      {
+       "n": 10,
+       "r": "planks"
+      }
+     ],
+     "make": [],
+     "note": "+720 к вместимости каждой категории.",
+     "use": []
+    },
+    {
+     "cost": [
+      {
+       "n": 6,
+       "r": "joinery"
+      }
+     ],
+     "make": [],
+     "note": "+960 к вместимости каждой категории.",
+     "use": []
+    }
+   ],
+   "name": "Малый склад",
+   "note": "Вместимость увеличена в 3 раза (2026-09-28): деревне из 30 жителей хватает одного малого и одного большого склада.",
+   "opens": "С самого начала",
+   "order": 9,
+   "parent": "",
+   "sells": [],
+   "unlock": [],
+   "workers": 0
+  },
+  "storehouse_2": {
+   "beds": 0,
+   "branch": "store",
+   "icon": "b:storehouse_2",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 30,
+       "r": "log"
+      },
+      {
+       "n": 30,
+       "r": "planks"
+      },
+      {
+       "n": 8,
+       "r": "joinery"
+      },
+      {
+       "n": 30,
+       "r": "stone"
+      },
+      {
+       "n": 4,
+       "r": "metal"
+      }
+     ],
+     "make": [],
+     "note": "+960 к вместимости каждой категории.",
+     "use": [
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 20
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 8,
+       "r": "joinery"
+      }
+     ],
+     "make": [],
+     "note": "+1440 к вместимости каждой категории.",
+     "use": []
+    },
+    {
+     "cost": [
+      {
+       "n": 6,
+       "r": "metal"
+      }
+     ],
+     "make": [],
+     "note": "+1920 к вместимости каждой категории.",
+     "use": []
+    }
+   ],
+   "name": "Большой склад",
+   "note": "Вместимость увеличена в 3 раза (2026-09-28): деревне из 30 жителей хватает одного малого и одного большого склада.",
+   "opens": "Малый склад 3 ур.",
+   "order": 10,
+   "parent": "storehouse",
+   "sells": [],
+   "unlock": [
+    {
+     "n": 60,
+     "r": "planks"
+    },
+    {
+     "n": 10,
+     "r": "joinery"
+    }
+   ],
+   "workers": 0
+  },
+  "tavern": {
+   "beds": 1,
+   "branch": "trade",
+   "icon": "b:tavern",
+   "levels": [
+    {
+     "cost": [],
+     "make": [],
+     "note": "Вечера в таверне вместо костра: настроение +.",
+     "use": [
+      {
+       "n": 8,
+       "r": "food",
+       "t": "угощение"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 50
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "Разнообразная еда → счастье.",
+     "use": [
+      {
+       "n": 12,
+       "r": "food"
+      },
+      {
+       "n": 1,
+       "r": "lighting",
+       "p": 80
+      },
+      {
+       "n": 1,
+       "r": "furnishings",
+       "p": 10
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "Праздники.",
+     "use": [
+      {
+       "n": 16,
+       "r": "food"
+      },
+      {
+       "n": 1,
+       "r": "lighting"
+      },
+      {
+       "n": 1,
+       "r": "furnishings",
+       "p": 20
+      }
+     ]
+    }
+   ],
+   "name": "Таверна",
+   "note": "",
+   "opens": "Рыночная лавка 2 ур. + 8 жителей",
+   "order": 46,
+   "parent": "market",
+   "sells": [
+    {
+     "item": "cooked_cod",
+     "lvl": 1,
+     "n": 4
+    },
+    {
+     "item": "bread",
+     "lvl": 1,
+     "n": 4
+    },
+    {
+     "item": "honey_bottle",
+     "lvl": 2,
+     "n": 2
+    },
+    {
+     "item": "cake",
+     "lvl": 3,
+     "n": 1
+    },
+    {
+     "item": "rabbit_stew",
+     "lvl": 3,
+     "n": 2
+    }
+   ],
+   "unlock": [
+    {
+     "n": 60,
+     "r": "planks"
+    },
+    {
+     "n": 30,
+     "r": "cut_stone"
+    }
+   ],
+   "workers": 1
+  },
+  "tent": {
+   "beds": 2,
+   "branch": "home",
+   "icon": "b:tent",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 4,
+       "r": "log"
+      },
+      {
+       "n": 2,
+       "r": "wool"
+      }
+     ],
+     "make": [],
+     "note": "",
+     "use": [
+      {
+       "n": 12,
+       "r": "food",
+       "t": "жильцы"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "",
+     "use": []
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "",
+     "use": []
+    }
+   ],
+   "name": "Палатка",
+   "note": "",
+   "opens": "С самого начала",
+   "order": 3,
+   "parent": "",
+   "pos": {
+    "x": -61,
+    "y": -441
+   },
+   "sells": [],
+   "unlock": [],
+   "workers": 0
+  },
+  "weaver": {
+   "beds": 1,
+   "branch": "craft",
+   "icon": "b:weaver",
+   "levels": [
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 2,
+       "r": "wool",
+       "t": "нить, ковры, флаги"
+      }
+     ],
+     "note": "Ковры; нить из шерсти.",
+     "use": [
+      {
+       "n": 3,
+       "r": "wool"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 3,
+       "r": "wool",
+       "t": "нить, ковры, флаги"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 5,
+       "r": "wool"
+      },
+      {
+       "n": 1,
+       "r": "dyes",
+       "t": "добавка: краски → цветная шерсть, ковры"
+      },
+      {
+       "n": 1,
+       "r": "sticks",
+       "p": 50
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [
+      {
+       "n": 4,
+       "r": "wool",
+       "t": "нить, ковры, флаги"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 7,
+       "r": "wool"
+      },
+      {
+       "n": 2,
+       "r": "dyes",
+       "t": "добавка: краски → цветная шерсть, ковры"
+      }
+     ]
+    }
+   ],
+   "name": "Ткацкая",
+   "note": "",
+   "opens": "Овчарня 1 ур.",
+   "order": 37,
+   "parent": "sheep_pen",
+   "pos": {
+    "x": -1474,
+    "y": 969
+   },
+   "sells": [
+    {
+     "item": "carpet",
+     "lvl": 1,
+     "n": 4
+    },
+    {
+     "item": "string",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "banner",
+     "lvl": 2,
+     "n": 2
+    }
+   ],
+   "unlock": [
+    {
+     "n": 30,
+     "r": "planks"
+    },
+    {
+     "n": 10,
+     "r": "wool"
+    }
+   ],
+   "workers": 1
+  },
+  "well": {
+   "beds": 0,
+   "branch": "center",
+   "icon": "b:well",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 40,
+       "r": "cut_stone"
+      },
+      {
+       "n": 6,
+       "r": "joinery"
+      },
+      {
+       "n": 3,
+       "r": "metal"
+      }
+     ],
+     "make": [],
+     "note": "Настроение +.",
+     "use": [
+      {
+       "n": 1,
+       "r": "lighting"
+      }
+     ]
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "",
+     "use": []
+    },
+    {
+     "cost": [],
+     "make": [],
+     "note": "",
+     "use": []
+    }
+   ],
+   "name": "Колодец",
+   "note": "",
+   "opens": "6 жителей",
+   "order": 2,
+   "parent": "square",
+   "pos": {
+    "x": 166,
+    "y": 35
+   },
+   "sells": [],
+   "unlock": [
+    {
+     "n": 60,
+     "r": "cut_stone"
+    },
+    {
+     "n": 5,
+     "r": "metal"
+    }
+   ],
+   "workers": 0
+  },
+  "wood_hut": {
+   "beds": 1,
+   "branch": "wood",
+   "icon": "b:wood_hut",
+   "levels": [
+    {
+     "cost": [
+      {
+       "n": 45,
+       "r": "log"
+      },
+      {
+       "n": 15,
+       "r": "stone"
+      }
+     ],
+     "make": [
+      {
+       "n": 14,
+       "r": "log"
+      },
+      {
+       "n": 2,
+       "r": "sticks"
+      },
+      {
+       "n": 1,
+       "r": "fuel",
+       "t": "дрова"
+      },
+      {
+       "n": 1,
+       "r": "food",
+       "t": "яблоки"
+      }
+     ],
+     "note": "Рубит у дома, сажает рощу. Собирает ветки (палки) и дрова.",
+     "use": [
+      {
+       "n": 1,
+       "r": "tools1",
+       "t": "топоры",
+       "p": 30
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 20,
+       "r": "planks"
+      }
+     ],
+     "make": [
+      {
+       "n": 18,
+       "r": "log"
+      },
+      {
+       "n": 3,
+       "r": "sticks"
+      },
+      {
+       "n": 2,
+       "r": "fuel",
+       "t": "дрова"
+      },
+      {
+       "n": 2,
+       "r": "food"
+      }
+     ],
+     "note": "",
+     "use": [
+      {
+       "n": 1,
+       "r": "tools2",
+       "t": "износ",
+       "p": 30
+      }
+     ]
+    },
+    {
+     "cost": [
+      {
+       "n": 3,
+       "r": "metal"
+      },
+      {
+       "n": 4,
+       "r": "joinery"
+      }
+     ],
+     "make": [
+      {
+       "n": 22,
+       "r": "log"
+      },
+      {
+       "n": 4,
+       "r": "sticks"
+      },
+      {
+       "n": 2,
+       "r": "fuel",
+       "t": "дрова"
+      },
+      {
+       "n": 2,
+       "r": "food"
+      }
+     ],
+     "note": "Большая роща, быстрый рост.",
+     "use": [
+      {
+       "n": 1,
+       "r": "tools3",
+       "t": "износ",
+       "p": 35
+      }
+     ]
+    }
+   ],
+   "name": "Дом лесника",
+   "note": "",
+   "opens": "Есть дровосек",
+   "order": 17,
+   "parent": "",
+   "sells": [
+    {
+     "item": "oak_log",
+     "lvl": 1,
+     "n": 32
+    },
+    {
+     "item": "spruce_log",
+     "lvl": 1,
+     "n": 32
+    },
+    {
+     "item": "birch_log",
+     "lvl": 1,
+     "n": 32
+    },
+    {
+     "item": "sapling",
+     "lvl": 1,
+     "n": 4
+    },
+    {
+     "item": "stick",
+     "lvl": 1,
+     "n": 8
+    },
+    {
+     "item": "apple",
+     "lvl": 1,
+     "n": 4
+    },
+    {
+     "item": "leaves",
+     "lvl": 2,
+     "n": 16
+    },
+    {
+     "item": "cherry_log",
+     "lvl": 3,
+     "n": 16
+    },
+    {
+     "item": "dark_oak_log",
+     "lvl": 3,
+     "n": 16
+    }
+   ],
+   "unlock": [
+    {
+     "n": 80,
+     "r": "log"
+    },
+    {
+     "n": 30,
+     "r": "stone"
+    }
+   ],
+   "workers": 1
+  }
+ }
+}
