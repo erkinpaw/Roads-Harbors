@@ -513,9 +513,20 @@ public final class Roadworks {
         Village v = data.get(s.village);
         if (v == null || !level.hasChunkAt(new BlockPos(s.camp[0], 0, s.camp[1]))) return;
         double h = Math.toRadians(w.heading(w.front(s)) + 90);
-        for (int r = 0; r <= 8; r += 2) {
-            for (int side : new int[]{1, -1}) {
-                int x = s.camp[0] + (int) Math.round(Math.cos(h) * r * side), z = s.camp[1] + (int) Math.round(Math.sin(h) * r * side);
+        // the nearest good ground: first across the way from the camp, then in rings round it (a lake, a wood, a
+        // slope where it stopped)
+        java.util.List<int[]> tries = new java.util.ArrayList<>();
+        for (int r = 0; r <= 8; r += 2) for (int side : new int[]{1, -1}) tries.add(new int[]{
+                s.camp[0] + (int) Math.round(Math.cos(h) * r * side), s.camp[1] + (int) Math.round(Math.sin(h) * r * side), side});
+        for (int r = 4; r <= 16; r += 3) {
+            for (int a = 0; a < 12; a++) {
+                double ang = a * Math.PI / 6;
+                tries.add(new int[]{s.camp[0] + (int) Math.round(Math.cos(ang) * r), s.camp[1] + (int) Math.round(Math.sin(ang) * r), 1});
+            }
+        }
+        for (int[] t : tries) {
+            {
+                int x = t[0], z = t[1], side = t[2];
                 Integer y = site(level, x, z);
                 if (y == null) continue;
                 // the door towards the way

@@ -94,22 +94,23 @@ public class GoodsClientGameTest implements FabricClientGameTest {
                 final int d = day;
                 server.runOnServer(s -> log("by hand day {}: {}", d, stock(VillageData.get(s).get(id))));
             }
-            // ---- B: no sticks, no stone: the miners' stone tools can't be replaced
+            // ---- B: the tools are the smith's: worn out one by one from the store; none left, bare hands; bought, at work again
             server.runOnServer(s -> {
                 Village v = VillageData.get(s).get(id);
-                VillageManager.give(s, v, Res.STICKS, -9999);
-                VillageManager.give(s, v, Res.STONE, -9999);
-                VillageManager.give(s, v, Res.WOOD, -9999);
-            });
-            server.runOnServer(s -> {
-                Village v = VillageData.get(s).get(id);
-                log("before wear: miner tools {} short {}", v.toolLevel(Job.MINER), v.toolsShort(Job.MINER));
+                for (int l = 1; l <= 3; l++) VillageManager.give(s, v, Res.tools(l), -9999);
+                VillageManager.give(s, v, Res.TOOLS2, 2);
+                int before = v.toolLevel(Job.MINER);
+                VillageManager.wearNow(s, v, Job.MINER, 2.0);
+                int left = v.stock(Res.TOOLS2);
+                log("two stone tools, two worn out: level {} -> {}, left {}, short {}", before, v.toolLevel(Job.MINER), left, v.toolsShort(Job.MINER));
                 VillageManager.wearNow(s, v, Job.MINER, 1.0);
-                log("worn out, nothing to mend with: miner tools {} short {} | {}", v.toolLevel(Job.MINER), v.toolsShort(Job.MINER), stock(v));
-                VillageManager.give(s, v, Res.STICKS, 10);
-                VillageManager.give(s, v, Res.STONE, 10);
-                VillageManager.wearNow(s, v, Job.MINER, 0);
-                log("sticks and stone brought: miner tools {} short {} | {}", v.toolLevel(Job.MINER), v.toolsShort(Job.MINER), stock(v));
+                int bare = v.toolLevel(Job.MINER);
+                VillageManager.give(s, v, Res.TOOLS1, 4);
+                int again = v.toolLevel(Job.MINER);
+                log("none left: level {}, short {}; wooden ones brought: level {} | {}", bare, v.toolsShort(Job.MINER), again, stock(v));
+                if (before != 2 || left != 0 || bare != 0 || again != 1) {
+                    throw new AssertionError("tools: before " + before + ", left " + left + ", bare " + bare + ", again " + again);
+                }
             });
             // ---- C: the sawmill and the cartographer's house
             server.runCommand("village give " + id + " wood 400");

@@ -107,6 +107,12 @@ public final class ColonyService {
             got[r.ordinal()] = v.made.getOrDefault(r, 0);
             spent[r.ordinal()] = v.used.getOrDefault(r, 0) + v.built.getOrDefault(r, 0) + (r == Res.FOOD ? v.eaten : 0);
         }
+        // the village's trading, from its log: the rounds of its merchant, and the merchants who came to it
+        List<ColonyPayloads.LogRow> deals = new ArrayList<>();
+        for (Village.LogLine l : v.log()) {
+            if (l.text().getContents() instanceof net.minecraft.network.chat.contents.TranslatableContents t
+                    && t.getKey().startsWith("minecraftportsmod.vlog.caravan")) deals.add(new ColonyPayloads.LogRow(l.day(), l.text()));
+        }
         List<ColonyPayloads.Req> reqs = new ArrayList<>();
         for (VillageLife.Requirement r : VillageLife.requirements(v, v.level.next())) {
             reqs.add(new ColonyPayloads.Req(r.label(), r.have(), r.need()));
@@ -167,7 +173,8 @@ public final class ColonyService {
                 buildings, log, size, map, player.getBlockX() - v.center.getX(), player.getBlockZ() - v.center.getZ(),
                 v.board.getX() - v.center.getX(), v.board.getZ() - v.center.getZ(), tree, v.priority == null ? -1 : v.priority.ordinal(),
                 v.focus == null ? -1 : v.focus.ordinal(), center, queueRows(data, v), v.sub == null ? -1 : v.sub.ordinal(),
-                (float) v.ready, (float) VillageLife.readyGain(data, v, today), v.stored(), v.capacity(), got, spent));
+                (float) v.ready, (float) VillageLife.readyGain(data, v, today), v.stored(), v.capacity(), got, spent,
+                Caravans.status(data, v), Caravans.wants(v, true), Caravans.wants(v, false), deals));
     }
 
     /** The village's queue as the board shows it: the research in hand, the building sites in order, the trails being made. */

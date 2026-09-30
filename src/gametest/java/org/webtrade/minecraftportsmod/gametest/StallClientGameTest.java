@@ -19,7 +19,7 @@ import org.webtrade.minecraftportsmod.colony.VillageData;
 import org.webtrade.minecraftportsmod.network.ColonyPayloads;
 
 /**
- * The sawmill's wares and the merchant's stall: a village with a sawmill cuts stairs, slabs, doors and fences; the
+ * The sawmill and the merchant.s stall: a village with a sawmill saws planks and sticks; the
  * buildings' menus say what they make and use; the stall sorts the goods by kind, and a deal is struck with the
  * slider's count (bought and sold, the stores and purses checked).
  */
@@ -56,7 +56,7 @@ public class StallClientGameTest implements FabricClientGameTest {
                     "build 1 mine_house 2", "build 1 market 1", "build 1 hut 1", "build 1 hut 1"}) {
                 server.runCommand("village " + c);
             }
-            for (String r : new String[]{"wood 400", "stone 300", "planks 200", "sticks 60", "iron 30", "coal 60", "food 300"}) {
+            for (String r : new String[]{"wood 400", "stone 300", "planks 200", "sticks 60", "iron 30", "coal 60", "food 300", "tools2 20"}) {
                 server.runCommand("village give 1 " + r);
             }
             for (int day = 1; day <= 4; day++) {
@@ -109,14 +109,14 @@ public class StallClientGameTest implements FabricClientGameTest {
                 context.waitTicks(5);
                 context.takeScreenshot("stall_b_tab_" + Res.Kind.values()[t - 1].name().toLowerCase());
             }
-            // buy: 12 stairs (building goods)
+            // buy: 12 planks (building goods)
             context.runOnClient(mc -> {
                 TradeScreen ts = (TradeScreen) mc.gui.screen();
                 ts.showTab(Res.Kind.BUILDING.ordinal() + 1);
-                ts.pick(Res.STAIRS.ordinal(), false, 12);
+                ts.pick(Res.PLANKS.ordinal(), false, 12);
             });
             context.waitTicks(5);
-            context.takeScreenshot("stall_c_buy_stairs");
+            context.takeScreenshot("stall_c_buy_planks");
             context.runOnClient(mc -> ((TradeScreen) mc.gui.screen()).press());
             context.waitTicks(10);
             context.takeScreenshot("stall_d_bought");
@@ -153,14 +153,14 @@ public class StallClientGameTest implements FabricClientGameTest {
                 var inv = p.getInventory();
                 for (int i = 0; i < inv.getContainerSize(); i++) {
                     ItemStack st = inv.getItem(i);
-                    if (Res.STAIRS.unitsOf(st) > 0) stairs += st.getCount();
+                    if (Res.PLANKS.unitsOf(st) > 0) stairs += st.getCount();
                     if (st.is(Items.OAK_LOG)) logs += st.getCount();
                     if (st.is(Items.STONE_AXE)) axes++;
                 }
-                log("after: purse {}, player emeralds {}, stairs {}, logs {}, stone axes {} | {}", v.emeralds(), Trade.emeralds(p), stairs, logs,
+                log("after: purse {}, player emeralds {}, planks {}, logs {}, stone axes {} | {}", v.emeralds(), Trade.emeralds(p), stairs, logs,
                         axes, stock(v));
                 for (var l : v.log()) if (l.text().getString().contains("emerald") || l.text().getString().contains("изумр")) log("log: {}", l.text().getString());
-                if (stairs != 12) throw new AssertionError("expected 12 stairs bought, got " + stairs);
+                if (stairs != 12) throw new AssertionError("expected 12 planks bought, got " + stairs);
                 if (logs != 18) throw new AssertionError("expected 18 logs left after selling 30, got " + logs);
             });
             context.setScreen(() -> null);

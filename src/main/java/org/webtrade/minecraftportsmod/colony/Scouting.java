@@ -96,7 +96,19 @@ public final class Scouting {
     /** How many scouts the cartographer's house keeps: two once it is at the top. */
     static int scouts(Village v) {
         Building b = house(v);
-        return b == null ? 0 : b.level >= 3 ? 2 : 1;
+        if (b == null) return 0;
+        // one to begin with; more (as many as the house's level) only for a village whose food feeds another scout
+        // with some over: a farming village sends them out, a mining or a logging one keeps to the one
+        int n = 1;
+        int spare = VillageLife.production(v, Res.FOOD) - VillageLife.foodNeed(v, Long.MAX_VALUE / 2);
+        int more = v.workers(Job.SCOUT) >= 1 ? 0 : VillageLife.SCOUT_EATS;
+        // (and a store of it: a village living on bought food keeps to its one)
+        boolean stocked = v.stock(Res.FOOD) >= VillageLife.foodNeed(v, Long.MAX_VALUE / 2) * 5;
+        while (stocked && n < b.level && spare - more >= VillageLife.SCOUT_EATS + VillageLife.ADULT_EATS) {
+            n++;
+            spare -= VillageLife.SCOUT_EATS;
+        }
+        return n;
     }
 
     /** The level of the village's cartographer's house (0: none standing). */

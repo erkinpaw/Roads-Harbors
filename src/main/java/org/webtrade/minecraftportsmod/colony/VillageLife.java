@@ -21,13 +21,20 @@ import java.util.List;
  */
 public final class VillageLife {
 
-    public static final int ADULT_EATS = 6, CHILD_EATS = 3;
+    public static final int ADULT_EATS = 8, CHILD_EATS = 4;
+    /** A scout eats for three: long roads, and all he eats is carried. */
+    public static final int SCOUT_EATS = ADULT_EATS * 3;
     /** Days between two newcomers at the most. */
     public static final int GROWTH_DAYS = 2;
     /** Blocks a grown-up puts up in a day while no one is there to watch. */
     static final int OFFLINE_WORK = 300;
     /** Food kept in store at the start of a camp. */
-    static final int START_FOOD = 30, START_WOOD = 12, START_STONE = 4;
+    static final int START_FOOD = 50, START_WOOD = 12, START_STONE = 4, START_WHEAT = 12;
+
+    /** Wheat a farmer brings in from the fields in a day (with the crops), more in a village known for its farming. */
+    static int wheatDaily(Village v) {
+        return (int) Math.round(6 * subFactor(v, BuildingType.Sub.FARMING));
+    }
 
     static final RandomSource RND = RandomSource.create();
 
@@ -48,11 +55,17 @@ public final class VillageLife {
         v.made.clear();
         v.used.clear();
         v.built.clear();
+        v.workshopMade.clear();
+        v.workshopUsed.clear();
         // the players' orders first; what is left of the day goes to the village's own work
         v.orderLoad = Orders.work(v);
         produce(data, v, today);
         craft(v);
+        charcoal(v);
+        joinery(v);
+        // (the day's work wore the tools out; the smith makes new ones for tomorrow)
         wear(v, today);
+        smith(v);
         boolean hungry = eat(v, today);
         mood(v, hungry);
         supply(v, today);
@@ -117,9 +130,9 @@ public final class VillageLife {
         boolean field = v.count(BuildingType.FIELD, true) > 0;
         // a farmer with no field gathers what he can
         Job j = job == Job.FARMER && !field ? Job.GATHERER : job;
-        // (a gatherer has no tools: his hands and a basket)
-        double n = j.perDay * (j == Job.GATHERER ? 1.0 : Job.TOOL_SPEED[v.toolLevel(job)]);
-        if (j == Job.FARMER) n *= cropFactor(v);
+        // (a gatherer has no tools: his hands and a basket; and what grows wild round a village is soon picked)
+        double n = j.perDay * (j == Job.GATHERER ? wildShare(v) : Job.TOOL_SPEED[v.toolLevel(job)]);
+        if (j == Job.FARMER) n *= cropFactor(v) * fieldShare(v);
         // what the land round the village gives
         Land.Shares land = Land.known(v);
         if (j == Job.WOODCUTTER) n *= land.wood();
@@ -129,6 +142,35 @@ public final class VillageLife {
         if (j == Job.FARMER && v.count(BuildingType.FARM, true) > 0) n *= subFactor(v, BuildingType.Sub.FARMING);
         if (v.mood < 30) n *= 0.75;
         return n;
+    }
+
+    /** Gatherers who get the full share of what grows wild; each one more finds much less (it is soon picked). */
+    static final int WILD_GATHERERS = 2;
+    static final double WILD_MORE = 0.35;
+
+    /** The share of a full day's gathering each gatherer brings in, as many as there are picking the same woods. */
+    static double wildShare(Village v) {
+        boolean field = v.count(BuildingType.FIELD, true) > 0;
+        int n = v.workers(Job.GATHERER) + (field ? 0 : v.workers(Job.FARMER));
+        if (n <= WILD_GATHERERS) return 1.0;
+        return (WILD_GATHERERS + WILD_MORE * (n - WILD_GATHERERS)) / n;
+    }
+
+    /** Farmers a field has full work for. */
+    static final int FARMERS_PER_FIELD = 3;
+    /** What a farmer over what the fields need still brings in (a hand here and there). */
+    static final double SPARE_FARMER = 0.2;
+
+    /** The share of a full day's work each farmer has, as many as there are on the village's fields. */
+    static double fieldShare(Village v) {
+        int farmers = v.workers(Job.FARMER), room = v.count(BuildingType.FIELD, true) * FARMERS_PER_FIELD;
+        if (farmers <= room) return 1.0;
+        return (room + SPARE_FARMER * (farmers - room)) / farmers;
+    }
+
+    /** Is there work for one more farmer: a field with room, or one the village can still lay out? */
+    static boolean farmWork(Village v) {
+        return v.workers(Job.FARMER) < Tree.fieldLimit(v) * FARMERS_PER_FIELD;
     }
 
     /** How much the crops sown feed compared to wheat. */
@@ -206,7 +248,7 @@ public final class VillageLife {
     public static int foodNeed(Village v, long today) {
         int n = 0;
         // a scout on the road eats for two
-        for (Dweller d : v.dwellers) n += d.child(today) || d.job == null ? CHILD_EATS : d.job == Job.SCOUT ? ADULT_EATS * 2 : ADULT_EATS;
+        for (Dweller d : v.dwellers) n += d.child(today) || d.job == null ? CHILD_EATS : d.job == Job.SCOUT ? SCOUT_EATS : ADULT_EATS;
         return n;
     }
 
@@ -253,6 +295,17 @@ public final class VillageLife {
             }
             d.earned = 0;
             d.found = 0;
+        }
+        // wheat: the fields give it with their crops; the gatherers bring a little in from the wild
+        int wheat = 0;
+        for (Dweller d : v.dwellers) {
+            if (d.job == null || d.away) continue;
+            if (d.job == Job.FARMER && field) wheat += wheatDaily(v);
+            else if (d.job == Job.GATHERER || d.job == Job.FARMER) wheat += 1;
+        }
+        if (wheat > 0 && !v.full(Res.WHEAT)) {
+            v.add(Res.WHEAT, wheat);
+            v.made.merge(Res.WHEAT, wheat, Integer::sum);
         }
         // going hungry: everyone at home who can spares half a day to fish and gather (each keeps his trade)
         int need = foodNeed(v, today);
@@ -413,17 +466,19 @@ public final class VillageLife {
      * a reserve for the next building.
      */
     public static int target(Village v, Res r) {
-        // no use wanting more than the store can hold
-        return Math.max(10, Math.min(wanted(v, r), v.capacity() * 3 / 4));
+        // no use wanting more than the store can hold (and a few of anything, but tools: those are kept as the work needs)
+        int t = Math.min(wanted(v, r), v.capacity() * 3 / 4);
+        return r.toolLevel() > 0 ? t : Math.max(10, t);
     }
 
     /**
-     * What the village uses of a resource in a day, taken out of its store: the food eaten; tools worn out (see
-     * {@link #toolDemand}, reckoned for four days).
+     * What the village uses of a resource in a day, taken out of its store: the food eaten; tools worn out, and what
+     * the smith makes new ones of.
      */
     static int dailyUse(Village v, Res r) {
         if (r == Res.FOOD) return foodNeed(v, Long.MAX_VALUE / 2);
-        return (int) Math.ceil(toolDemand(v, r) / 4.0);
+        if (r.toolLevel() > 0) return (int) Math.ceil(toolUsers(v) / Job.TOOL_DAYS[r.toolLevel()]);
+        return smithNeeds(v, r);
     }
 
     /** The room the village needs for a resource: the reserve it keeps of it, and what passes through the store in a day. */
@@ -460,14 +515,15 @@ public final class VillageLife {
         if (v.research != null) needed += Tree.unlockCost(v, v.research).getOrDefault(r, 0);
         int t = switch (r) {
             case FOOD -> Math.max(30, foodNeed(v, Long.MAX_VALUE / 2) * 5);
-            case WOOD -> 60 + needed;
-            case STONE -> 40 + needed;
-            case IRON -> needed + 2 * toolDemand(v, Res.IRON);
-            case PLANKS -> 60 + needed;
-            case STICKS -> 8 + 2 * toolDemand(v, Res.STICKS);
-            case COAL -> 12 + needed + 2 * toolDemand(v, Res.COAL);
-            // a few of each, for trade
-            case STAIRS, SLABS, DOORS, FENCES -> 12 + needed;
+            case WOOD -> 60 + needed + smithNeeds(v, r);
+            case STONE -> 40 + needed + smithNeeds(v, r);
+            case IRON -> needed + smithNeeds(v, r);
+            case PLANKS -> 60 + needed + joinerNeeds(v, r);
+            case STICKS -> 8 + needed + smithNeeds(v, r) + joinerNeeds(v, r);
+            case COAL -> 12 + needed + smithNeeds(v, r);
+            case WHEAT -> 20 + needed;
+            case JOINERY -> 10 + needed;
+            case TOOLS1, TOOLS2, TOOLS3 -> toolsKept(v, r.toolLevel());
         };
         return t;
     }
@@ -503,7 +559,8 @@ public final class VillageLife {
     private static Job jobFor(Village v, Res r) {
         return switch (r) {
             case FOOD -> foodJob(v);
-            case WOOD, PLANKS, STICKS, STAIRS, SLABS, DOORS, FENCES -> Job.WOODCUTTER;
+            case WHEAT -> foodJob(v);
+            case WOOD, PLANKS, STICKS, JOINERY, TOOLS1, TOOLS2, TOOLS3 -> Job.WOODCUTTER;
             case STONE, IRON, COAL -> Job.MINER;
         };
     }
@@ -554,10 +611,14 @@ public final class VillageLife {
         // a little over, the new hands go to it, whatever the building sites want; unless the store would cover the
         // shortfall for weeks (a full granary is eaten into before anyone more is sent to the fields)
         double shortfall = (foodNeed(v, Long.MAX_VALUE / 2) + ADULT_EATS) * 1.15 - production(v, Res.FOOD);
-        if (shortfall > 0 && v.stock(Res.FOOD) < target(v, Res.FOOD) + shortfall * FOOD_WEEKS) return foodJob(v);
+        if (shortfall > 0 && v.stock(Res.FOOD) < target(v, Res.FOOD) + shortfall * FOOD_WEEKS && (farmWork(v) || v.workers(Job.GATHERER) < WILD_GATHERERS)) {
+            return foodJob(v);
+        }
         Res best = null;
         double bestW = 0.2;
+        boolean foodWork = farmWork(v) || v.workers(Job.GATHERER) < WILD_GATHERERS;
         for (Res r : WORKED) {
+            if (r == Res.FOOD && !foodWork) continue;
             // a resource nobody makes yet is wanted a bit more
             double w = want(v, r) + (hands(v, r) == 0 ? 0.3 : 0);
             if (w > bestW && !v.full(r)) {
@@ -569,6 +630,7 @@ public final class VillageLife {
             // everything well stocked: the store the village wants most (or, below, the trade short of hands)
             double most = -1e9;
             for (Res r : WORKED) {
+                if (r == Res.FOOD && !foodWork) continue;
                 if (want(v, r) > most) {
                     most = want(v, r);
                     best = r;
@@ -578,7 +640,7 @@ public final class VillageLife {
             // not the store that happens to be least over its mark; a full store takes nobody new)
             int gap = Integer.MIN_VALUE;
             for (Res r : WORKED) {
-                if (v.full(r)) continue;
+                if (v.full(r) || r == Res.FOOD && !foodWork) continue;
                 int g = ideal(v, r) - hands(v, r);
                 if (g > gap || g == gap && best != null && want(v, r) > want(v, best)) {
                     gap = g;
@@ -596,19 +658,24 @@ public final class VillageLife {
         if (v.workers(Job.FISHER) < v.count(BuildingType.FISH_HUT, true) && adults >= 4) return Job.FISHER;
         if (v.has(BuildingType.MARKET) && v.workers(Job.MERCHANT) == 0 && adults >= 4) return Job.MERCHANT;
         if (v.has(BuildingType.SAWMILL) && v.workers(Job.SAWYER) == 0 && adults >= 4) return Job.SAWYER;
+        if (v.has(BuildingType.CARPENTER) && v.workers(Job.JOINER) == 0 && adults >= 4) return Job.JOINER;
         if (v.has(BuildingType.CARTOGRAPHER) && v.workers(Job.SCOUT) < Scouting.scouts(v) && adults >= 5) return Job.SCOUT;
         return null;
     }
 
     private static Job foodJob(Village v) {
         int fields = v.count(BuildingType.FIELD, true);
-        return fields * 2 > v.workers(Job.FARMER) ? Job.FARMER : Job.GATHERER;
+        // the wild is picked by two: after them, the fields (one is laid out for the new farmer), as many as the
+        // village may have; past that, a gatherer again (what the woods still give)
+        if (fields * FARMERS_PER_FIELD > v.workers(Job.FARMER) || v.workers(Job.GATHERER) >= WILD_GATHERERS && farmWork(v)) return Job.FARMER;
+        return Job.GATHERER;
     }
 
     /** A smithy, sawmill or map table that is gone sends its people back to a trade. */
     private static void specialists(Village v, long today) {
         specialist(v, today, BuildingType.SMITHY, Job.SMITH, 1, 2, "minecraftportsmod.vlog.smith");
         specialist(v, today, BuildingType.SAWMILL, Job.SAWYER, 1, 4, "minecraftportsmod.vlog.sawyer");
+        specialist(v, today, BuildingType.CARPENTER, Job.JOINER, 1, 4, "minecraftportsmod.vlog.joiner");
         specialist(v, today, BuildingType.CARTOGRAPHER, Job.SCOUT, Scouting.scouts(v), 5, "minecraftportsmod.vlog.scout");
     }
 
@@ -630,8 +697,8 @@ public final class VillageLife {
             // (the sawmill is the logging sub-branch's: more logs through it in a village known for it)
             return new int[]{(int) Math.round((10 + 6 * mill.level) * subFactor(v, BuildingType.Sub.LOGGING)), 4, 8};
         }
-        // by hand: a few logs, and much of each lost
-        return new int[]{6, 2, 3};
+        // by hand: fewer logs, and half of each lost to planks (sticks are split from a log easily enough)
+        return new int[]{10, 2, 8};
     }
 
     /**
@@ -650,44 +717,152 @@ public final class VillageLife {
         boolean mill = saw[1] == 4;
         // (a store of planks three times what is wanted is enough)
         if (mill && !v.full(Res.PLANKS) && v.stock(Res.PLANKS) < target(v, Res.PLANKS) * 3) planks += Math.min(free, Math.max(0, (v.stock(Res.WOOD) - sticks - planks - target(v, Res.WOOD)) / 2));
-        if (mill) cutWares(v);
         if (sticks + planks <= 0) return;
         v.add(Res.WOOD, -(sticks + planks));
         v.used.merge(Res.WOOD, sticks + planks, Integer::sum);
+        v.workshop(BuildingType.SAWMILL, Res.WOOD, 0, sticks + planks);
         if (sticks > 0) {
             v.add(Res.STICKS, sticks * saw[2]);
             v.made.merge(Res.STICKS, sticks * saw[2], Integer::sum);
+            v.workshop(BuildingType.SAWMILL, Res.STICKS, sticks * saw[2], 0);
         }
         if (planks > 0) {
             v.add(Res.PLANKS, planks * saw[1]);
             v.made.merge(Res.PLANKS, planks * saw[1], Integer::sum);
+            v.workshop(BuildingType.SAWMILL, Res.PLANKS, planks * saw[1], 0);
         }
     }
 
+    /** Coal a village burns from its wood in a day at most, and the logs a coal takes. */
+    static final int CHARCOAL_A_DAY = 3, LOGS_A_COAL = 3;
+
+    /** Charcoal: while the village is short of coal, a little of its wood over what it keeps is burnt into it. */
+    static void charcoal(Village v) {
+        int want = target(v, Res.COAL) - v.stock(Res.COAL);
+        int logs = v.stock(Res.WOOD) - target(v, Res.WOOD);
+        int n = Math.min(CHARCOAL_A_DAY, Math.min(want, logs / LOGS_A_COAL));
+        if (n <= 0 || v.full(Res.COAL)) return;
+        v.add(Res.WOOD, -n * LOGS_A_COAL);
+        v.used.merge(Res.WOOD, n * LOGS_A_COAL, Integer::sum);
+        v.add(Res.COAL, n);
+        v.made.merge(Res.COAL, n, Integer::sum);
+    }
+
+    // ------------------------------------------------------------------ the smith's tools and the joiner's work
+
+    /** Days of work the village keeps tools (and what the smith makes them of) for. */
+    static final int TOOL_RESERVE_DAYS = 2;
+    /** Tools a smith makes in a day, by their level. */
+    static final int[] TOOLS_A_DAY = {0, 30, 8, 5};
+    /** Joinery a joiner makes in a day at his workshop's first level, and more with each level; of two planks and a stick each. */
+    static final int JOINERY_A_DAY = 6, JOINERY_PER_LEVEL = 4;
+
+    /** The grown-ups whose trade wears out tools. */
+    static int toolUsers(Village v) {
+        int n = 0;
+        for (Job j : Job.values()) if (j.usesTools()) n += v.workers(j);
+        return n;
+    }
+
+    /** The level of the village's smithy while a smith works it (0: none). */
+    static int smithyLevel(Village v) {
+        if (v.workers(Job.SMITH) == 0) return 0;
+        int best = 0;
+        for (Building b : v.buildings) if (b.standing() && b.type == BuildingType.SMITHY) best = Math.max(best, b.level);
+        return best;
+    }
+
+    /** The tools the village would have its people work with: the best its smith makes, stone ones at least (bought if need be). */
+    static int toolAim(Village v) {
+        return Math.min(3, Math.max(2, smithyLevel(v)));
+    }
+
+    /** Days of work the tools in store are good for, of those of a level and better. */
+    static double toolDaysFrom(Village v, int level) {
+        double d = 0;
+        for (int l = level; l <= 3; l++) d += v.stock(Res.tools(l)) * Job.TOOL_DAYS[l];
+        return d;
+    }
+
+    /** How many tools of a level the village keeps: enough, with the better ones it has, for some days of all its work. */
+    static int toolsKept(Village v, int level) {
+        int users = toolUsers(v);
+        if (users == 0) return 0;
+        double want = users * (double) TOOL_RESERVE_DAYS;
+        if (level > toolAim(v)) return Math.min(v.stock(Res.tools(level)), (int) Math.ceil(want / Job.TOOL_DAYS[level]));
+        double better = level < 3 ? toolDaysFrom(v, level + 1) : 0;
+        return (int) Math.ceil(Math.max(0, want - better) / Job.TOOL_DAYS[level]);
+    }
+
+    /** The level of tools the smith makes now: the best his smithy allows that he has the makings of (0: none). */
+    static int smithMakes(Village v) {
+        for (int l = smithyLevel(v); l >= 1; l--) if (Tree.affordable(v, Job.toolRecipe(l))) return l;
+        return 0;
+    }
+
+    /** What the village keeps for the smith: the makings of a day of tools, at the level his smithy makes. */
+    static int smithNeeds(Village v, Res r) {
+        int l = smithyLevel(v);
+        if (l == 0) return 0;
+        int tools = (int) Math.ceil(toolUsers(v) / Job.TOOL_DAYS[l]);
+        return tools * Job.toolRecipe(l).getOrDefault(r, 0);
+    }
+
+    /** What the village keeps for the joiner: two days of his planks and sticks. */
+    static int joinerNeeds(Village v, Res r) {
+        if (v.workers(Job.JOINER) == 0) return 0;
+        int batches = 2 * (JOINERY_A_DAY + JOINERY_PER_LEVEL * houseLevel(v, Job.JOINER));
+        return r == Res.PLANKS ? 2 * batches : r == Res.STICKS ? batches : 0;
+    }
+
     /**
-     * The sawmill's wares, from the planks over what the village keeps: stairs, slabs, doors, fences (as in a
-     * crafting table: 6 planks make 4 stairs, 3 make 6 slabs, 6 make 3 doors, 4 and 2 sticks make 3 fences), up to
-     * three times what is wanted of each; a batch of each a day for each level of the mill.
+     * The smith's day: tools of the best level he can make, while the tools in store are good for less than a few
+     * days of the village's work (the others of his trade's day go on the players' orders).
      */
-    static void cutWares(Village v) {
-        int level = 0;
-        for (Building b : v.buildings) if (b.type == BuildingType.SAWMILL && b.standing()) level = Math.max(level, b.level);
-        level = (int) (level * (1 - v.orderLoad.getOrDefault(Job.SAWYER, 0.0)));
-        for (int batch = 0; batch < level; batch++) {
-            for (Res r : new Res[]{Res.STAIRS, Res.SLABS, Res.DOORS, Res.FENCES}) {
-                int[] recipe = recipe(r);   // planks, sticks, made
-                if (v.stock(r) >= target(v, r) * 3 || v.full(r)) continue;
-                if (v.stock(Res.PLANKS) - recipe[0] < target(v, Res.PLANKS) || v.stock(Res.STICKS) - recipe[1] < target(v, Res.STICKS)) continue;
-                v.add(Res.PLANKS, -recipe[0]);
-                v.used.merge(Res.PLANKS, recipe[0], Integer::sum);
-                if (recipe[1] > 0) {
-                    v.add(Res.STICKS, -recipe[1]);
-                    v.used.merge(Res.STICKS, recipe[1], Integer::sum);
-                }
-                v.add(r, recipe[2]);
-                v.made.merge(r, recipe[2], Integer::sum);
-            }
+    static void smith(Village v) {
+        int users = toolUsers(v);
+        if (users == 0 || v.workers(Job.SMITH) == 0) return;
+        double free = 1 - v.orderLoad.getOrDefault(Job.SMITH, 0.0);
+        for (int made = 0; ; ) {
+            int l = smithMakes(v);
+            if (l == 0 || toolDaysFrom(v, 1) >= users * (double) TOOL_RESERVE_DAYS || v.full(Res.tools(l))) return;
+            int cap = (int) Math.round(TOOLS_A_DAY[l] * v.workers(Job.SMITH) * subFactor(v, BuildingType.Sub.METALWORK) * free);
+            if (made >= cap) return;
+            java.util.Map<Res, Integer> recipe = Job.toolRecipe(l);
+            recipe.forEach((r, n) -> {
+                v.add(r, -n);
+                v.used.merge(r, n, Integer::sum);
+                v.workshop(BuildingType.SMITHY, r, 0, n);
+            });
+            v.add(Res.tools(l), 1);
+            v.made.merge(Res.tools(l), 1, Integer::sum);
+            v.workshop(BuildingType.SMITHY, Res.tools(l), 1, 0);
+            made++;
         }
+    }
+
+    /** The joiner's day: joinery from the planks and sticks over what the village keeps, up to twice what it wants of it. */
+    static void joinery(Village v) {
+        if (v.workers(Job.JOINER) == 0 || !v.has(BuildingType.CARPENTER)) return;
+        double free = 1 - v.orderLoad.getOrDefault(Job.JOINER, 0.0);
+        int batches = (int) Math.round((JOINERY_A_DAY + JOINERY_PER_LEVEL * houseLevel(v, Job.JOINER)) * v.workers(Job.JOINER)
+                * subFactor(v, BuildingType.Sub.JOINERY) * free);
+        int made = 0;
+        for (int i = 0; i < batches; i++) {
+            if (v.stock(Res.JOINERY) >= target(v, Res.JOINERY) * 2 || v.full(Res.JOINERY)) break;
+            if (v.stock(Res.PLANKS) < 2 || v.stock(Res.STICKS) < 1) break;
+            v.add(Res.PLANKS, -2);
+            v.add(Res.STICKS, -1);
+            v.add(Res.JOINERY, 1);
+            made++;
+        }
+        if (made == 0) return;
+        v.used.merge(Res.PLANKS, 2 * made, Integer::sum);
+        v.used.merge(Res.STICKS, made, Integer::sum);
+        v.made.merge(Res.JOINERY, made, Integer::sum);
+        v.workshop(BuildingType.CARPENTER, Res.PLANKS, 0, 2 * made);
+        v.workshop(BuildingType.CARPENTER, Res.STICKS, 0, made);
+        v.workshop(BuildingType.CARPENTER, Res.JOINERY, made, 0);
     }
 
     /**
@@ -701,7 +876,7 @@ public final class VillageLife {
         long today = Long.MAX_VALUE / 2;
         for (Dweller d : v.dwellers) {
             if (d.home != b.id) continue;
-            int eats = d.child(today) || d.job == null ? CHILD_EATS : d.job == Job.SCOUT ? ADULT_EATS * 2 : ADULT_EATS;
+            int eats = d.child(today) || d.job == null ? CHILD_EATS : d.job == Job.SCOUT ? SCOUT_EATS : ADULT_EATS;
             used[Res.FOOD.ordinal()] += eats * 10;
         }
         Job job = b.type.job;
@@ -714,41 +889,20 @@ public final class VillageLife {
                 made[Res.COAL.ordinal()] += coalDaily(v) * workers * 10;
             }
             int lv = toolTier(v);
-            for (var e : job.toolCost(lv).entrySet()) used[e.getKey().ordinal()] += e.getValue() * workers * 10 / Job.toolLife(lv);
+            if (job.usesTools() && lv > 0) used[Res.tools(lv).ordinal()] += (int) Math.round(workers * 10 / Job.TOOL_DAYS[lv]);
+            if (job == Job.FARMER && v.count(BuildingType.FIELD, true) > 0) made[Res.WHEAT.ordinal()] += wheatDaily(v) * workers * 10;
         }
-        if (b.type == BuildingType.SAWMILL && b.standing()) {
-            for (Res r : new Res[]{Res.PLANKS, Res.STICKS, Res.STAIRS, Res.SLABS, Res.DOORS, Res.FENCES}) made[r.ordinal()] += v.made.getOrDefault(r, 0) * 10;
-            for (Res r : new Res[]{Res.WOOD, Res.PLANKS, Res.STICKS}) {
-                // (what the tools took is not the mill's)
-                int tools = 0;
-                for (Job t : Job.values()) {
-                    if (!t.usesTools() || v.workers(t) == 0) continue;
-                    int lv = toolTier(v);
-                    tools += t.toolCost(lv).getOrDefault(r, 0) * v.workers(t) / Job.toolLife(lv);
-                }
-                used[r.ordinal()] += Math.max(0, v.used.getOrDefault(r, 0) - tools) * 10;
-            }
+        if (b.standing() && (b.type == BuildingType.SAWMILL || b.type == BuildingType.SMITHY || b.type == BuildingType.CARPENTER)) {
+            v.workshopMade.getOrDefault(b.type, new java.util.EnumMap<>(Res.class)).forEach((r, k) -> made[r.ordinal()] += k * 10);
+            v.workshopUsed.getOrDefault(b.type, new java.util.EnumMap<>(Res.class)).forEach((r, k) -> used[r.ordinal()] += k * 10);
         }
         return new int[][]{made, used};
     }
 
-    /** What a batch of a sawmill ware takes and makes: planks, sticks, pieces. */
-    public static int[] recipe(Res r) {
-        return switch (r) {
-            case STAIRS -> new int[]{6, 0, 4};
-            case SLABS -> new int[]{3, 0, 6};
-            case DOORS -> new int[]{6, 0, 3};
-            case FENCES -> new int[]{4, 2, 3};
-            default -> new int[]{0, 0, 0};
-        };
-    }
-
-    /** The tools the village's smithy makes: its level while a smith works it (0: no smithy, bare hands). */
+    /** The tools the village works with: the best it has in store (0: none, bare hands). */
     static int toolTier(Village v) {
-        if (v.workers(Job.SMITH) == 0) return 0;
-        int best = 0;
-        for (Building b : v.buildings) if (b.standing() && b.type == BuildingType.SMITHY) best = Math.max(best, b.level);
-        return best;
+        for (int l = 3; l >= 1; l--) if (v.stock(Res.tools(l)) > 0) return l;
+        return 0;
     }
 
     /** The level of a trade's own house (0: none). */
@@ -756,17 +910,6 @@ public final class VillageLife {
         int best = 0;
         for (Building b : v.buildings) if (b.standing() && b.type.job == job) best = Math.max(best, b.level);
         return best;
-    }
-
-    /** How much of a resource the tools of the village take in a few days (for what to keep in store). */
-    static int toolDemand(Village v, Res r) {
-        int n = 0;
-        for (Job j : Job.values()) {
-            if (!j.usesTools() || v.workers(j) == 0) continue;
-            int lv = toolTier(v);
-            n += (int) Math.ceil(v.workers(j) * 4.0 / Job.toolLife(lv)) * j.toolCost(lv).getOrDefault(r, 0);
-        }
-        return n;
     }
 
     /**
@@ -781,18 +924,22 @@ public final class VillageLife {
         for (Job j : Job.values()) {
             if (!j.usesTools() || v.workers(j) == 0) continue;
             int lv = toolTier(v);
-            double w = v.wear.getOrDefault(j, 0.0) + v.workers(j) / (double) Job.toolLife(lv);
+            if (lv == 0) {
+                // (none in store: bare hands, nothing to wear out)
+                v.toolsShort.add(j);
+                v.wear.put(j, 0.0);
+                continue;
+            }
+            double w = v.wear.getOrDefault(j, 0.0) + v.workers(j) / Job.TOOL_DAYS[lv];
             while (w >= 1) {
-                java.util.Map<Res, Integer> cost = j.toolCost(lv);
-                if (!Tree.affordable(v, cost)) {
+                lv = toolTier(v);
+                if (lv == 0) {
                     v.toolsShort.add(j);
-                    w = 1;
+                    w = 0;
                     break;
                 }
-                cost.forEach((r, n) -> {
-                    v.add(r, -n);
-                    v.used.merge(r, n, Integer::sum);
-                });
+                v.add(Res.tools(lv), -1);
+                v.used.merge(Res.tools(lv), 1, Integer::sum);
                 w -= 1;
             }
             v.wear.put(j, w);
@@ -1092,10 +1239,12 @@ public final class VillageLife {
         // a sawmill once planks or sticks are short (by hand they come slowly)
         if ((want(v, Res.PLANKS) > 0.3 || want(v, Res.STICKS) > 0.3) && Tree.open(v, BuildingType.SAWMILL)
                 && start(level, v, BuildingType.SAWMILL, today)) return;
+        // a joiner's workshop once joinery is short (the houses are built with it)
+        if (want(v, Res.JOINERY) > 0.3 && Tree.open(v, BuildingType.CARPENTER) && start(level, v, BuildingType.CARPENTER, today)) return;
         // the cartographer's house, for a village big enough to spare a scout
         if (v.adults() >= 5 && Tree.open(v, BuildingType.CARTOGRAPHER) && start(level, v, BuildingType.CARTOGRAPHER, today)) return;
         // more fields for the farmers
-        if (v.workers(Job.FARMER) > v.count(BuildingType.FIELD, false) * 2 && Tree.open(v, BuildingType.FIELD)
+        if (v.workers(Job.FARMER) > v.count(BuildingType.FIELD, false) * FARMERS_PER_FIELD - 1 && Tree.open(v, BuildingType.FIELD)
                 && start(level, v, BuildingType.FIELD, today)) return;
         // a building raised a level, once the store can pay for it and keep a reserve
         Building raise = toRaise(v);
@@ -1181,7 +1330,9 @@ public final class VillageLife {
             if (!Tree.canRaise(v, b) || !spare(v, Tree.levelCost(b.type, b.level + 1))) continue;
             int score = b.type.branch == v.focus ? 40 : b.type.isWorkshop() ? 30 : b.type.branch == BuildingType.Branch.HOME ? 20 : 10;
             // short of planks and no sawmill yet: the woodcutters' hut grown to the top is what opens it
-            if (b.type == BuildingType.WOOD_HUT && !v.unlocked(BuildingType.SAWMILL) && want(v, Res.PLANKS) > 0.2) score = 55;
+            if (b.type == BuildingType.WOOD_HUT && !v.unlocked(BuildingType.SAWMILL) && (want(v, Res.PLANKS) > 0.2 || want(v, Res.JOINERY) > 0.3)) score = 55;
+            // wooden tools only: the smithy grown a level makes stone ones, that last six times as long
+            if (b.type == BuildingType.SMITHY && b.level < 2 && toolUsers(v) >= 4) score = 52;
             // short of beds and the next kind of house not open yet: a home grown to the top is what opens it
             if (b.type.branch == BuildingType.Branch.HOME && v.freeBeds() <= 2) {
                 boolean nextShut = false;
@@ -1224,7 +1375,8 @@ public final class VillageLife {
                     || t == BuildingType.MINE_HOUSE && v.workers(Job.MINER) > 0
                     || t == BuildingType.WOOD_HUT && v.workers(Job.WOODCUTTER) > 0
                     || t == BuildingType.FISH_HUT && v.adults() >= 6
-                    || t == BuildingType.SAWMILL && (want(v, Res.PLANKS) > 0.3 || want(v, Res.STICKS) > 0.3)
+                    || t == BuildingType.SAWMILL && (want(v, Res.PLANKS) > 0.3 || want(v, Res.STICKS) > 0.3 || want(v, Res.JOINERY) > 0.3)
+                    || t == BuildingType.CARPENTER && want(v, Res.JOINERY) > 0.3
                     || t == BuildingType.CARTOGRAPHER && v.adults() >= 5;
             if (!mine) continue;
             int score = (t.branch == BuildingType.Branch.HOME && v.freeBeds() <= 1 ? 50 : 0) + (t.branch == v.focus ? 30 : 0) - t.depth() * 5;

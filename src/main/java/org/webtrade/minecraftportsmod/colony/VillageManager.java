@@ -551,6 +551,7 @@ public final class VillageManager {
         placed.add(Res.FOOD, VillageLife.START_FOOD);
         placed.add(Res.WOOD, VillageLife.START_WOOD);
         placed.add(Res.STONE, VillageLife.START_STONE);
+        placed.add(Res.WHEAT, VillageLife.START_WHEAT);
 
         // what the village will go deep into, by the land around it (before its trees are cleared)
         placed.focus = VillageLife.chooseFocus(level, placed);
