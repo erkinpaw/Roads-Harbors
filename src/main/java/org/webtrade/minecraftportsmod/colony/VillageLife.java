@@ -61,9 +61,10 @@ public final class VillageLife {
         v.orderLoad = Orders.work(v);
         produce(data, v, today);
         craft(v);
-        smith(v);
         joinery(v);
+        // (the day's work wore the tools out; the smith makes new ones for tomorrow)
         wear(v, today);
+        smith(v);
         boolean hungry = eat(v, today);
         mood(v, hungry);
         supply(v, today);
