@@ -879,5 +879,17 @@
   "minecraftportsmod.res.fences": "Заборы",
   "minecraftportsmod.worldmap.title": "Карта мира",
   "minecraftportsmod.worldmap.people": "жителей: %s",
-  "minecraftportsmod.worldmap.merchant_of": "торговец из: %s"
+  "minecraftportsmod.worldmap.merchant_of": "торговец из: %s",
+  "key.minecraftportsmod.map_shot": "Скриншот на карту",
+  "minecraftportsmod.worldmap.pick": "Твои скриншоты",
+  "minecraftportsmod.worldmap.name": "Название",
+  "minecraftportsmod.worldmap.delete": "Удалить метку",
+  "minecraftportsmod.worldmap.delete_sure": "Удалить? Нажми ещё раз",
+  "minecraftportsmod.worldmap.layer.0": "Деревни",
+  "minecraftportsmod.worldmap.layer.1": "Тропы",
+  "minecraftportsmod.worldmap.layer.2": "Порты и морские пути",
+  "minecraftportsmod.worldmap.layer.3": "Торговцы и корабли",
+  "minecraftportsmod.worldmap.layer.4": "Метки",
+  "minecraftportsmod.worldmap.too_many": "Не больше %s скриншотов на игрока",
+  "minecraftportsmod.worldmap.shot_saved": "Скриншот добавлен на карту"
 }

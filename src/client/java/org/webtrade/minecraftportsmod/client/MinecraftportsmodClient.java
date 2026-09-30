@@ -15,6 +15,10 @@ import org.webtrade.minecraftportsmod.registry.ModContent;
 
 public class MinecraftportsmodClient implements ClientModInitializer {
 
+    /** Ticks until a screenshot for the map is taken (-1: none coming), and whether the interface was hidden before. */
+    private static int shotIn = -1;
+    private static boolean shotHud;
+
     @Override
     public void onInitializeClient() {
         // boats look like the boat they were built from; upgraded hulls get their own ship models
@@ -24,10 +28,26 @@ public class MinecraftportsmodClient implements ClientModInitializer {
         EntityRendererRegistry.register(ModContent.RESIDENT, org.webtrade.minecraftportsmod.client.render.ResidentRenderer::new);
 
         KeyMappingHelper.registerKeyMapping(MinecraftportsmodKeys.CHART);
+        KeyMappingHelper.registerKeyMapping(MinecraftportsmodKeys.MAP_SHOT);
         net.minecraft.client.gui.screens.MenuScreens.register(ModContent.HOLD_MENU,
                 org.webtrade.minecraftportsmod.client.chart.HoldScreen::new);
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            while (MinecraftportsmodKeys.MAP_SHOT.consumeClick()) {
+                // (the game's interface hidden for the frame the picture is taken from, as with F1)
+                if (client.player != null && client.gui.screen() == null && shotIn < 0) {
+                    shotHud = client.gui.hud.isHidden();
+                    if (!shotHud) client.gui.hud.toggle();
+                    shotIn = 2;
+                }
+            }
+            if (shotIn > 0 && --shotIn == 0) {
+                shotIn = -1;
+                net.minecraft.client.Screenshot.takeScreenshot(client.gameRenderer.mainRenderTarget(), img -> client.execute(() -> {
+                    if (!shotHud && client.gui.hud.isHidden()) client.gui.hud.toggle();
+                    org.webtrade.minecraftportsmod.client.chart.Shots.send(img, -1);
+                }));
+            }
             while (MinecraftportsmodKeys.CHART.consumeClick()) {
                 if (client.player != null && client.gui.screen() == null
                         && ClientPlayNetworking.canSend(ChartPayloads.RequestChart.TYPE)) {
@@ -112,6 +132,11 @@ public class MinecraftportsmodClient implements ClientModInitializer {
             }
         });
         ClientPlayNetworking.registerGlobalReceiver(ChartPayloads.ChartTile.TYPE, (payload, ctx) -> ChartTileCache.accept(payload));
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(ChartTileCache::clear));
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(() -> {
+            ChartTileCache.clear();
+            org.webtrade.minecraftportsmod.client.chart.Shots.clear();
+        }));
+        ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.WorldMapPayloads.ShotData.TYPE,
+                (payload, ctx) -> org.webtrade.minecraftportsmod.client.chart.Shots.received(payload));
     }
 }

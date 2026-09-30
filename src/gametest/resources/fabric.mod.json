@@ -25,6 +25,7 @@
       "org.webtrade.minecraftportsmod.gametest.FarGrowthClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.DaySkipClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.UiClientGameTest",
+      "org.webtrade.minecraftportsmod.gametest.MapMarksClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.LongRunClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.WorldRunClientGameTest"
     ]

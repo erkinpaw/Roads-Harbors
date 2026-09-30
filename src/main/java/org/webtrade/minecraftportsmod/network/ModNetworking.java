@@ -34,6 +34,10 @@ public final class ModNetworking {
         PayloadTypeRegistry.serverboundPlay().register(ColonyPayloads.VillageAction.TYPE, ColonyPayloads.VillageAction.CODEC);
         PayloadTypeRegistry.clientboundPlay().registerLarge(WorldMapPayloads.View.TYPE, WorldMapPayloads.View.CODEC, 8 * 1024 * 1024);
         PayloadTypeRegistry.serverboundPlay().register(WorldMapPayloads.Request.TYPE, WorldMapPayloads.Request.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(WorldMapPayloads.MarkAction.TYPE, WorldMapPayloads.MarkAction.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(WorldMapPayloads.ShotPart.TYPE, WorldMapPayloads.ShotPart.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(WorldMapPayloads.ShotRequest.TYPE, WorldMapPayloads.ShotRequest.CODEC);
+        PayloadTypeRegistry.clientboundPlay().registerLarge(WorldMapPayloads.ShotData.TYPE, WorldMapPayloads.ShotData.CODEC, 2 * 1024 * 1024);
 
         ServerPlayNetworking.registerGlobalReceiver(ChartPayloads.RequestChart.TYPE, (payload, ctx) -> {
             if (payload.refresh()) ChartService.refresh(ctx.player());
@@ -57,6 +61,12 @@ public final class ModNetworking {
                 (payload, ctx) -> org.webtrade.minecraftportsmod.colony.ColonyService.handleSite(ctx.player(), payload));
         ServerPlayNetworking.registerGlobalReceiver(WorldMapPayloads.Request.TYPE,
                 (payload, ctx) -> org.webtrade.minecraftportsmod.chart.WorldMapService.send(ctx.player(), true));
+        ServerPlayNetworking.registerGlobalReceiver(WorldMapPayloads.MarkAction.TYPE,
+                (payload, ctx) -> org.webtrade.minecraftportsmod.chart.WorldMapService.handle(ctx.player(), payload));
+        ServerPlayNetworking.registerGlobalReceiver(WorldMapPayloads.ShotPart.TYPE,
+                (payload, ctx) -> org.webtrade.minecraftportsmod.chart.WorldMapService.part(ctx.player(), payload));
+        ServerPlayNetworking.registerGlobalReceiver(WorldMapPayloads.ShotRequest.TYPE,
+                (payload, ctx) -> org.webtrade.minecraftportsmod.chart.WorldMapService.sendShot(ctx.player(), payload.id()));
         ServerPlayNetworking.registerGlobalReceiver(ChartPayloads.FleetAction.TYPE,
                 (payload, ctx) -> ChartService.handleAction(ctx.player(), payload));
     }
