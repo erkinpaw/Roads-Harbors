@@ -879,5 +879,17 @@
   "minecraftportsmod.res.fences": "Fences",
   "minecraftportsmod.worldmap.title": "World map",
   "minecraftportsmod.worldmap.people": "%s people",
-  "minecraftportsmod.worldmap.merchant_of": "merchant of %s"
+  "minecraftportsmod.worldmap.merchant_of": "merchant of %s",
+  "key.minecraftportsmod.map_shot": "Screenshot for the map",
+  "minecraftportsmod.worldmap.pick": "Your screenshots",
+  "minecraftportsmod.worldmap.name": "Name",
+  "minecraftportsmod.worldmap.delete": "Delete mark",
+  "minecraftportsmod.worldmap.delete_sure": "Delete? Click again",
+  "minecraftportsmod.worldmap.layer.0": "Villages",
+  "minecraftportsmod.worldmap.layer.1": "Trails",
+  "minecraftportsmod.worldmap.layer.2": "Ports and sea routes",
+  "minecraftportsmod.worldmap.layer.3": "Merchants and vessels",
+  "minecraftportsmod.worldmap.layer.4": "Marks",
+  "minecraftportsmod.worldmap.too_many": "No more than %s screenshots each",
+  "minecraftportsmod.worldmap.shot_saved": "Screenshot added to the map"
 }
