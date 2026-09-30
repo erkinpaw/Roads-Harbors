@@ -459,7 +459,7 @@ public final class VillageLife {
     static int dailyUse(Village v, Res r) {
         if (r == Res.FOOD) return foodNeed(v, Long.MAX_VALUE / 2);
         if (r.toolLevel() > 0) return (int) Math.ceil(toolUsers(v) / Job.TOOL_DAYS[r.toolLevel()]);
-        return (int) Math.ceil(smithNeeds(v, r) / (double) TOOL_RESERVE_DAYS);
+        return smithNeeds(v, r);
     }
 
     /** The room the village needs for a resource: the reserve it keeps of it, and what passes through the store in a day. */
@@ -711,9 +711,9 @@ public final class VillageLife {
     // ------------------------------------------------------------------ the smith's tools and the joiner's work
 
     /** Days of work the village keeps tools (and what the smith makes them of) for. */
-    static final int TOOL_RESERVE_DAYS = 4;
+    static final int TOOL_RESERVE_DAYS = 2;
     /** Tools a smith makes in a day, by their level. */
-    static final int[] TOOLS_A_DAY = {0, 16, 6, 4};
+    static final int[] TOOLS_A_DAY = {0, 30, 8, 5};
     /** Joinery a joiner makes in a day at his workshop's first level, and more with each level; of two planks and a stick each. */
     static final int JOINERY_A_DAY = 6, JOINERY_PER_LEVEL = 4;
 
@@ -760,11 +760,11 @@ public final class VillageLife {
         return 0;
     }
 
-    /** What the village keeps for the smith: the makings of some days of tools, at the level his smithy makes. */
+    /** What the village keeps for the smith: the makings of a day of tools, at the level his smithy makes. */
     static int smithNeeds(Village v, Res r) {
         int l = smithyLevel(v);
         if (l == 0) return 0;
-        int tools = (int) Math.ceil(toolUsers(v) * (double) TOOL_RESERVE_DAYS / Job.TOOL_DAYS[l]);
+        int tools = (int) Math.ceil(toolUsers(v) / Job.TOOL_DAYS[l]);
         return tools * Job.toolRecipe(l).getOrDefault(r, 0);
     }
 

@@ -333,7 +333,8 @@ public class NetworkRunClientGameTest implements FabricClientGameTest {
                 for (Building b : v.buildings()) bs.append(b.type.name().toLowerCase()).append(b.state() == Building.State.BUILT ? "" : "*").append(' ');
                 java.util.Map<String, Integer> jobs = new java.util.TreeMap<>();
                 for (var d : v.dwellers()) jobs.merge(d.job() == null ? "child" : d.job().id() + (d.away() ? "(away)" : ""), 1, Integer::sum);
-                st.append("| jobs ").append(jobs).append(" mood ").append(v.mood()).append(' ');
+                st.append("| jobs ").append(jobs).append(" mood ").append(v.mood()).append(" tools L")
+                        .append(v.toolLevel(org.webtrade.minecraftportsmod.colony.Job.WOODCUTTER)).append(' ');
                 log(seed, "  #{} {}: people {}, adults {}, focus {}, cartographer open {} built {}, scouts {} (away {}), known {} | {}| {}", v.id, v.name,
                         v.population(), v.adults(), v.focus(), v.unlocked(org.webtrade.minecraftportsmod.colony.BuildingType.CARTOGRAPHER),
                         v.has(org.webtrade.minecraftportsmod.colony.BuildingType.CARTOGRAPHER), scouts, away, v.knownCount(), st, bs);
