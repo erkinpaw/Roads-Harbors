@@ -110,7 +110,7 @@ public final class ColonyPayloads {
                               List<BuildingRow> buildings, List<LogRow> log, int mapSize, int[] map, int viewerDx, int viewerDz,
                               int boardDx, int boardDz, List<NodeRow> tree, int priority, int focus, CenterRow center,
                               List<QueueRow> queue, int sub, float ready, float gain, int stored, int room, int[] got, int[] spent,
-                              Component merchant, int[] shortOf, int[] spare, List<LogRow> deals) implements CustomPacketPayload {
+                              Component merchant, int[] shortOf, int[] spare, List<LogRow> deals, int slots) implements CustomPacketPayload {
         public static final Type<VillageView> TYPE = new Type<>(Minecraftportsmod.id("village_view"));
         public static final StreamCodec<RegistryFriendlyByteBuf, VillageView> CODEC = StreamCodec.of((buf, v) -> {
             buf.writeVarInt(v.id);
@@ -211,6 +211,7 @@ public final class ColonyPayloads {
                 buf.writeVarLong(l.day());
                 comp(buf, l.text());
             }
+            buf.writeVarInt(v.slots);
         }, buf -> {
             int id = buf.readVarInt();
             String name = buf.readUtf(64);
@@ -265,9 +266,10 @@ public final class ColonyPayloads {
             int[] shortOf = ints(buf), spare = ints(buf);
             List<LogRow> deals = new ArrayList<>();
             for (int i = buf.readVarInt(); i > 0; i--) deals.add(new LogRow(buf.readVarLong(), comp(buf)));
+            int slots = buf.readVarInt();
             return new VillageView(id, name, level, mood, day, progress, beds, stock, made, capacity, eaten, foodNeed, reqs, people, buildings,
                     log, mapSize, map, vdx, vdz, bdx, bdz, tree, priority, focus, center, queue, sub, ready, gain, stored, room, got, spent,
-                    merchant, shortOf, spare, deals);
+                    merchant, shortOf, spare, deals, slots);
         });
 
         @Override

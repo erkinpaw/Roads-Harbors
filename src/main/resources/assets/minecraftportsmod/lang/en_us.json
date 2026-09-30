@@ -902,5 +902,6 @@
   "minecraftportsmod.trade.on_round": "%s is on the way to %s, with %s and %s emeralds.",
   "minecraftportsmod.trade.coming_home": "%s is coming home with %s and %s emeralds.",
   "minecraftportsmod.trade.spare": "To spare",
-  "minecraftportsmod.trade.deals": "Deals"
+  "minecraftportsmod.trade.deals": "Deals",
+  "minecraftportsmod.vboard.slots": "Queue"
 }
