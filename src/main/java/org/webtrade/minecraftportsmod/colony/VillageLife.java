@@ -61,6 +61,7 @@ public final class VillageLife {
         v.orderLoad = Orders.work(v);
         produce(data, v, today);
         craft(v);
+        charcoal(v);
         joinery(v);
         // (the day's work wore the tools out; the smith makes new ones for tomorrow)
         wear(v, today);
@@ -131,7 +132,7 @@ public final class VillageLife {
         Job j = job == Job.FARMER && !field ? Job.GATHERER : job;
         // (a gatherer has no tools: his hands and a basket; and what grows wild round a village is soon picked)
         double n = j.perDay * (j == Job.GATHERER ? wildShare(v) : Job.TOOL_SPEED[v.toolLevel(job)]);
-        if (j == Job.FARMER) n *= cropFactor(v);
+        if (j == Job.FARMER) n *= cropFactor(v) * fieldShare(v);
         // what the land round the village gives
         Land.Shares land = Land.known(v);
         if (j == Job.WOODCUTTER) n *= land.wood();
@@ -153,6 +154,23 @@ public final class VillageLife {
         int n = v.workers(Job.GATHERER) + (field ? 0 : v.workers(Job.FARMER));
         if (n <= WILD_GATHERERS) return 1.0;
         return (WILD_GATHERERS + WILD_MORE * (n - WILD_GATHERERS)) / n;
+    }
+
+    /** Farmers a field has full work for. */
+    static final int FARMERS_PER_FIELD = 3;
+    /** What a farmer over what the fields need still brings in (a hand here and there). */
+    static final double SPARE_FARMER = 0.2;
+
+    /** The share of a full day's work each farmer has, as many as there are on the village's fields. */
+    static double fieldShare(Village v) {
+        int farmers = v.workers(Job.FARMER), room = v.count(BuildingType.FIELD, true) * FARMERS_PER_FIELD;
+        if (farmers <= room) return 1.0;
+        return (room + SPARE_FARMER * (farmers - room)) / farmers;
+    }
+
+    /** Is there work for one more farmer: a field with room, or one the village can still lay out? */
+    static boolean farmWork(Village v) {
+        return v.workers(Job.FARMER) < Tree.fieldLimit(v) * FARMERS_PER_FIELD;
     }
 
     /** How much the crops sown feed compared to wheat. */
@@ -593,10 +611,14 @@ public final class VillageLife {
         // a little over, the new hands go to it, whatever the building sites want; unless the store would cover the
         // shortfall for weeks (a full granary is eaten into before anyone more is sent to the fields)
         double shortfall = (foodNeed(v, Long.MAX_VALUE / 2) + ADULT_EATS) * 1.15 - production(v, Res.FOOD);
-        if (shortfall > 0 && v.stock(Res.FOOD) < target(v, Res.FOOD) + shortfall * FOOD_WEEKS) return foodJob(v);
+        if (shortfall > 0 && v.stock(Res.FOOD) < target(v, Res.FOOD) + shortfall * FOOD_WEEKS && (farmWork(v) || v.workers(Job.GATHERER) < WILD_GATHERERS)) {
+            return foodJob(v);
+        }
         Res best = null;
         double bestW = 0.2;
+        boolean foodWork = farmWork(v) || v.workers(Job.GATHERER) < WILD_GATHERERS;
         for (Res r : WORKED) {
+            if (r == Res.FOOD && !foodWork) continue;
             // a resource nobody makes yet is wanted a bit more
             double w = want(v, r) + (hands(v, r) == 0 ? 0.3 : 0);
             if (w > bestW && !v.full(r)) {
@@ -608,6 +630,7 @@ public final class VillageLife {
             // everything well stocked: the store the village wants most (or, below, the trade short of hands)
             double most = -1e9;
             for (Res r : WORKED) {
+                if (r == Res.FOOD && !foodWork) continue;
                 if (want(v, r) > most) {
                     most = want(v, r);
                     best = r;
@@ -617,7 +640,7 @@ public final class VillageLife {
             // not the store that happens to be least over its mark; a full store takes nobody new)
             int gap = Integer.MIN_VALUE;
             for (Res r : WORKED) {
-                if (v.full(r)) continue;
+                if (v.full(r) || r == Res.FOOD && !foodWork) continue;
                 int g = ideal(v, r) - hands(v, r);
                 if (g > gap || g == gap && best != null && want(v, r) > want(v, best)) {
                     gap = g;
@@ -642,8 +665,9 @@ public final class VillageLife {
 
     private static Job foodJob(Village v) {
         int fields = v.count(BuildingType.FIELD, true);
-        // the wild is picked by two: after them, the fields (one is laid out for the new farmer)
-        if (fields * 2 > v.workers(Job.FARMER) || v.workers(Job.GATHERER) >= WILD_GATHERERS) return Job.FARMER;
+        // the wild is picked by two: after them, the fields (one is laid out for the new farmer), as many as the
+        // village may have; past that, a gatherer again (what the woods still give)
+        if (fields * FARMERS_PER_FIELD > v.workers(Job.FARMER) || v.workers(Job.GATHERER) >= WILD_GATHERERS && farmWork(v)) return Job.FARMER;
         return Job.GATHERER;
     }
 
@@ -707,6 +731,21 @@ public final class VillageLife {
             v.made.merge(Res.PLANKS, planks * saw[1], Integer::sum);
             v.workshop(BuildingType.SAWMILL, Res.PLANKS, planks * saw[1], 0);
         }
+    }
+
+    /** Coal a village burns from its wood in a day at most, and the logs a coal takes. */
+    static final int CHARCOAL_A_DAY = 3, LOGS_A_COAL = 3;
+
+    /** Charcoal: while the village is short of coal, a little of its wood over what it keeps is burnt into it. */
+    static void charcoal(Village v) {
+        int want = target(v, Res.COAL) - v.stock(Res.COAL);
+        int logs = v.stock(Res.WOOD) - target(v, Res.WOOD);
+        int n = Math.min(CHARCOAL_A_DAY, Math.min(want, logs / LOGS_A_COAL));
+        if (n <= 0 || v.full(Res.COAL)) return;
+        v.add(Res.WOOD, -n * LOGS_A_COAL);
+        v.used.merge(Res.WOOD, n * LOGS_A_COAL, Integer::sum);
+        v.add(Res.COAL, n);
+        v.made.merge(Res.COAL, n, Integer::sum);
     }
 
     // ------------------------------------------------------------------ the smith's tools and the joiner's work
@@ -1205,7 +1244,7 @@ public final class VillageLife {
         // the cartographer's house, for a village big enough to spare a scout
         if (v.adults() >= 5 && Tree.open(v, BuildingType.CARTOGRAPHER) && start(level, v, BuildingType.CARTOGRAPHER, today)) return;
         // more fields for the farmers
-        if (v.workers(Job.FARMER) > v.count(BuildingType.FIELD, false) * 2 && Tree.open(v, BuildingType.FIELD)
+        if (v.workers(Job.FARMER) > v.count(BuildingType.FIELD, false) * FARMERS_PER_FIELD - 1 && Tree.open(v, BuildingType.FIELD)
                 && start(level, v, BuildingType.FIELD, today)) return;
         // a building raised a level, once the store can pay for it and keep a reserve
         Building raise = toRaise(v);
