@@ -32,6 +32,8 @@ public final class ModNetworking {
         PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.OrderView.TYPE, ColonyPayloads.OrderView.CODEC);
         PayloadTypeRegistry.clientboundPlay().registerLarge(ColonyPayloads.MapView.TYPE, ColonyPayloads.MapView.CODEC, 8 * 1024 * 1024);
         PayloadTypeRegistry.serverboundPlay().register(ColonyPayloads.VillageAction.TYPE, ColonyPayloads.VillageAction.CODEC);
+        PayloadTypeRegistry.clientboundPlay().registerLarge(WorldMapPayloads.View.TYPE, WorldMapPayloads.View.CODEC, 8 * 1024 * 1024);
+        PayloadTypeRegistry.serverboundPlay().register(WorldMapPayloads.Request.TYPE, WorldMapPayloads.Request.CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(ChartPayloads.RequestChart.TYPE, (payload, ctx) -> {
             if (payload.refresh()) ChartService.refresh(ctx.player());
@@ -53,6 +55,8 @@ public final class ModNetworking {
                 (payload, ctx) -> org.webtrade.minecraftportsmod.colony.ColonyService.handleAction(ctx.player(), payload));
         ServerPlayNetworking.registerGlobalReceiver(ColonyPayloads.SiteAction.TYPE,
                 (payload, ctx) -> org.webtrade.minecraftportsmod.colony.ColonyService.handleSite(ctx.player(), payload));
+        ServerPlayNetworking.registerGlobalReceiver(WorldMapPayloads.Request.TYPE,
+                (payload, ctx) -> org.webtrade.minecraftportsmod.chart.WorldMapService.send(ctx.player(), true));
         ServerPlayNetworking.registerGlobalReceiver(ChartPayloads.FleetAction.TYPE,
                 (payload, ctx) -> ChartService.handleAction(ctx.player(), payload));
     }

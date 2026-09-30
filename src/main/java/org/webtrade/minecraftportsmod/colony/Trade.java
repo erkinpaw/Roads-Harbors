@@ -63,11 +63,10 @@ public final class Trade {
             case PLANKS -> 0.03;
             case STICKS -> 0.02;
             case COAL -> 0.15;
-            case WHEAT -> 0.03;
-            case JOINERY -> 0.06;
-            case TOOLS1 -> 0.12;
-            case TOOLS2 -> 0.3;
-            case TOOLS3 -> 1.2;
+            case STAIRS -> 0.06;
+            case SLABS -> 0.02;
+            case DOORS -> 0.08;
+            case FENCES -> 0.06;
         };
     }
 
@@ -76,7 +75,7 @@ public final class Trade {
      * stall the tools themselves).
      */
     public static boolean listed(Ware w) {
-        return w.res() == null || w.res() != Res.JOINERY && w.res().toolLevel() == 0;
+        return true;
     }
 
     /** Units of its resource in one piece of a ware (food goes by the loaf: five of it). */
@@ -91,8 +90,18 @@ public final class Trade {
             m.put(Res.STICKS, 3);
             return m;
         }
-        // (a tool of the smith's, from the village's store of them)
-        m.put(Res.tools(w.tier()), 1);
+        switch (w.tier()) {
+            case 1 -> m.put(Res.WOOD, 2);
+            case 2 -> {
+                m.put(Res.STICKS, 2);
+                m.put(Res.STONE, 3);
+            }
+            default -> {
+                m.put(Res.STICKS, 2);
+                m.put(Res.IRON, 3);
+                m.put(Res.COAL, 1);
+            }
+        }
         return m;
     }
 
@@ -107,11 +116,10 @@ public final class Trade {
                 case PLANKS -> new ItemStack(wood(v, "planks", Items.OAK_PLANKS));
                 case STICKS -> new ItemStack(Items.STICK);
                 case COAL -> new ItemStack(Items.COAL);
-                case WHEAT -> new ItemStack(Items.WHEAT);
-                case JOINERY -> new ItemStack(Items.CHEST);
-                case TOOLS1 -> new ItemStack(Items.WOODEN_PICKAXE);
-                case TOOLS2 -> new ItemStack(Items.STONE_PICKAXE);
-                case TOOLS3 -> new ItemStack(Items.IRON_PICKAXE);
+                case STAIRS -> new ItemStack(wood(v, "stairs", Items.OAK_STAIRS));
+                case SLABS -> new ItemStack(wood(v, "slab", Items.OAK_SLAB));
+                case DOORS -> new ItemStack(wood(v, "door", Items.OAK_DOOR));
+                case FENCES -> new ItemStack(wood(v, "fence", Items.OAK_FENCE));
             };
         }
         return new ItemStack(switch (w.tool()) {

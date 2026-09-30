@@ -872,5 +872,12 @@
   "minecraftportsmod.res.joinery": "Столярные изделия",
   "minecraftportsmod.res.tools1": "Инструменты I",
   "minecraftportsmod.res.tools2": "Инструменты II",
-  "minecraftportsmod.res.tools3": "Инструменты III"
+  "minecraftportsmod.res.tools3": "Инструменты III",
+  "minecraftportsmod.res.stairs": "Ступеньки",
+  "minecraftportsmod.res.slabs": "Полублоки",
+  "minecraftportsmod.res.doors": "Двери",
+  "minecraftportsmod.res.fences": "Заборы",
+  "minecraftportsmod.worldmap.title": "Карта мира",
+  "minecraftportsmod.worldmap.people": "жителей: %s",
+  "minecraftportsmod.worldmap.merchant_of": "торговец из: %s"
 }
