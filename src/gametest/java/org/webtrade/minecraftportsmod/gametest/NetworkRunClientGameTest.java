@@ -29,6 +29,8 @@ public class NetworkRunClientGameTest implements FabricClientGameTest {
 
     private static final String[] SEEDS = {"4242", "4242:notrade"};
     private static final int DAYS = 100;
+    /** The days of the world being run now: 100, or as its spec says ("seed:d500"). */
+    private static int days = DAYS;
     private static final int VILLAGES = 10;
 
     private static void log(String seed, String fmt, Object... args) {
@@ -67,7 +69,9 @@ public class NetworkRunClientGameTest implements FabricClientGameTest {
 
     private void run(ClientGameTestContext context, String spec) {
         String seed = spec.split(":")[0];
-        boolean noTrade = spec.endsWith(":notrade");
+        boolean noTrade = spec.contains(":notrade");
+        days = DAYS;
+        for (String part : spec.split(":")) if (part.startsWith("d") && part.length() > 1) days = Integer.parseInt(part.substring(1));
         try (TestSingleplayerContext sp = context.worldBuilder().setUseConsistentSettings(false).adjustSettings(ui -> ui.setSeed(seed)).create()) {
             TestServerContext server = sp.getServer();
             sp.getConnection().waitForChunksRender();
@@ -79,7 +83,7 @@ public class NetworkRunClientGameTest implements FabricClientGameTest {
             long worst = 0;
             int worstDay = 0;
             Watch watch = new Watch(spec);
-            for (int day = 1; day <= DAYS; day++) {
+            for (int day = 1; day <= days; day++) {
                 long[] ms = {0};
                 server.runOnServer(s -> {
                     long t0 = System.nanoTime();
@@ -355,7 +359,7 @@ public class NetworkRunClientGameTest implements FabricClientGameTest {
 
     private static void check(net.minecraft.server.MinecraftServer s, String seed, long worst, int worstDay) {
         VillageData data = VillageData.get(s);
-        report(s, seed, DAYS);
+        report(s, seed, days);
         StringBuilder bad = new StringBuilder();
         Map<String, Integer> pairs = new HashMap<>();
         int length = 0;

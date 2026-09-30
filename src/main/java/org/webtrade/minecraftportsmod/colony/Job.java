@@ -12,9 +12,9 @@ import java.util.Locale;
  */
 public enum Job {
     /** Catches fish off the shore: food. */
-    FISHER(Res.FOOD, 26, Items.FISHING_ROD, Items.FISHING_ROD, Items.FISHING_ROD, Items.FISHING_ROD),
+    FISHER(Res.FOOD, 30, Items.FISHING_ROD, Items.FISHING_ROD, Items.FISHING_ROD, Items.FISHING_ROD),
     /** Works the fields: more food, but needs a field. */
-    FARMER(Res.FOOD, 36, Items.AIR, Items.WOODEN_HOE, Items.STONE_HOE, Items.IRON_HOE),
+    FARMER(Res.FOOD, 40, Items.AIR, Items.WOODEN_HOE, Items.STONE_HOE, Items.IRON_HOE),
     /** Fells trees: wood to build with. */
     WOODCUTTER(Res.WOOD, 18, Items.AIR, Items.WOODEN_AXE, Items.STONE_AXE, Items.IRON_AXE),
     /** Breaks stone, and with a good pick, iron ore. */
@@ -28,7 +28,7 @@ public enum Job {
     /** Works the smithy: the tools of every trade (wooden, stone, iron with its levels). Makes nothing to store. */
     SMITH(null, 0, Items.ANVIL, Items.ANVIL, Items.ANVIL, Items.ANVIL),
     /** Gathers what grows wild (berries, mushrooms, greens): a camp's first food, anywhere; no tools to it. */
-    GATHERER(Res.FOOD, 22, Items.AIR, Items.AIR, Items.AIR, Items.AIR),
+    GATHERER(Res.FOOD, 28, Items.AIR, Items.AIR, Items.AIR, Items.AIR),
     /** Works the joiner's workshop: planks and sticks into joinery. Makes nothing of his own: see the workshop. */
     JOINER(null, 0, Items.CRAFTING_TABLE, Items.CRAFTING_TABLE, Items.CRAFTING_TABLE, Items.CRAFTING_TABLE);
 

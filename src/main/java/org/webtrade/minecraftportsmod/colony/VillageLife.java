@@ -21,7 +21,9 @@ import java.util.List;
  */
 public final class VillageLife {
 
-    public static final int ADULT_EATS = 10, CHILD_EATS = 5;
+    public static final int ADULT_EATS = 8, CHILD_EATS = 4;
+    /** A scout eats for three: long roads, and all he eats is carried. */
+    public static final int SCOUT_EATS = ADULT_EATS * 3;
     /** Days between two newcomers at the most. */
     public static final int GROWTH_DAYS = 2;
     /** Blocks a grown-up puts up in a day while no one is there to watch. */
@@ -126,8 +128,8 @@ public final class VillageLife {
         boolean field = v.count(BuildingType.FIELD, true) > 0;
         // a farmer with no field gathers what he can
         Job j = job == Job.FARMER && !field ? Job.GATHERER : job;
-        // (a gatherer has no tools: his hands and a basket)
-        double n = j.perDay * (j == Job.GATHERER ? 1.0 : Job.TOOL_SPEED[v.toolLevel(job)]);
+        // (a gatherer has no tools: his hands and a basket; and what grows wild round a village is soon picked)
+        double n = j.perDay * (j == Job.GATHERER ? wildShare(v) : Job.TOOL_SPEED[v.toolLevel(job)]);
         if (j == Job.FARMER) n *= cropFactor(v);
         // what the land round the village gives
         Land.Shares land = Land.known(v);
@@ -138,6 +140,18 @@ public final class VillageLife {
         if (j == Job.FARMER && v.count(BuildingType.FARM, true) > 0) n *= subFactor(v, BuildingType.Sub.FARMING);
         if (v.mood < 30) n *= 0.75;
         return n;
+    }
+
+    /** Gatherers who get the full share of what grows wild; each one more finds much less (it is soon picked). */
+    static final int WILD_GATHERERS = 2;
+    static final double WILD_MORE = 0.35;
+
+    /** The share of a full day's gathering each gatherer brings in, as many as there are picking the same woods. */
+    static double wildShare(Village v) {
+        boolean field = v.count(BuildingType.FIELD, true) > 0;
+        int n = v.workers(Job.GATHERER) + (field ? 0 : v.workers(Job.FARMER));
+        if (n <= WILD_GATHERERS) return 1.0;
+        return (WILD_GATHERERS + WILD_MORE * (n - WILD_GATHERERS)) / n;
     }
 
     /** How much the crops sown feed compared to wheat. */
@@ -215,7 +229,7 @@ public final class VillageLife {
     public static int foodNeed(Village v, long today) {
         int n = 0;
         // a scout on the road eats for two
-        for (Dweller d : v.dwellers) n += d.child(today) || d.job == null ? CHILD_EATS : d.job == Job.SCOUT ? ADULT_EATS * 2 : ADULT_EATS;
+        for (Dweller d : v.dwellers) n += d.child(today) || d.job == null ? CHILD_EATS : d.job == Job.SCOUT ? SCOUT_EATS : ADULT_EATS;
         return n;
     }
 
@@ -627,7 +641,9 @@ public final class VillageLife {
 
     private static Job foodJob(Village v) {
         int fields = v.count(BuildingType.FIELD, true);
-        return fields * 2 > v.workers(Job.FARMER) ? Job.FARMER : Job.GATHERER;
+        // the wild is picked by two: after them, the fields (one is laid out for the new farmer)
+        if (fields * 2 > v.workers(Job.FARMER) || v.workers(Job.GATHERER) >= WILD_GATHERERS) return Job.FARMER;
+        return Job.GATHERER;
     }
 
     /** A smithy, sawmill or map table that is gone sends its people back to a trade. */
@@ -656,8 +672,8 @@ public final class VillageLife {
             // (the sawmill is the logging sub-branch's: more logs through it in a village known for it)
             return new int[]{(int) Math.round((10 + 6 * mill.level) * subFactor(v, BuildingType.Sub.LOGGING)), 4, 8};
         }
-        // by hand: a few logs, and much of each lost
-        return new int[]{6, 2, 3};
+        // by hand: fewer logs, and half of each lost to planks (sticks are split from a log easily enough)
+        return new int[]{10, 2, 8};
     }
 
     /**
@@ -820,7 +836,7 @@ public final class VillageLife {
         long today = Long.MAX_VALUE / 2;
         for (Dweller d : v.dwellers) {
             if (d.home != b.id) continue;
-            int eats = d.child(today) || d.job == null ? CHILD_EATS : d.job == Job.SCOUT ? ADULT_EATS * 2 : ADULT_EATS;
+            int eats = d.child(today) || d.job == null ? CHILD_EATS : d.job == Job.SCOUT ? SCOUT_EATS : ADULT_EATS;
             used[Res.FOOD.ordinal()] += eats * 10;
         }
         Job job = b.type.job;
