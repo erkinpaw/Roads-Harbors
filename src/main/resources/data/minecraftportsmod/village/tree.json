@@ -318,35 +318,91 @@
     {
      "lvl": 1,
      "out": {
-      "i": "barrel",
-      "n": 1
+      "i": "stairs",
+      "n": 4
      },
      "use": [
       {
        "r": "planks",
        "n": 6
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "slab",
+      "n": 6
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 3
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "fence",
+      "n": 3
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 4
       },
       {
-       "r": "joinery",
+       "r": "sticks",
        "n": 2
       }
      ],
      "per": 2
     },
     {
-     "lvl": 2,
+     "lvl": 1,
      "out": {
-      "i": "red_bed",
+      "i": "fence_gate",
       "n": 1
      },
      "use": [
       {
        "r": "planks",
-       "n": 3
+       "n": 2
       },
       {
-       "r": "wool",
-       "n": 3
+       "r": "sticks",
+       "n": 4
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "ladder",
+      "n": 3
+     },
+     "use": [
+      {
+       "r": "sticks",
+       "n": 7
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "chest",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 8
       }
      ],
      "per": 1
@@ -354,26 +410,50 @@
     {
      "lvl": 2,
      "out": {
-      "i": "item_frame",
-      "n": 1
+      "i": "oak_door",
+      "n": 3
      },
      "use": [
       {
-       "r": "sticks",
-       "n": 8
-      },
-      {
-       "r": "leather",
-       "n": 1
+       "r": "planks",
+       "n": 6
       }
      ],
      "per": 1
     },
     {
-     "lvl": 3,
+     "lvl": 2,
      "out": {
-      "i": "bookshelf",
-      "n": 1
+      "i": "spruce_door",
+      "n": 3
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 6
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "trapdoor",
+      "n": 2
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 6
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "sign",
+      "n": 3
      },
      "use": [
       {
@@ -381,8 +461,8 @@
        "n": 6
       },
       {
-       "r": "paper",
-       "n": 3
+       "r": "sticks",
+       "n": 1
       }
      ],
      "per": 1
@@ -1618,158 +1698,6 @@
       }
      ],
      "per": 3
-    },
-    {
-     "lvl": 2,
-     "out": {
-      "i": "stairs",
-      "n": 4
-     },
-     "use": [
-      {
-       "r": "planks",
-       "n": 6
-      }
-     ],
-     "per": 2
-    },
-    {
-     "lvl": 2,
-     "out": {
-      "i": "slab",
-      "n": 6
-     },
-     "use": [
-      {
-       "r": "planks",
-       "n": 3
-      }
-     ],
-     "per": 2
-    },
-    {
-     "lvl": 2,
-     "out": {
-      "i": "fence",
-      "n": 3
-     },
-     "use": [
-      {
-       "r": "planks",
-       "n": 4
-      },
-      {
-       "r": "sticks",
-       "n": 2
-      }
-     ],
-     "per": 2
-    },
-    {
-     "lvl": 2,
-     "out": {
-      "i": "fence_gate",
-      "n": 1
-     },
-     "use": [
-      {
-       "r": "planks",
-       "n": 2
-      },
-      {
-       "r": "sticks",
-       "n": 4
-      }
-     ],
-     "per": 2
-    },
-    {
-     "lvl": 2,
-     "out": {
-      "i": "ladder",
-      "n": 3
-     },
-     "use": [
-      {
-       "r": "sticks",
-       "n": 7
-      }
-     ],
-     "per": 1
-    },
-    {
-     "lvl": 2,
-     "out": {
-      "i": "chest",
-      "n": 1
-     },
-     "use": [
-      {
-       "r": "planks",
-       "n": 8
-      }
-     ],
-     "per": 1
-    },
-    {
-     "lvl": 3,
-     "out": {
-      "i": "oak_door",
-      "n": 3
-     },
-     "use": [
-      {
-       "r": "planks",
-       "n": 6
-      }
-     ],
-     "per": 1
-    },
-    {
-     "lvl": 3,
-     "out": {
-      "i": "spruce_door",
-      "n": 3
-     },
-     "use": [
-      {
-       "r": "planks",
-       "n": 6
-      }
-     ],
-     "per": 1
-    },
-    {
-     "lvl": 3,
-     "out": {
-      "i": "trapdoor",
-      "n": 2
-     },
-     "use": [
-      {
-       "r": "planks",
-       "n": 6
-      }
-     ],
-     "per": 1
-    },
-    {
-     "lvl": 3,
-     "out": {
-      "i": "sign",
-      "n": 3
-     },
-     "use": [
-      {
-       "r": "planks",
-       "n": 6
-      },
-      {
-       "r": "sticks",
-       "n": 1
-      }
-     ],
-     "per": 1
     }
    ]
   },

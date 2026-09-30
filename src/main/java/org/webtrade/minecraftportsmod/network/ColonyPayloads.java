@@ -109,7 +109,8 @@ public final class ColonyPayloads {
                               int[] stock, int[] made, int[] capacity, int eaten, int foodNeed, List<Req> reqs, List<PersonRow> people,
                               List<BuildingRow> buildings, List<LogRow> log, int mapSize, int[] map, int viewerDx, int viewerDz,
                               int boardDx, int boardDz, List<NodeRow> tree, int priority, int focus, CenterRow center,
-                              List<QueueRow> queue, int sub, float ready, float gain, int stored, int room, int[] got, int[] spent) implements CustomPacketPayload {
+                              List<QueueRow> queue, int sub, float ready, float gain, int stored, int room, int[] got, int[] spent,
+                              Component merchant, int[] shortOf, int[] spare, List<LogRow> deals) implements CustomPacketPayload {
         public static final Type<VillageView> TYPE = new Type<>(Minecraftportsmod.id("village_view"));
         public static final StreamCodec<RegistryFriendlyByteBuf, VillageView> CODEC = StreamCodec.of((buf, v) -> {
             buf.writeVarInt(v.id);
@@ -202,6 +203,14 @@ public final class ColonyPayloads {
             buf.writeVarInt(v.room);
             buf.writeVarIntArray(v.got);
             buf.writeVarIntArray(v.spent);
+            comp(buf, v.merchant);
+            buf.writeVarIntArray(v.shortOf);
+            buf.writeVarIntArray(v.spare);
+            buf.writeVarInt(v.deals.size());
+            for (LogRow l : v.deals) {
+                buf.writeVarLong(l.day());
+                comp(buf, l.text());
+            }
         }, buf -> {
             int id = buf.readVarInt();
             String name = buf.readUtf(64);
@@ -252,8 +261,13 @@ public final class ColonyPayloads {
             float ready = buf.readFloat(), gain = buf.readFloat();
             int stored = buf.readVarInt(), room = buf.readVarInt();
             int[] got = ints(buf), spent = ints(buf);
+            Component merchant = comp(buf);
+            int[] shortOf = ints(buf), spare = ints(buf);
+            List<LogRow> deals = new ArrayList<>();
+            for (int i = buf.readVarInt(); i > 0; i--) deals.add(new LogRow(buf.readVarLong(), comp(buf)));
             return new VillageView(id, name, level, mood, day, progress, beds, stock, made, capacity, eaten, foodNeed, reqs, people, buildings,
-                    log, mapSize, map, vdx, vdz, bdx, bdz, tree, priority, focus, center, queue, sub, ready, gain, stored, room, got, spent);
+                    log, mapSize, map, vdx, vdz, bdx, bdz, tree, priority, focus, center, queue, sub, ready, gain, stored, room, got, spent,
+                    merchant, shortOf, spare, deals);
         });
 
         @Override

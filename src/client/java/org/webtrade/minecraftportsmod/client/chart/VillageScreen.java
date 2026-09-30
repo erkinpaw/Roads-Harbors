@@ -37,7 +37,7 @@ import java.util.Locale;
  */
 public class VillageScreen extends UiScreen {
 
-    private enum Tab {OVERVIEW, PEOPLE, STORE, TREE, MAP, TASKS, LOG}
+    private enum Tab {OVERVIEW, PEOPLE, STORE, TRADE, TREE, MAP, TASKS, LOG}
 
     private static final int ROW = 24;
     private static final int TAB_HEIGHT = 18;
@@ -176,6 +176,7 @@ public class VillageScreen extends UiScreen {
         switch (tab) {
             case OVERVIEW -> drawOverview(g, mouseX, mouseY);
             case STORE -> drawStore(g, mouseX, mouseY);
+            case TRADE -> drawTrade(g, mouseX, mouseY);
             case PEOPLE -> drawPeople(g, mouseX, mouseY);
             case TREE -> drawTree(g, mouseX, mouseY);
             case MAP -> drawMap(g, mouseX, mouseY);
@@ -377,6 +378,54 @@ public class VillageScreen extends UiScreen {
             g.text(font, ns, cNet - font.width(ns), ty, net > 0 ? ChartStyle.GOOD : net < 0 ? ChartStyle.BAD : ChartStyle.TEXT_MUTED, false);
             y += rowH;
         }
+    }
+
+    // --- trade: where the merchant is; what the village is short of and has to spare; its deals
+
+    private void drawTrade(GuiGraphicsExtractor g, int mouseX, int mouseY) {
+        int x = cx0 + 8, w = cx1 - cx0 - 16, y = cy0 + 8;
+        y += Ui.wrap(g, font, view.merchant(), x, y, w, ChartStyle.INK) + 8;
+        int half = (w - 12) / 2;
+        y = Math.max(y, wantList(g, x, y, half, Component.translatable("minecraftportsmod.trade.short"), view.shortOf(), ChartStyle.BAD, mouseX, mouseY));
+        int y2 = wantList(g, x + half + 12, cy0 + 8 + font.wordWrapHeight(view.merchant(), w) + 8, half,
+                Component.translatable("minecraftportsmod.trade.spare"), view.spare(), ChartStyle.GOOD, mouseX, mouseY);
+        y = Math.max(y, y2) + 8;
+        Ui.heading(g, font, Component.translatable("minecraftportsmod.trade.deals"), x, y, w);
+        y += 16;
+        if (view.deals().isEmpty()) {
+            g.text(font, "—", x, y, ChartStyle.TEXT_MUTED, false);
+            return;
+        }
+        for (ColonyPayloads.LogRow l : view.deals()) {
+            if (y > cy1 - 12) break;
+            Component day = Component.translatable("minecraftportsmod.hall.day", l.day());
+            g.text(font, day, x, y, ChartStyle.TEXT_MUTED, false);
+            int dw = 52;
+            y += Ui.wrap(g, font, l.text(), x + dw, y, w - dw, ChartStyle.INK) + 3;
+        }
+    }
+
+    /** A list of goods and amounts under a heading, two to a row; returns where it ends. */
+    private int wantList(GuiGraphicsExtractor g, int x, int y, int w, Component title, int[] amounts, int color, int mouseX, int mouseY) {
+        Ui.heading(g, font, title, x, y, w);
+        y += 16;
+        int col = w / 2, i = 0;
+        for (Res r : Res.values()) {
+            int n = amounts[r.ordinal()];
+            if (n <= 0) continue;
+            int cx = x + (i % 2) * col, cy = y + (i / 2) * 18;
+            g.item(new ItemStack(r.icon), cx, cy);
+            g.text(font, String.valueOf(n), cx + 20, cy + 5, color, false);
+            if (mouseX >= cx && mouseX < cx + col && mouseY >= cy && mouseY < cy + 18) {
+                g.setComponentTooltipForNextFrame(font, List.of(r.displayName()), mouseX, mouseY);
+            }
+            i++;
+        }
+        if (i == 0) {
+            g.text(font, "—", x, y + 4, ChartStyle.TEXT_MUTED, false);
+            i = 1;
+        }
+        return y + ((i + 1) / 2) * 18;
     }
 
     private Component stateText(BuildingRow b) {

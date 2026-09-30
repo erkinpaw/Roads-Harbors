@@ -12,9 +12,9 @@ import java.util.Locale;
  */
 public enum Job {
     /** Catches fish off the shore: food. */
-    FISHER(Res.FOOD, 26, Items.FISHING_ROD, Items.FISHING_ROD, Items.FISHING_ROD, Items.FISHING_ROD),
+    FISHER(Res.FOOD, 30, Items.FISHING_ROD, Items.FISHING_ROD, Items.FISHING_ROD, Items.FISHING_ROD),
     /** Works the fields: more food, but needs a field. */
-    FARMER(Res.FOOD, 36, Items.AIR, Items.WOODEN_HOE, Items.STONE_HOE, Items.IRON_HOE),
+    FARMER(Res.FOOD, 40, Items.AIR, Items.WOODEN_HOE, Items.STONE_HOE, Items.IRON_HOE),
     /** Fells trees: wood to build with. */
     WOODCUTTER(Res.WOOD, 18, Items.AIR, Items.WOODEN_AXE, Items.STONE_AXE, Items.IRON_AXE),
     /** Breaks stone, and with a good pick, iron ore. */
@@ -28,7 +28,9 @@ public enum Job {
     /** Works the smithy: the tools of every trade (wooden, stone, iron with its levels). Makes nothing to store. */
     SMITH(null, 0, Items.ANVIL, Items.ANVIL, Items.ANVIL, Items.ANVIL),
     /** Gathers what grows wild (berries, mushrooms, greens): a camp's first food, anywhere; no tools to it. */
-    GATHERER(Res.FOOD, 22, Items.AIR, Items.AIR, Items.AIR, Items.AIR);
+    GATHERER(Res.FOOD, 28, Items.AIR, Items.AIR, Items.AIR, Items.AIR),
+    /** Works the joiner's workshop: planks and sticks into joinery. Makes nothing of his own: see the workshop. */
+    JOINER(null, 0, Items.CRAFTING_TABLE, Items.CRAFTING_TABLE, Items.CRAFTING_TABLE, Items.CRAFTING_TABLE);
 
     /** How fast the work goes: bare hands (no smithy), then the smithy's levels: wooden, stone, iron tools. */
     public static final double[] TOOL_SPEED = {0.6, 1.0, 1.3, 1.6};
@@ -71,35 +73,16 @@ public enum Job {
         return makes != null && this != GATHERER;
     }
 
-    /**
-     * What replacing a worn-out tool of this level takes: wooden ones are cut from logs; stone ones are a head of
-     * cobblestone on stick handles; iron ones, iron on sticks. A fishing rod is all sticks.
-     */
-    public java.util.Map<Res, Integer> toolCost(int level) {
-        java.util.Map<Res, Integer> m = new java.util.EnumMap<>(Res.class);
-        if (!usesTools()) return m;
-        // bare hands wear nothing out (a fisher still cuts himself a rod)
-        if (level == 0 && this != FISHER) return m;
-        if (this == FISHER) {
-            if (level <= 1) m.put(Res.WOOD, 1);
-            else m.put(Res.STICKS, 3);
-        } else if (level <= 1) {
-            m.put(Res.WOOD, 2);
-        } else if (level == 2) {
-            m.put(Res.STICKS, 2);
-            m.put(Res.STONE, 3);
-        } else {
-            // iron is worked in the fire
-            m.put(Res.STICKS, 2);
-            m.put(Res.IRON, 3);
-            m.put(Res.COAL, 1);
-        }
-        return m;
-    }
+    /** How many days of one worker's work a tool of a level lasts (a wooden one half a day, a stone one three, an iron one six). */
+    public static final double[] TOOL_DAYS = {0, 0.5, 3, 6};
 
-    /** How many days a tool of this level lasts one worker. */
-    public static int toolLife(int level) {
-        return level <= 1 ? 3 : level == 2 ? 5 : 8;
+    /** What the smith makes a tool of, by its level: a log and two sticks; two cobblestone and two sticks; two iron, two sticks and coal. */
+    public static java.util.Map<Res, Integer> toolRecipe(int level) {
+        return switch (level) {
+            case 1 -> java.util.Map.of(Res.WOOD, 1, Res.STICKS, 2);
+            case 2 -> java.util.Map.of(Res.STONE, 2, Res.STICKS, 2);
+            default -> java.util.Map.of(Res.IRON, 2, Res.STICKS, 2, Res.COAL, 1);
+        };
     }
 
     public static Job byId(String id) {

@@ -162,10 +162,6 @@ public final class Orders {
     public static Res stored(TreeData.Recipe r) {
         if (r.item() == null) return null;
         String id = r.item();
-        if (id.equals("stairs")) return Res.STAIRS;
-        if (id.equals("slab")) return Res.SLABS;
-        if (id.endsWith("door") && !id.endsWith("trapdoor")) return Res.DOORS;
-        if (id.equals("fence")) return Res.FENCES;
         Res res = TreeData.res(r.cat());
         // (the store of wood is logs; of iron, ingots; of coal, coal: other things of the same category are not in it)
         if (res == Res.WOOD && !id.endsWith("_log")) return null;
@@ -211,7 +207,8 @@ public final class Orders {
             need -= take;
         }
         inv.setChanged();
-        v.add(res, -n * Trade.units(w));
+        TreeData.TreeItem item = TreeData.item(r.item());
+        v.add(res, -n * (res == Res.FOOD ? Trade.units(w) : item != null ? Math.max(1, item.units()) : 1));
         v.emeralds += price;
         ItemStack one = TreeData.stack(v, r, 1);
         for (int left = n; left > 0; ) {

@@ -279,6 +279,15 @@ public final class Village {
     final Map<Integer, Long> known = new java.util.LinkedHashMap<>();
     /** What the village used up yesterday (tools). */
     final EnumMap<Res, Integer> used = new EnumMap<>(Res.class);
+    /** What the workshops (the sawmill, the smithy, the joiner's) made and used yesterday, by workshop. */
+    final java.util.Map<BuildingType, EnumMap<Res, Integer>> workshopMade = new java.util.EnumMap<>(BuildingType.class);
+    final java.util.Map<BuildingType, EnumMap<Res, Integer>> workshopUsed = new java.util.EnumMap<>(BuildingType.class);
+
+    void workshop(BuildingType t, Res r, int made, int used) {
+        if (made > 0) workshopMade.computeIfAbsent(t, k -> new EnumMap<>(Res.class)).merge(r, made, Integer::sum);
+        if (used > 0) workshopUsed.computeIfAbsent(t, k -> new EnumMap<>(Res.class)).merge(r, used, Integer::sum);
+    }
+
     /** What went to the building sites yesterday. */
     final EnumMap<Res, Integer> built = new EnumMap<>(Res.class);
     /** How far along its plan the village mine is dug. */
@@ -426,15 +435,12 @@ public final class Village {
         return n;
     }
 
-    /**
-     * The tools of a trade: the level of the village's smithy (0: none, bare hands; 1 wooden; 2 stone; 3 iron), a
-     * level lower while worn-out ones could not be replaced.
-     */
+    /** The tools of a trade: the best the village has in store (0: none, bare hands; 1 wooden; 2 stone; 3 iron). */
     public int toolLevel(Job job) {
         int best = VillageLife.toolTier(this);
         // a fisher cuts himself a rod: never bare-handed
         if (job == Job.FISHER) best = Math.max(1, best);
-        return toolsShort.contains(job) ? Math.max(0, best - 1) : best;
+        return best;
     }
 
     public boolean toolsShort(Job job) {

@@ -20,7 +20,7 @@ import org.webtrade.minecraftportsmod.colony.VillageData;
 import org.webtrade.minecraftportsmod.network.ColonyPayloads;
 
 /**
- * Orders at the sawmill: the sawyer's window lists what the mill makes by the tree's recipes; the player orders 40
+ * Orders at the joiner's workshop: his window lists what he makes by the tree's recipes; the player orders 40
  * stairs (paid at once), the days go by and the order is made from the village's planks, the window shows how far
  * along; the order survives the village being saved and read back; ready, it is taken.
  */
@@ -45,23 +45,24 @@ public class OrderClientGameTest implements FabricClientGameTest {
             context.waitTicks(40);
             server.runCommand("execute as @a at @s run village camp");
             context.waitTicks(20);
-            for (String c : new String[]{"grow 1 woodcutter", "grow 1 miner", "grow 1 fisher", "grow 1 sawyer", "grow 1 smith",
-                    "build 1 storehouse 3", "build 1 wood_hut 3", "build 1 sawmill 2", "build 1 smithy 2", "build 1 hut 1", "build 1 hut 1"}) {
+            for (String c : new String[]{"grow 1 woodcutter", "grow 1 miner", "grow 1 fisher", "grow 1 sawyer", "grow 1 joiner", "grow 1 smith",
+                    "build 1 storehouse 3", "build 1 wood_hut 3", "build 1 sawmill 2", "build 1 carpenter 2", "build 1 smithy 2", "build 1 hut 1", "build 1 hut 1"}) {
                 server.runCommand("village " + c);
             }
             for (String r : new String[]{"wood 300", "stone 100", "planks 200", "sticks 60", "coal 40", "food 300"}) server.runCommand("village give 1 " + r);
             server.runCommand("village day");
             context.waitTicks(20);
 
-            int[] mill = {-1};
+            int[] mill = {-1}, saw = {-1};
             server.runOnServer(s -> {
                 Village v = VillageData.get(s).get(1);
-                for (Building b : v.buildings()) if (b.type == BuildingType.SAWMILL) mill[0] = b.id;
+                for (Building b : v.buildings()) if (b.type == BuildingType.CARPENTER) mill[0] = b.id;
+                for (Building b : v.buildings()) if (b.type == BuildingType.SAWMILL) saw[0] = b.id;
                 var p = s.getPlayerList().getPlayers().getFirst();
                 p.getInventory().clearContent();
                 p.getInventory().add(new ItemStack(Items.EMERALD, 30));
                 p.teleportTo(s.overworld(), v.center.getX() + 0.5, v.center.getY() + 1, v.center.getZ() + 0.5, java.util.Set.of(), 0, 0, false);
-                log("sawmill #{} level {}, sawyers {}, recipes {}", mill[0], v.building(mill[0]).level(), v.workers(org.webtrade.minecraftportsmod.colony.Job.SAWYER),
+                log("joiner's workshop #{} level {}, joiners {}, recipes {}", mill[0], v.building(mill[0]).level(), v.workers(org.webtrade.minecraftportsmod.colony.Job.JOINER),
                         Orders.recipes(v.building(mill[0])).size());
                 ColonyService.handleAction(p, new ColonyPayloads.VillageAction(1, ColonyPayloads.VillageAction.ORDERS, mill[0], 0));
             });
@@ -143,7 +144,7 @@ public class OrderClientGameTest implements FabricClientGameTest {
                 if (more > 0) org.webtrade.minecraftportsmod.colony.VillageManager.give(s, v, Res.PLANKS, more);
             });
             server.runOnServer(s -> ColonyService.handleAction(s.getPlayerList().getPlayers().getFirst(),
-                    new ColonyPayloads.VillageAction(1, ColonyPayloads.VillageAction.ORDERS, mill[0], 0)));
+                    new ColonyPayloads.VillageAction(1, ColonyPayloads.VillageAction.ORDERS, saw[0], 0)));
             context.waitTicks(10);
             context.runOnClient(mc -> {
                 OrderScreen os = (OrderScreen) mc.gui.screen();
