@@ -27,7 +27,7 @@ import java.util.Set;
  */
 public class NetworkRunClientGameTest implements FabricClientGameTest {
 
-    private static final String[] SEEDS = {"4242:d500"};
+    private static final String[] SEEDS = {"4242:d200", "4242:d200:notrade"};
     private static final int DAYS = 100;
     /** The days of the world being run now: 100, or as its spec says ("seed:d500"). */
     private static int days = DAYS;

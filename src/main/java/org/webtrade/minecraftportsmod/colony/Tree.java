@@ -148,7 +148,8 @@ public final class Tree {
     public static int fieldLimit(Village v) {
         int best = 0;
         for (Building b : v.buildings) if (b.type == BuildingType.FARM && b.standing()) best = Math.max(best, b.level);
-        return 1 + best;
+        // a farming village lays out two fields more than the others
+        return 1 + best + (v.sub == BuildingType.Sub.FARMING ? 2 : 0);
     }
 
     /** How many storehouses (of either kind) there may be: one, and one more for every four people. */
