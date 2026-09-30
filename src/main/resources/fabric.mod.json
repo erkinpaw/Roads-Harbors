@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "minecraftportsmod",
+  "version": "${version}",
+  "name": "Ports & Routes",
+  "description": "Ports, docks and automatic sea routes. Pick a destination on a hand-drawn nautical chart and let your vessel sail there on its own.",
+  "authors": ["webtrade"],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/minecraftportsmod/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-datagen": [
+      "org.webtrade.minecraftportsmod.client.MinecraftportsmodDataGenerator"
+    ],
+    "client": [
+      "org.webtrade.minecraftportsmod.client.MinecraftportsmodClient"
+    ],
+    "main": [
+      "org.webtrade.minecraftportsmod.Minecraftportsmod"
+    ]
+  },
+  "mixins": [
+    "minecraftportsmod.mixins.json",
+    {
+      "config": "minecraftportsmod.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}

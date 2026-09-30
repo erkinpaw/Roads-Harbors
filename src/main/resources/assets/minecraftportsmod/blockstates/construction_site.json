@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "facing=north,built=false": { "model": "minecraftportsmod:block/construction_site" },
+    "facing=east,built=false":  { "model": "minecraftportsmod:block/construction_site", "y": 90 },
+    "facing=south,built=false": { "model": "minecraftportsmod:block/construction_site", "y": 180 },
+    "facing=west,built=false":  { "model": "minecraftportsmod:block/construction_site", "y": 270 },
+    "facing=north,built=true": { "model": "minecraftportsmod:block/building_plate" },
+    "facing=east,built=true":  { "model": "minecraftportsmod:block/building_plate", "y": 90 },
+    "facing=south,built=true": { "model": "minecraftportsmod:block/building_plate", "y": 180 },
+    "facing=west,built=true":  { "model": "minecraftportsmod:block/building_plate", "y": 270 }
+  }
+}

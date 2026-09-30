@@ -1,0 +1,3720 @@
+{
+ "buildings": {
+  "apiary": {
+   "name": "Пасека",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "honeycomb",
+      "n": 1
+     },
+     "use": [],
+     "per": 2
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "honey_bottle",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "glass",
+       "n": 1
+      }
+     ],
+     "per": 2
+    }
+   ]
+  },
+  "artist": {
+   "name": "Дом художника",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "red_dye",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "flowers",
+       "n": 1
+      }
+     ],
+     "per": 4
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "yellow_dye",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "flowers",
+       "n": 1
+      }
+     ],
+     "per": 4
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "white_dye",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "fertilizer",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "blue_dye",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "gems",
+       "n": 1
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "orange_dye",
+      "n": 2
+     },
+     "use": [
+      {
+       "r": "dyes",
+       "n": 2
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "pink_dye",
+      "n": 2
+     },
+     "use": [
+      {
+       "r": "dyes",
+       "n": 2
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "light_blue_dye",
+      "n": 2
+     },
+     "use": [
+      {
+       "r": "dyes",
+       "n": 2
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "purple_dye",
+      "n": 2
+     },
+     "use": [
+      {
+       "r": "dyes",
+       "n": 2
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "magenta_dye",
+      "n": 2
+     },
+     "use": [
+      {
+       "r": "dyes",
+       "n": 2
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "cyan_dye",
+      "n": 2
+     },
+     "use": [
+      {
+       "r": "dyes",
+       "n": 2
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "painting",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "sticks",
+       "n": 8
+      },
+      {
+       "r": "wool",
+       "n": 1
+      }
+     ],
+     "per": 1
+    }
+   ]
+  },
+  "bakery": {
+   "name": "Пекарня",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "bread",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "grain",
+       "n": 3
+      }
+     ],
+     "per": 5
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "cookie",
+      "n": 8
+     },
+     "use": [
+      {
+       "r": "grain",
+       "n": 3
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "pumpkin_pie",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "grain",
+       "n": 1
+      },
+      {
+       "r": "food",
+       "n": 2
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "cake",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "grain",
+       "n": 3
+      },
+      {
+       "r": "food",
+       "n": 5
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "sugar",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "grain",
+       "n": 1
+      }
+     ],
+     "per": 3
+    }
+   ]
+  },
+  "campfire": {
+   "name": "Костёр",
+   "workers": [
+    0,
+    0,
+    0
+   ],
+   "recipes": []
+  },
+  "caravanserai": {
+   "name": "Караван-двор",
+   "workers": [
+    1,
+    1,
+    1
+   ],
+   "recipes": []
+  },
+  "carpenter": {
+   "name": "Столярная мастерская",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "barrel",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 6
+      },
+      {
+       "r": "joinery",
+       "n": 2
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "red_bed",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 3
+      },
+      {
+       "r": "wool",
+       "n": 3
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "item_frame",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "sticks",
+       "n": 8
+      },
+      {
+       "r": "leather",
+       "n": 1
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "bookshelf",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 6
+      },
+      {
+       "r": "paper",
+       "n": 3
+      }
+     ],
+     "per": 1
+    }
+   ]
+  },
+  "cartographer": {
+   "name": "Дом картографа",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 2,
+     "out": {
+      "i": "map",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "paper",
+       "n": 8
+      },
+      {
+       "r": "metalware",
+       "n": 1
+      }
+     ],
+     "per": 1
+    }
+   ]
+  },
+  "cattle_barn": {
+   "name": "Коровник",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "milk",
+      "n": 1
+     },
+     "use": [],
+     "per": 2
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "leather",
+      "n": 1
+     },
+     "use": [],
+     "per": 2
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "steak",
+      "n": 1
+     },
+     "use": [],
+     "per": 1
+    }
+   ]
+  },
+  "chandler": {
+   "name": "Свечная",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "candle",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "wax",
+       "n": 1
+      },
+      {
+       "r": "wool",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "torch",
+      "n": 4
+     },
+     "use": [
+      {
+       "r": "fuel",
+       "n": 1
+      },
+      {
+       "r": "sticks",
+       "n": 1
+      }
+     ],
+     "per": 1
+    }
+   ]
+  },
+  "coop": {
+   "name": "Курятник",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "egg",
+      "n": 1
+     },
+     "use": [],
+     "per": 4
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "feather",
+      "n": 1
+     },
+     "use": [],
+     "per": 1
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "cooked_chicken",
+      "n": 1
+     },
+     "use": [],
+     "per": 1
+    }
+   ]
+  },
+  "docks": {
+   "name": "Причал",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "oak_boat",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 5
+      }
+     ],
+     "per": 1,
+     "p": 30
+    }
+   ]
+  },
+  "farm": {
+   "name": "Ферма",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "potato",
+      "n": 1
+     },
+     "use": [],
+     "per": 20
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "carrot",
+      "n": 1
+     },
+     "use": [],
+     "per": 8
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "bone_meal",
+      "n": 1
+     },
+     "use": [],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "melon_slice",
+      "n": 1
+     },
+     "use": [],
+     "per": 6
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "hay_block",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "grain",
+       "n": 9
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "cocoa_beans",
+      "n": 1
+     },
+     "use": [],
+     "per": 2
+    }
+   ]
+  },
+  "field": {
+   "name": "Поле",
+   "workers": [
+    0,
+    0,
+    0
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "wheat",
+      "n": 1
+     },
+     "use": [],
+     "per": 10
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "potato",
+      "n": 1
+     },
+     "use": [],
+     "per": 4
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "carrot",
+      "n": 1
+     },
+     "use": [],
+     "per": 3
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "beetroot",
+      "n": 1
+     },
+     "use": [],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "pumpkin",
+      "n": 1
+     },
+     "use": [],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "sugar_cane",
+      "n": 1
+     },
+     "use": [],
+     "per": 3
+    }
+   ]
+  },
+  "fish_hut": {
+   "name": "Хижина рыбаков",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "cod",
+      "n": 1
+     },
+     "use": [],
+     "per": 12
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "salmon",
+      "n": 1
+     },
+     "use": [],
+     "per": 10
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "fishing_rod",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "sticks",
+       "n": 3
+      },
+      {
+       "r": "wool",
+       "n": 2
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "tropical_fish",
+      "n": 1
+     },
+     "use": [],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "ink_sac",
+      "n": 1
+     },
+     "use": [],
+     "per": 1,
+     "p": 50
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "bone",
+      "n": 1
+     },
+     "use": [],
+     "per": 1,
+     "p": 30
+    }
+   ]
+  },
+  "flower_garden": {
+   "name": "Цветник",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "poppy",
+      "n": 1
+     },
+     "use": [],
+     "per": 6
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "dandelion",
+      "n": 1
+     },
+     "use": [],
+     "per": 6
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "cornflower",
+      "n": 1
+     },
+     "use": [],
+     "per": 5
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "oxeye_daisy",
+      "n": 1
+     },
+     "use": [],
+     "per": 5
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "allium",
+      "n": 1
+     },
+     "use": [],
+     "per": 4
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "azure_bluet",
+      "n": 1
+     },
+     "use": [],
+     "per": 4
+    }
+   ]
+  },
+  "glassworks": {
+   "name": "Стекольня",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "glass",
+      "n": 8
+     },
+     "use": [
+      {
+       "r": "sand",
+       "n": 8
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "glass_pane",
+      "n": 16
+     },
+     "use": [
+      {
+       "r": "glass",
+       "n": 6
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "glass_bottle",
+      "n": 3
+     },
+     "use": [
+      {
+       "r": "glass",
+       "n": 3
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "stained_glass",
+      "n": 8
+     },
+     "use": [
+      {
+       "r": "glass",
+       "n": 8
+      },
+      {
+       "r": "dyes",
+       "n": 1
+      }
+     ],
+     "per": 1
+    }
+   ]
+  },
+  "house": {
+   "name": "Деревянный дом",
+   "workers": [
+    0,
+    0,
+    0
+   ],
+   "recipes": []
+  },
+  "house_tall": {
+   "name": "Двухэтажный деревянный дом",
+   "workers": [
+    0,
+    0,
+    0
+   ],
+   "recipes": []
+  },
+  "hut": {
+   "name": "Хижина",
+   "workers": [
+    0,
+    0,
+    0
+   ],
+   "recipes": []
+  },
+  "library": {
+   "name": "Библиотека",
+   "workers": [
+    1,
+    1,
+    1
+   ],
+   "recipes": []
+  },
+  "locksmith": {
+   "name": "Слесарня",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "bucket",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "metal",
+       "n": 3
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "chain",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "metal",
+       "n": 2
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "iron_bars",
+      "n": 16
+     },
+     "use": [
+      {
+       "r": "metal",
+       "n": 6
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "lantern",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "metal",
+       "n": 1
+      },
+      {
+       "r": "lighting",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "rail",
+      "n": 16
+     },
+     "use": [
+      {
+       "r": "metal",
+       "n": 6
+      },
+      {
+       "r": "sticks",
+       "n": 1
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "anvil",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "metal",
+       "n": 31
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "compass",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "metal",
+       "n": 4
+      },
+      {
+       "r": "gems",
+       "n": 1
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "minecart",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "metal",
+       "n": 5
+      }
+     ],
+     "per": 1
+    }
+   ]
+  },
+  "market": {
+   "name": "Рыночная лавка",
+   "workers": [
+    1,
+    1,
+    1
+   ],
+   "recipes": []
+  },
+  "mine_house": {
+   "name": "Дом шахтёров",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "cobblestone",
+      "n": 1
+     },
+     "use": [],
+     "per": 16
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "coal",
+      "n": 1
+     },
+     "use": [],
+     "per": 6
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "clay_ball",
+      "n": 1
+     },
+     "use": [],
+     "per": 2
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "sand",
+      "n": 1
+     },
+     "use": [],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "raw_iron",
+      "n": 1
+     },
+     "use": [],
+     "per": 4
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "raw_copper",
+      "n": 1
+     },
+     "use": [],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "raw_gold",
+      "n": 1
+     },
+     "use": [],
+     "per": 1,
+     "p": 30
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "lapis",
+      "n": 1
+     },
+     "use": [],
+     "per": 1,
+     "p": 15
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "redstone",
+      "n": 1
+     },
+     "use": [],
+     "per": 1,
+     "p": 15
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "diamond",
+      "n": 1
+     },
+     "use": [],
+     "per": 1,
+     "p": 3
+    }
+   ]
+  },
+  "orchard": {
+   "name": "Сад",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "apple",
+      "n": 1
+     },
+     "use": [],
+     "per": 10
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "sweet_berries",
+      "n": 1
+     },
+     "use": [],
+     "per": 6
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "glow_berries",
+      "n": 1
+     },
+     "use": [],
+     "per": 4
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "cocoa_beans",
+      "n": 1
+     },
+     "use": [],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "golden_apple",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "food",
+       "n": 1
+      },
+      {
+       "r": "gold",
+       "n": 8
+      }
+     ],
+     "per": 1
+    }
+   ]
+  },
+  "papermill": {
+   "name": "Бумажная мастерская",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "paper",
+      "n": 3
+     },
+     "use": [
+      {
+       "r": "grain",
+       "n": 3
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "book",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "paper",
+       "n": 3
+      },
+      {
+       "r": "leather",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "writable_book",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "paper",
+       "n": 1
+      },
+      {
+       "r": "leather",
+       "n": 1
+      },
+      {
+       "r": "dyes",
+       "n": 1
+      }
+     ],
+     "per": 1
+    }
+   ]
+  },
+  "pigsty": {
+   "name": "Свинарник",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "cooked_porkchop",
+      "n": 1
+     },
+     "use": [],
+     "per": 2
+    }
+   ]
+  },
+  "potter": {
+   "name": "Гончарня",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "brick",
+      "n": 8
+     },
+     "use": [
+      {
+       "r": "clay",
+       "n": 8
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "flower_pot",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "ceramics",
+       "n": 3
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "bricks",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "ceramics",
+       "n": 4
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "terracotta",
+      "n": 8
+     },
+     "use": [
+      {
+       "r": "clay",
+       "n": 32
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "decorated_pot",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "ceramics",
+       "n": 4
+      }
+     ],
+     "per": 1
+    }
+   ]
+  },
+  "quarry": {
+   "name": "Каменоломня",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "granite",
+      "n": 1
+     },
+     "use": [],
+     "per": 8
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "diorite",
+      "n": 1
+     },
+     "use": [],
+     "per": 8
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "andesite",
+      "n": 1
+     },
+     "use": [],
+     "per": 8
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "gravel",
+      "n": 1
+     },
+     "use": [],
+     "per": 6
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "sand",
+      "n": 1
+     },
+     "use": [],
+     "per": 5
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "dirt",
+      "n": 1
+     },
+     "use": [],
+     "per": 8
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "clay_ball",
+      "n": 1
+     },
+     "use": [],
+     "per": 3
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "flint",
+      "n": 1
+     },
+     "use": [],
+     "per": 3,
+     "p": 30
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "deepslate",
+      "n": 1
+     },
+     "use": [],
+     "per": 8
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "tuff",
+      "n": 1
+     },
+     "use": [],
+     "per": 6
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "calcite",
+      "n": 1
+     },
+     "use": [],
+     "per": 6
+    }
+   ]
+  },
+  "rabbit_hutch": {
+   "name": "Крольчатник",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "rabbit_hide",
+      "n": 1
+     },
+     "use": [],
+     "per": 1
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "rabbit_stew",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "food",
+       "n": 3
+      }
+     ],
+     "per": 1
+    }
+   ]
+  },
+  "sawmill": {
+   "name": "Лесопилка",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "oak_planks",
+      "n": 4
+     },
+     "use": [
+      {
+       "r": "log",
+       "n": 1
+      }
+     ],
+     "per": 10
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "spruce_planks",
+      "n": 4
+     },
+     "use": [
+      {
+       "r": "log",
+       "n": 1
+      }
+     ],
+     "per": 10
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "stick",
+      "n": 4
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 2
+      }
+     ],
+     "per": 3
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "stairs",
+      "n": 4
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 6
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "slab",
+      "n": 6
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 3
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "fence",
+      "n": 3
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 4
+      },
+      {
+       "r": "sticks",
+       "n": 2
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "fence_gate",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 2
+      },
+      {
+       "r": "sticks",
+       "n": 4
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "ladder",
+      "n": 3
+     },
+     "use": [
+      {
+       "r": "sticks",
+       "n": 7
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "chest",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 8
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "oak_door",
+      "n": 3
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 6
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "spruce_door",
+      "n": 3
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 6
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "trapdoor",
+      "n": 2
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 6
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "sign",
+      "n": 3
+     },
+     "use": [
+      {
+       "r": "planks",
+       "n": 6
+      },
+      {
+       "r": "sticks",
+       "n": 1
+      }
+     ],
+     "per": 1
+    }
+   ]
+  },
+  "sheep_pen": {
+   "name": "Овчарня",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "white_wool",
+      "n": 1
+     },
+     "use": [],
+     "per": 5
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "cooked_mutton",
+      "n": 1
+     },
+     "use": [],
+     "per": 1
+    }
+   ]
+  },
+  "smelter": {
+   "name": "Плавильня",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "iron_ingot",
+      "n": 8
+     },
+     "use": [
+      {
+       "r": "ore",
+       "n": 8
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "copper_ingot",
+      "n": 8
+     },
+     "use": [
+      {
+       "r": "ore",
+       "n": 8
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "iron_nugget",
+      "n": 9
+     },
+     "use": [
+      {
+       "r": "metal",
+       "n": 1
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "gold_ingot",
+      "n": 8
+     },
+     "use": [
+      {
+       "r": "gold",
+       "n": 8
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 1
+    }
+   ]
+  },
+  "smithy": {
+   "name": "Кузница",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "wooden_pickaxe",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "log",
+       "n": 1
+      },
+      {
+       "r": "sticks",
+       "n": 2
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "wooden_axe",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "log",
+       "n": 1
+      },
+      {
+       "r": "sticks",
+       "n": 2
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "wooden_shovel",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "log",
+       "n": 1
+      },
+      {
+       "r": "sticks",
+       "n": 2
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "wooden_hoe",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "log",
+       "n": 1
+      },
+      {
+       "r": "sticks",
+       "n": 2
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "torch",
+      "n": 4
+     },
+     "use": [
+      {
+       "r": "fuel",
+       "n": 1
+      },
+      {
+       "r": "sticks",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "stone_pickaxe",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "stone",
+       "n": 3
+      },
+      {
+       "r": "sticks",
+       "n": 2
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "stone_axe",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "stone",
+       "n": 3
+      },
+      {
+       "r": "sticks",
+       "n": 2
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "stone_shovel",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "stone",
+       "n": 1
+      },
+      {
+       "r": "sticks",
+       "n": 2
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "stone_hoe",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "stone",
+       "n": 2
+      },
+      {
+       "r": "sticks",
+       "n": 2
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "iron_pickaxe",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "metal",
+       "n": 3
+      },
+      {
+       "r": "sticks",
+       "n": 2
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "iron_axe",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "metal",
+       "n": 3
+      },
+      {
+       "r": "sticks",
+       "n": 2
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "iron_shovel",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "metal",
+       "n": 1
+      },
+      {
+       "r": "sticks",
+       "n": 2
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "iron_hoe",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "metal",
+       "n": 2
+      },
+      {
+       "r": "sticks",
+       "n": 2
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "shears",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "metal",
+       "n": 2
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "flint_and_steel",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "metal",
+       "n": 1
+      },
+      {
+       "r": "stone",
+       "n": 1
+      }
+     ],
+     "per": 1
+    }
+   ]
+  },
+  "smokehouse": {
+   "name": "Коптильня",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "cooked_cod",
+      "n": 8
+     },
+     "use": [
+      {
+       "r": "food",
+       "n": 16
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "cooked_salmon",
+      "n": 8
+     },
+     "use": [
+      {
+       "r": "food",
+       "n": 16
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "steak",
+      "n": 8
+     },
+     "use": [
+      {
+       "r": "food",
+       "n": 16
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "cooked_porkchop",
+      "n": 8
+     },
+     "use": [
+      {
+       "r": "food",
+       "n": 16
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 1
+    }
+   ]
+  },
+  "square": {
+   "name": "Площадь",
+   "workers": [
+    0,
+    0,
+    0
+   ],
+   "recipes": []
+  },
+  "stable": {
+   "name": "Конюшня",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "r": "transport",
+      "n": 1
+     },
+     "use": [],
+     "per": 1,
+     "p": 10
+    }
+   ]
+  },
+  "stone_house": {
+   "name": "Каменный дом",
+   "workers": [
+    0,
+    0,
+    0
+   ],
+   "recipes": []
+  },
+  "stone_house_tall": {
+   "name": "Двухэтажный каменный дом",
+   "workers": [
+    0,
+    0,
+    0
+   ],
+   "recipes": []
+  },
+  "stonemason": {
+   "name": "Каменотёс",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "stone_bricks",
+      "n": 4
+     },
+     "use": [
+      {
+       "r": "stone",
+       "n": 4
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "stone_slab",
+      "n": 6
+     },
+     "use": [
+      {
+       "r": "stone",
+       "n": 3
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "stone_stairs",
+      "n": 4
+     },
+     "use": [
+      {
+       "r": "stone",
+       "n": 6
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "smooth_stone",
+      "n": 8
+     },
+     "use": [
+      {
+       "r": "stone",
+       "n": 8
+      },
+      {
+       "r": "fuel",
+       "n": 1
+      }
+     ],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "polished_andesite",
+      "n": 4
+     },
+     "use": [
+      {
+       "r": "stone",
+       "n": 4
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "sandstone",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "sand",
+       "n": 4
+      }
+     ],
+     "per": 3
+    }
+   ]
+  },
+  "storehouse": {
+   "name": "Малый склад",
+   "workers": [
+    0,
+    0,
+    0
+   ],
+   "recipes": []
+  },
+  "storehouse_2": {
+   "name": "Большой склад",
+   "workers": [
+    0,
+    0,
+    0
+   ],
+   "recipes": []
+  },
+  "tavern": {
+   "name": "Таверна",
+   "workers": [
+    1,
+    1,
+    1
+   ],
+   "recipes": []
+  },
+  "tent": {
+   "name": "Палатка",
+   "workers": [
+    0,
+    0,
+    0
+   ],
+   "recipes": []
+  },
+  "weaver": {
+   "name": "Ткацкая",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "string",
+      "n": 4
+     },
+     "use": [
+      {
+       "r": "wool",
+       "n": 1
+      }
+     ],
+     "per": 3
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "carpet",
+      "n": 3
+     },
+     "use": [
+      {
+       "r": "wool",
+       "n": 2
+      }
+     ],
+     "per": 2
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "red_wool",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "wool",
+       "n": 1
+      },
+      {
+       "r": "dyes",
+       "n": 1
+      }
+     ],
+     "per": 4
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "blue_wool",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "wool",
+       "n": 1
+      },
+      {
+       "r": "dyes",
+       "n": 1
+      }
+     ],
+     "per": 4
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "yellow_wool",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "wool",
+       "n": 1
+      },
+      {
+       "r": "dyes",
+       "n": 1
+      }
+     ],
+     "per": 4
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "banner",
+      "n": 1
+     },
+     "use": [
+      {
+       "r": "wool",
+       "n": 6
+      },
+      {
+       "r": "sticks",
+       "n": 1
+      }
+     ],
+     "per": 1
+    }
+   ]
+  },
+  "well": {
+   "name": "Колодец",
+   "workers": [
+    0,
+    0,
+    0
+   ],
+   "recipes": []
+  },
+  "wood_hut": {
+   "name": "Дом лесника",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "oak_log",
+      "n": 1
+     },
+     "use": [],
+     "per": 16
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "spruce_log",
+      "n": 1
+     },
+     "use": [],
+     "per": 16
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "birch_log",
+      "n": 1
+     },
+     "use": [],
+     "per": 16
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "stick",
+      "n": 1
+     },
+     "use": [],
+     "per": 4
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "r": "fuel",
+      "n": 1
+     },
+     "use": [],
+     "per": 6
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "apple",
+      "n": 1
+     },
+     "use": [],
+     "per": 1
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "sapling",
+      "n": 1
+     },
+     "use": [],
+     "per": 4
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "leaves",
+      "n": 1
+     },
+     "use": [],
+     "per": 16
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "dark_oak_log",
+      "n": 1
+     },
+     "use": [],
+     "per": 10
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "cherry_log",
+      "n": 1
+     },
+     "use": [],
+     "per": 10
+    }
+   ]
+  }
+ },
+ "items": {
+  "wooden_pickaxe": {
+   "res": "tools1",
+   "units": 3,
+   "name": "Деревянная кирка"
+  },
+  "wooden_axe": {
+   "res": "tools1",
+   "units": 3,
+   "name": "Деревянный топор"
+  },
+  "wooden_shovel": {
+   "res": "tools1",
+   "units": 1,
+   "name": "Деревянная лопата"
+  },
+  "wooden_hoe": {
+   "res": "tools1",
+   "units": 2,
+   "name": "Деревянная мотыга"
+  },
+  "stone_pickaxe": {
+   "res": "tools2",
+   "units": 3,
+   "name": "Каменная кирка"
+  },
+  "stone_axe": {
+   "res": "tools2",
+   "units": 3,
+   "name": "Каменный топор"
+  },
+  "stone_shovel": {
+   "res": "tools2",
+   "units": 1,
+   "name": "Каменная лопата"
+  },
+  "stone_hoe": {
+   "res": "tools2",
+   "units": 2,
+   "name": "Каменная мотыга"
+  },
+  "iron_pickaxe": {
+   "res": "tools3",
+   "units": 3,
+   "name": "Железная кирка"
+  },
+  "iron_axe": {
+   "res": "tools3",
+   "units": 3,
+   "name": "Железный топор"
+  },
+  "iron_shovel": {
+   "res": "tools3",
+   "units": 1,
+   "name": "Железная лопата"
+  },
+  "iron_hoe": {
+   "res": "tools3",
+   "units": 2,
+   "name": "Железная мотыга"
+  },
+  "fishing_rod": {
+   "res": "tools1",
+   "units": 1,
+   "name": "Удочка"
+  },
+  "shears": {
+   "res": "tools3",
+   "units": 2,
+   "name": "Ножницы"
+  },
+  "flint_and_steel": {
+   "res": "tools3",
+   "units": 1,
+   "name": "Огниво"
+  },
+  "bucket": {
+   "res": "metalware",
+   "units": 3,
+   "name": "Ведро"
+  },
+  "bread": {
+   "res": "food",
+   "units": 5,
+   "name": "Хлеб"
+  },
+  "baked_potato": {
+   "res": "food",
+   "units": 5,
+   "name": "Печёный картофель"
+  },
+  "carrot": {
+   "res": "food",
+   "units": 3,
+   "name": "Морковь"
+  },
+  "potato": {
+   "res": "food",
+   "units": 1,
+   "name": "Картофель"
+  },
+  "beetroot": {
+   "res": "food",
+   "units": 1,
+   "name": "Свёкла"
+  },
+  "apple": {
+   "res": "food",
+   "units": 4,
+   "name": "Яблоко"
+  },
+  "golden_apple": {
+   "res": "food",
+   "units": 12,
+   "name": "Золотое яблоко"
+  },
+  "melon_slice": {
+   "res": "food",
+   "units": 2,
+   "name": "Ломтик арбуза"
+  },
+  "pumpkin_pie": {
+   "res": "food",
+   "units": 8,
+   "name": "Тыквенный пирог"
+  },
+  "sweet_berries": {
+   "res": "food",
+   "units": 2,
+   "name": "Сладкие ягоды"
+  },
+  "glow_berries": {
+   "res": "food",
+   "units": 2,
+   "name": "Светящиеся ягоды"
+  },
+  "cake": {
+   "res": "food",
+   "units": 14,
+   "name": "Торт"
+  },
+  "cookie": {
+   "res": "food",
+   "units": 2,
+   "name": "Печенье"
+  },
+  "honey_bottle": {
+   "res": "food",
+   "units": 6,
+   "name": "Мёд"
+  },
+  "cooked_cod": {
+   "res": "food",
+   "units": 5,
+   "name": "Жареная треска"
+  },
+  "cooked_salmon": {
+   "res": "food",
+   "units": 6,
+   "name": "Жареный лосось"
+  },
+  "cod": {
+   "res": "food",
+   "units": 2,
+   "name": "Треска"
+  },
+  "salmon": {
+   "res": "food",
+   "units": 2,
+   "name": "Лосось"
+  },
+  "tropical_fish": {
+   "res": "food",
+   "units": 1,
+   "name": "Тропическая рыба"
+  },
+  "steak": {
+   "res": "food",
+   "units": 8,
+   "name": "Стейк"
+  },
+  "cooked_porkchop": {
+   "res": "food",
+   "units": 8,
+   "name": "Жареная свинина"
+  },
+  "cooked_mutton": {
+   "res": "food",
+   "units": 6,
+   "name": "Жареная баранина"
+  },
+  "cooked_chicken": {
+   "res": "food",
+   "units": 6,
+   "name": "Жареная курица"
+  },
+  "rabbit_stew": {
+   "res": "food",
+   "units": 10,
+   "name": "Тушёный кролик"
+  },
+  "mushroom_stew": {
+   "res": "food",
+   "units": 6,
+   "name": "Грибной суп"
+  },
+  "beetroot_soup": {
+   "res": "food",
+   "units": 6,
+   "name": "Свекольный суп"
+  },
+  "dried_kelp": {
+   "res": "food",
+   "units": 1,
+   "name": "Сушёная ламинария"
+  },
+  "egg": {
+   "res": "food",
+   "units": 1,
+   "name": "Яйцо"
+  },
+  "milk": {
+   "res": "food",
+   "units": 4,
+   "name": "Молоко (ведро)"
+  },
+  "sugar": {
+   "res": "food",
+   "units": 1,
+   "name": "Сахар"
+  },
+  "wheat": {
+   "res": "grain",
+   "units": 1,
+   "name": "Пшеница"
+  },
+  "wheat_seeds": {
+   "res": "grain",
+   "units": 1,
+   "name": "Семена пшеницы"
+  },
+  "beetroot_seeds": {
+   "res": "grain",
+   "units": 1,
+   "name": "Семена свёклы"
+  },
+  "pumpkin_seeds": {
+   "res": "grain",
+   "units": 1,
+   "name": "Семена тыквы"
+  },
+  "melon_seeds": {
+   "res": "grain",
+   "units": 1,
+   "name": "Семена арбуза"
+  },
+  "hay_block": {
+   "res": "grain",
+   "units": 9,
+   "name": "Тюк сена"
+  },
+  "sugar_cane": {
+   "res": "grain",
+   "units": 1,
+   "name": "Сахарный тростник"
+  },
+  "cocoa_beans": {
+   "res": "grain",
+   "units": 1,
+   "name": "Какао-бобы"
+  },
+  "pumpkin": {
+   "res": "grain",
+   "units": 2,
+   "name": "Тыква"
+  },
+  "oak_log": {
+   "res": "log",
+   "units": 1,
+   "name": "Дубовое бревно"
+  },
+  "oak_planks": {
+   "res": "planks",
+   "units": 1,
+   "name": "Дубовые доски"
+  },
+  "oak_door": {
+   "res": "joinery",
+   "units": 1,
+   "name": "Дубовая дверь"
+  },
+  "spruce_log": {
+   "res": "log",
+   "units": 1,
+   "name": "Еловое бревно"
+  },
+  "spruce_planks": {
+   "res": "planks",
+   "units": 1,
+   "name": "Еловые доски"
+  },
+  "spruce_door": {
+   "res": "joinery",
+   "units": 1,
+   "name": "Еловая дверь"
+  },
+  "birch_log": {
+   "res": "log",
+   "units": 1,
+   "name": "Берёзовое бревно"
+  },
+  "birch_planks": {
+   "res": "planks",
+   "units": 1,
+   "name": "Берёзовые доски"
+  },
+  "birch_door": {
+   "res": "joinery",
+   "units": 1,
+   "name": "Берёзовая дверь"
+  },
+  "jungle_log": {
+   "res": "log",
+   "units": 1,
+   "name": "Тропическое бревно"
+  },
+  "jungle_planks": {
+   "res": "planks",
+   "units": 1,
+   "name": "Тропическые доски"
+  },
+  "jungle_door": {
+   "res": "joinery",
+   "units": 1,
+   "name": "Тропическая дверь"
+  },
+  "acacia_log": {
+   "res": "log",
+   "units": 1,
+   "name": "Акациевое бревно"
+  },
+  "acacia_planks": {
+   "res": "planks",
+   "units": 1,
+   "name": "Акациевые доски"
+  },
+  "acacia_door": {
+   "res": "joinery",
+   "units": 1,
+   "name": "Акациевая дверь"
+  },
+  "dark_oak_log": {
+   "res": "log",
+   "units": 1,
+   "name": "Тёмно-дубовое бревно"
+  },
+  "dark_oak_planks": {
+   "res": "planks",
+   "units": 1,
+   "name": "Тёмно-дубовые доски"
+  },
+  "dark_oak_door": {
+   "res": "joinery",
+   "units": 1,
+   "name": "Тёмно-дубовая дверь"
+  },
+  "mangrove_log": {
+   "res": "log",
+   "units": 1,
+   "name": "Мангровое бревно"
+  },
+  "mangrove_planks": {
+   "res": "planks",
+   "units": 1,
+   "name": "Мангровые доски"
+  },
+  "mangrove_door": {
+   "res": "joinery",
+   "units": 1,
+   "name": "Мангровая дверь"
+  },
+  "cherry_log": {
+   "res": "log",
+   "units": 1,
+   "name": "Вишнёвое бревно"
+  },
+  "cherry_planks": {
+   "res": "planks",
+   "units": 1,
+   "name": "Вишнёвые доски"
+  },
+  "cherry_door": {
+   "res": "joinery",
+   "units": 1,
+   "name": "Вишнёвая дверь"
+  },
+  "pale_oak_log": {
+   "res": "log",
+   "units": 1,
+   "name": "Бледно-дубовое бревно"
+  },
+  "pale_oak_planks": {
+   "res": "planks",
+   "units": 1,
+   "name": "Бледно-дубовые доски"
+  },
+  "pale_oak_door": {
+   "res": "joinery",
+   "units": 1,
+   "name": "Бледно-дубовая дверь"
+  },
+  "bamboo": {
+   "res": "log",
+   "units": 1,
+   "name": "Бамбук"
+  },
+  "stick": {
+   "res": "sticks",
+   "units": 1,
+   "name": "Палка"
+  },
+  "stairs": {
+   "res": "joinery",
+   "units": 1,
+   "name": "Деревянная ступенька"
+  },
+  "slab": {
+   "res": "joinery",
+   "units": 1,
+   "name": "Деревянный полублок"
+  },
+  "fence": {
+   "res": "joinery",
+   "units": 1,
+   "name": "Забор"
+  },
+  "fence_gate": {
+   "res": "joinery",
+   "units": 1,
+   "name": "Калитка"
+  },
+  "trapdoor": {
+   "res": "joinery",
+   "units": 1,
+   "name": "Люк"
+  },
+  "ladder": {
+   "res": "joinery",
+   "units": 1,
+   "name": "Лестница"
+  },
+  "sign": {
+   "res": "joinery",
+   "units": 1,
+   "name": "Табличка"
+  },
+  "sapling": {
+   "res": "log",
+   "units": 1,
+   "name": "Саженец"
+  },
+  "leaves": {
+   "res": "log",
+   "units": 1,
+   "name": "Листва"
+  },
+  "cobblestone": {
+   "res": "stone",
+   "units": 1,
+   "name": "Булыжник"
+  },
+  "stone": {
+   "res": "stone",
+   "units": 1,
+   "name": "Камень"
+  },
+  "granite": {
+   "res": "stone",
+   "units": 1,
+   "name": "Гранит"
+  },
+  "diorite": {
+   "res": "stone",
+   "units": 1,
+   "name": "Диорит"
+  },
+  "andesite": {
+   "res": "stone",
+   "units": 1,
+   "name": "Андезит"
+  },
+  "deepslate": {
+   "res": "stone",
+   "units": 1,
+   "name": "Глубинный сланец"
+  },
+  "tuff": {
+   "res": "stone",
+   "units": 1,
+   "name": "Туф"
+  },
+  "calcite": {
+   "res": "stone",
+   "units": 1,
+   "name": "Кальцит"
+  },
+  "gravel": {
+   "res": "stone",
+   "units": 1,
+   "name": "Гравий"
+  },
+  "flint": {
+   "res": "stone",
+   "units": 1,
+   "name": "Кремень"
+  },
+  "dirt": {
+   "res": "stone",
+   "units": 1,
+   "name": "Земля"
+  },
+  "stone_bricks": {
+   "res": "cut_stone",
+   "units": 1,
+   "name": "Каменные кирпичи"
+  },
+  "smooth_stone": {
+   "res": "cut_stone",
+   "units": 1,
+   "name": "Гладкий камень"
+  },
+  "stone_stairs": {
+   "res": "cut_stone",
+   "units": 1,
+   "name": "Каменная ступенька"
+  },
+  "stone_slab": {
+   "res": "cut_stone",
+   "units": 1,
+   "name": "Каменная плита"
+  },
+  "polished_andesite": {
+   "res": "cut_stone",
+   "units": 1,
+   "name": "Мостовая"
+  },
+  "sandstone": {
+   "res": "cut_stone",
+   "units": 1,
+   "name": "Песчаник"
+  },
+  "sand": {
+   "res": "sand",
+   "units": 1,
+   "name": "Песок"
+  },
+  "red_sand": {
+   "res": "sand",
+   "units": 1,
+   "name": "Красный песок"
+  },
+  "clay_ball": {
+   "res": "clay",
+   "units": 1,
+   "name": "Глина"
+  },
+  "obsidian": {
+   "res": "stone",
+   "units": 4,
+   "name": "Обсидиан"
+  },
+  "coal": {
+   "res": "fuel",
+   "units": 1,
+   "name": "Уголь"
+  },
+  "raw_iron": {
+   "res": "ore",
+   "units": 1,
+   "name": "Железная руда"
+  },
+  "raw_copper": {
+   "res": "ore",
+   "units": 1,
+   "name": "Медная руда"
+  },
+  "iron_ingot": {
+   "res": "metal",
+   "units": 1,
+   "name": "Железный слиток"
+  },
+  "copper_ingot": {
+   "res": "metal",
+   "units": 1,
+   "name": "Медный слиток"
+  },
+  "iron_nugget": {
+   "res": "metal",
+   "units": 1,
+   "name": "Железный самородок"
+  },
+  "chain": {
+   "res": "metalware",
+   "units": 1,
+   "name": "Цепь"
+  },
+  "iron_bars": {
+   "res": "metalware",
+   "units": 1,
+   "name": "Железная решётка"
+  },
+  "rail": {
+   "res": "metalware",
+   "units": 1,
+   "name": "Рельс"
+  },
+  "anvil": {
+   "res": "metalware",
+   "units": 31,
+   "name": "Наковальня"
+  },
+  "raw_gold": {
+   "res": "gold",
+   "units": 1,
+   "name": "Золотая руда"
+  },
+  "gold_ingot": {
+   "res": "gold",
+   "units": 1,
+   "name": "Золотой слиток"
+  },
+  "diamond": {
+   "res": "gems",
+   "units": 8,
+   "name": "Алмаз"
+  },
+  "emerald": {
+   "res": "gems",
+   "units": 6,
+   "name": "Изумруд"
+  },
+  "lapis": {
+   "res": "gems",
+   "units": 1,
+   "name": "Лазурит"
+  },
+  "redstone": {
+   "res": "gems",
+   "units": 1,
+   "name": "Редстоун"
+  },
+  "amethyst_shard": {
+   "res": "gems",
+   "units": 2,
+   "name": "Осколок аметиста"
+  },
+  "white_dye": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Белая краска"
+  },
+  "light_gray_dye": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Светло-серая краска"
+  },
+  "gray_dye": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Серая краска"
+  },
+  "black_dye": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Чёрная краска"
+  },
+  "brown_dye": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Коричневая краска"
+  },
+  "red_dye": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Красная краска"
+  },
+  "orange_dye": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Оранжевая краска"
+  },
+  "yellow_dye": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Жёлтая краска"
+  },
+  "lime_dye": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Лаймовая краска"
+  },
+  "green_dye": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Зелёная краска"
+  },
+  "cyan_dye": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Бирюзовая краска"
+  },
+  "light_blue_dye": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Голубая краска"
+  },
+  "blue_dye": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Синяя краска"
+  },
+  "purple_dye": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Фиолетовая краска"
+  },
+  "magenta_dye": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Сиреневая краска"
+  },
+  "pink_dye": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Розовая краска"
+  },
+  "white_wool": {
+   "res": "wool",
+   "units": 1,
+   "name": "Белая шерсть"
+  },
+  "light_gray_wool": {
+   "res": "wool",
+   "units": 1,
+   "name": "Светло-серая шерсть"
+  },
+  "gray_wool": {
+   "res": "wool",
+   "units": 1,
+   "name": "Серая шерсть"
+  },
+  "black_wool": {
+   "res": "wool",
+   "units": 1,
+   "name": "Чёрная шерсть"
+  },
+  "brown_wool": {
+   "res": "wool",
+   "units": 1,
+   "name": "Коричневая шерсть"
+  },
+  "red_wool": {
+   "res": "wool",
+   "units": 1,
+   "name": "Красная шерсть"
+  },
+  "orange_wool": {
+   "res": "wool",
+   "units": 1,
+   "name": "Оранжевая шерсть"
+  },
+  "yellow_wool": {
+   "res": "wool",
+   "units": 1,
+   "name": "Жёлтая шерсть"
+  },
+  "lime_wool": {
+   "res": "wool",
+   "units": 1,
+   "name": "Лаймовая шерсть"
+  },
+  "green_wool": {
+   "res": "wool",
+   "units": 1,
+   "name": "Зелёная шерсть"
+  },
+  "cyan_wool": {
+   "res": "wool",
+   "units": 1,
+   "name": "Бирюзовая шерсть"
+  },
+  "light_blue_wool": {
+   "res": "wool",
+   "units": 1,
+   "name": "Голубая шерсть"
+  },
+  "blue_wool": {
+   "res": "wool",
+   "units": 1,
+   "name": "Синяя шерсть"
+  },
+  "purple_wool": {
+   "res": "wool",
+   "units": 1,
+   "name": "Фиолетовая шерсть"
+  },
+  "magenta_wool": {
+   "res": "wool",
+   "units": 1,
+   "name": "Сиреневая шерсть"
+  },
+  "pink_wool": {
+   "res": "wool",
+   "units": 1,
+   "name": "Розовая шерсть"
+  },
+  "string": {
+   "res": "wool",
+   "units": 1,
+   "name": "Нить"
+  },
+  "carpet": {
+   "res": "wool",
+   "units": 1,
+   "name": "Ковёр"
+  },
+  "banner": {
+   "res": "wool",
+   "units": 3,
+   "name": "Флаг"
+  },
+  "leather": {
+   "res": "leather",
+   "units": 1,
+   "name": "Кожа"
+  },
+  "rabbit_hide": {
+   "res": "leather",
+   "units": 1,
+   "name": "Кроличья шкурка"
+  },
+  "book": {
+   "res": "paper",
+   "units": 3,
+   "name": "Книга"
+  },
+  "paper": {
+   "res": "paper",
+   "units": 1,
+   "name": "Бумага"
+  },
+  "map": {
+   "res": "paper",
+   "units": 4,
+   "name": "Карта"
+  },
+  "writable_book": {
+   "res": "paper",
+   "units": 4,
+   "name": "Книга с пером"
+  },
+  "compass": {
+   "res": "metalware",
+   "units": 5,
+   "name": "Компас"
+  },
+  "clock": {
+   "res": "gold",
+   "units": 5,
+   "name": "Часы"
+  },
+  "glass": {
+   "res": "glass",
+   "units": 1,
+   "name": "Стекло"
+  },
+  "glass_pane": {
+   "res": "glass",
+   "units": 1,
+   "name": "Стеклянная панель"
+  },
+  "glass_bottle": {
+   "res": "glass",
+   "units": 1,
+   "name": "Склянка"
+  },
+  "stained_glass": {
+   "res": "glass",
+   "units": 1,
+   "name": "Витражное стекло"
+  },
+  "brick": {
+   "res": "ceramics",
+   "units": 1,
+   "name": "Кирпич"
+  },
+  "bricks": {
+   "res": "ceramics",
+   "units": 4,
+   "name": "Кирпичный блок"
+  },
+  "flower_pot": {
+   "res": "ceramics",
+   "units": 3,
+   "name": "Цветочный горшок"
+  },
+  "terracotta": {
+   "res": "ceramics",
+   "units": 1,
+   "name": "Терракота"
+  },
+  "decorated_pot": {
+   "res": "ceramics",
+   "units": 4,
+   "name": "Расписной горшок"
+  },
+  "honeycomb": {
+   "res": "wax",
+   "units": 1,
+   "name": "Соты"
+  },
+  "candle": {
+   "res": "lighting",
+   "units": 1,
+   "name": "Свеча"
+  },
+  "torch": {
+   "res": "lighting",
+   "units": 1,
+   "name": "Факел"
+  },
+  "lantern": {
+   "res": "metalware",
+   "units": 3,
+   "name": "Фонарь"
+  },
+  "poppy": {
+   "res": "flowers",
+   "units": 1,
+   "name": "Мак"
+  },
+  "dandelion": {
+   "res": "flowers",
+   "units": 1,
+   "name": "Одуванчик"
+  },
+  "cornflower": {
+   "res": "flowers",
+   "units": 1,
+   "name": "Василёк"
+  },
+  "oxeye_daisy": {
+   "res": "flowers",
+   "units": 1,
+   "name": "Ромашка"
+  },
+  "allium": {
+   "res": "flowers",
+   "units": 1,
+   "name": "Лук-слизун"
+  },
+  "azure_bluet": {
+   "res": "flowers",
+   "units": 1,
+   "name": "Хоустония"
+  },
+  "bone_meal": {
+   "res": "fertilizer",
+   "units": 1,
+   "name": "Костная мука"
+  },
+  "bone": {
+   "res": "fertilizer",
+   "units": 3,
+   "name": "Кость"
+  },
+  "red_bed": {
+   "res": "furnishings",
+   "units": 4,
+   "name": "Кровать"
+  },
+  "painting": {
+   "res": "furnishings",
+   "units": 3,
+   "name": "Картина"
+  },
+  "item_frame": {
+   "res": "furnishings",
+   "units": 2,
+   "name": "Рамка"
+  },
+  "chest": {
+   "res": "joinery",
+   "units": 2,
+   "name": "Сундук"
+  },
+  "barrel": {
+   "res": "furnishings",
+   "units": 2,
+   "name": "Бочка"
+  },
+  "bookshelf": {
+   "res": "furnishings",
+   "units": 5,
+   "name": "Книжная полка"
+  },
+  "oak_boat": {
+   "res": "transport",
+   "units": 5,
+   "name": "Лодка"
+  },
+  "minecart": {
+   "res": "metalware",
+   "units": 5,
+   "name": "Вагонетка"
+  },
+  "ink_sac": {
+   "res": "dyes",
+   "units": 1,
+   "name": "Чернильный мешок"
+  },
+  "feather": {
+   "res": "leather",
+   "units": 1,
+   "name": "Перо"
+  }
+ }
+}
