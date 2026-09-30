@@ -364,9 +364,9 @@ public final class VillageLife {
 
     /** The most steps a village has in its queue (building sites, levels to raise), by its size. */
     public static int queueSize(Village v) {
-        // the more a village has grown, the more it takes on at once: a camp 3, a hamlet 4, a village 6, then 8, 10
+        // the more a village has grown, the more it takes on at once: a camp 2, a hamlet 4, a village 6, then 8, 10
         return switch (v.level) {
-            case CAMP -> 3;
+            case CAMP -> 2;
             case HAMLET -> 4;
             case VILLAGE -> 6;
             case SETTLEMENT -> 8;
