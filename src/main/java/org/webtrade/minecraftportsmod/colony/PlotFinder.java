@@ -92,7 +92,7 @@ final class PlotFinder {
                 // not out over the water in front of the village
                 Direction facing = Direction.getApproximateNearest(c.getX() - x, 0, c.getZ() - z);
                 Integer floor = floor(level, v, pos, half, steep);
-                if (floor == null) continue;
+                if (floor == null || !fits(level, v, type, pos)) continue;
                 return new Blueprint.Frame(new BlockPos(x, floor, z), facing);
             }
         }
@@ -226,12 +226,79 @@ final class PlotFinder {
                 BlockPos pos = new BlockPos(x, c.getY(), z);
                 if (clash(v, pos, half, ignore)) continue;
                 Integer floor = floor(level, v, pos, half, steep);
-                if (floor == null) continue;
+                if (floor == null || !fits(level, v, type, pos)) continue;
                 Direction facing = Direction.getApproximateNearest(c.getX() - x, 0, c.getZ() - z);
                 return new Blueprint.Frame(new BlockPos(x, floor, z), facing);
             }
         }
         return null;
+    }
+
+    /** Blocks kept between the water and any building but the fishers' (and, one day, the harbour's). */
+    static final int SHORE = 6;
+
+    /**
+     * May a building of this type go up here: away from the shore (the fishers right by it), within the land the
+     * village may hold (when that is capped), and where people can walk to from the square on dry feet.
+     */
+    private static boolean fits(ServerLevel level, Village v, BuildingType type, BlockPos pos) {
+        if (!Territory.allows(v, type, pos.getX(), pos.getZ())) return false;
+        if (onPath(level, pos, type.half + 1)) return false;
+        if (type.branch != BuildingType.Branch.COAST && wet(level, v, pos, type.half + SHORE)) return false;
+        // (across a stream from the square: only if a short bridge will do; it is put up first)
+        if (Construction.loaded(level, pos) && !Reach.ok(level, v, new BlockPos(pos.getX(), floorAt(level, pos.getX(), pos.getZ()), pos.getZ()))
+                && !bridgeable(level, v, pos)) return false;
+        return true;
+    }
+
+    /** The most water a path from a plot to the square may cross (a short bridge). */
+    static final int BRIDGE = 12;
+
+    /** On the straight way from a plot to the square, is there no more water than a short bridge spans (and all loaded)? */
+    static boolean bridgeable(ServerLevel level, Village v, BlockPos pos) {
+        int dx = v.center.getX() - pos.getX(), dz = v.center.getZ() - pos.getZ();
+        int steps = Math.max(Math.abs(dx), Math.abs(dz)), wet = 0;
+        for (int k = 0; k <= steps; k++) {
+            int x = pos.getX() + Math.round(dx * (float) k / Math.max(1, steps)), z = pos.getZ() + Math.round(dz * (float) k / Math.max(1, steps));
+            if (!Construction.loaded(level, new BlockPos(x, 0, z))) return false;
+            int f = floorAt(level, x, z);
+            if (!level.getBlockState(new BlockPos(x, f - 1, z)).getFluidState().isEmpty() && ++wet > BRIDGE) return false;
+        }
+        return true;
+    }
+
+    /** Does a street (a trodden path) run over the square of {@code r} round a point? No building goes up on one. */
+    static boolean onPath(ServerLevel level, BlockPos c, int r) {
+        for (int x = -r; x <= r; x++) {
+            for (int z = -r; z <= r; z++) {
+                int px = c.getX() + x, pz = c.getZ() + z;
+                if (!Construction.loaded(level, new BlockPos(px, 0, pz))) continue;
+                if (level.getBlockState(new BlockPos(px, floorAt(level, px, pz) - 1, pz)).is(net.minecraft.world.level.block.Blocks.DIRT_PATH)) return true;
+            }
+        }
+        return false;
+    }
+
+    /** Is there water within {@code r} of a point (looked at every other column; the generator's land where not loaded)? */
+    static boolean wet(ServerLevel level, Village v, BlockPos c, int r) {
+        VillageTerrain.Grid grid = null;
+        for (int x = -r; x <= r; x += 2) {
+            for (int z = -r; z <= r; z += 2) {
+                int px = c.getX() + x, pz = c.getZ() + z;
+                // (the water of the village's own fields and troughs is no shore)
+                if (DwellerGoals.inPlot(v, px, pz, 0)) continue;
+                if (Construction.loaded(level, new BlockPos(px, 0, pz))) {
+                    int f = floorAt(level, px, pz);
+                    if (!level.getBlockState(new BlockPos(px, f - 1, pz)).getFluidState().isEmpty()) return true;
+                } else {
+                    if (grid == null) grid = VillageTerrain.grid(level, v);
+                    if (grid == null) return false;
+                    Integer g = grid.at(px, pz);
+                    if (g != null && g < 0) return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static boolean clash(Village v, BlockPos pos, int half, int ignore) {
@@ -299,7 +366,7 @@ final class PlotFinder {
         heights.sort(Integer::compare);
         int floor = heights.get(heights.size() / 2);
         if (floor < sea) return null;
-        if (floor - heights.getFirst() > (steep ? 5 : 3) || heights.getLast() - floor > (steep ? 6 : 4)) return null;
+        if (floor - heights.getFirst() > (steep ? 4 : 3) || heights.getLast() - floor > (steep ? 4 : 3)) return null;
         return floor;
     }
 }

@@ -122,7 +122,7 @@ final class Construction {
     }
 
     /** How wide the band round a plot is where the land is eased down (or up) to it. */
-    private static final int BLEND = 3;
+    private static final int BLEND = 5;
 
     /**
      * Eases the land round a levelled plot so that it meets the plot gently: {@code k} blocks out from the plot the
