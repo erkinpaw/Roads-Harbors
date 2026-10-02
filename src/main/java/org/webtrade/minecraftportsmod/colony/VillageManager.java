@@ -103,6 +103,7 @@ public final class VillageManager {
                 if (t % 40 == 0) bodies(level, data, v);
                 if (t % 200 == 0) Greening.step(level, v, 60);
                 if (t % 100 == 0) Tidy.survey(level, v, RND, 120);
+                if (t % 200 == 100) Herds.step(level, v);
             }
         }
     }
@@ -349,8 +350,9 @@ public final class VillageManager {
             // stuck in the rock (a slip on a stair, a block put where they stood): up to the ground above
             BlockPos at = e.blockPosition();
             if (level.getBlockState(at).isSuffocating(level, at) || level.getBlockState(at.above()).isSuffocating(level, at.above())) {
-                int y = PlotFinder.floorAt(level, at.getX(), at.getZ());
-                e.snapTo(at.getX() + 0.5, y, at.getZ() + 0.5, e.getYRot(), 0);
+                BlockPos to = PlotFinder.standAt(level, at.getX(), at.getZ(), at.getY());
+                if (to == null) to = hop(level, v, at);
+                if (to != null) snap(level, e, to, "stuck in a block");
             }
             // out where the world stands still (too far from any player for anything to move): the miner is taken
             // on to his mine, anyone else home, so that no one stands frozen half way
@@ -364,17 +366,18 @@ public final class VillageManager {
                 }
                 if (to != null && Construction.loaded(level, to)) {
                     e.getNavigation().stop();
-                    e.snapTo(to.getX() + 0.5, to.getY(), to.getZ() + 0.5, e.getYRot(), 0);
+                    snap(level, e, to, "out where the world stands still");
                     continue;
                 }
             }
             // up on a roof (climbed, or put there): down to the building's door
             for (Building b : v.buildings) {
                 if (Math.abs(at.getX() - b.origin.getX()) > b.type.half || Math.abs(at.getZ() - b.origin.getZ()) > b.type.half) continue;
-                if (at.getY() >= b.origin.getY() + 3 && level.canSeeSky(at) && b.standing()) {
+                if (b.type != BuildingType.TENT && at.getY() >= b.origin.getY() + 3 && level.canSeeSky(at) && b.standing() && onBuilding(b, v, at.below())) {
                     BlockPos door = b.blueprint(v.wood).workSpot;
+                    BlockPos to = PlotFinder.standAt(level, door.getX(), door.getZ(), door.getY());
                     e.getNavigation().stop();
-                    e.snapTo(door.getX() + 0.5, door.getY(), door.getZ() + 0.5, e.getYRot(), 0);
+                    snap(level, e, to != null ? to : door, "on the roof of " + b.type.id());
                 }
                 break;
             }
@@ -389,7 +392,7 @@ public final class VillageManager {
                 BlockPos out = hop(level, v, at);
                 if (out != null) {
                     e.getNavigation().stop();
-                    e.snapTo(out.getX() + 0.5, out.getY(), out.getZ() + 0.5, e.getYRot(), 0);
+                    snap(level, e, out, "not getting anywhere");
                 }
             }
         }
@@ -428,17 +431,36 @@ public final class VillageManager {
                 if (Math.abs(x - b.origin.getX()) <= b.type.half && Math.abs(z - b.origin.getZ()) <= b.type.half) onPlot = true;
             }
             if (onPlot) continue;
-            int y = PlotFinder.floorAt(level, x, z);
-            BlockPos p = new BlockPos(x, y, z);
-            if (!level.getBlockState(p.below()).getFluidState().isEmpty() || !level.getBlockState(p).getFluidState().isEmpty()) continue;
-            if (!level.getBlockState(p).canBeReplaced() || !level.getBlockState(p.above()).canBeReplaced()) continue;
-            int dy = Math.abs(y - at.getY());
+            BlockPos p = PlotFinder.standAt(level, x, z, at.getY());
+            if (p == null || !level.getBlockState(p.below()).getFluidState().isEmpty()) continue;
+            int dy = Math.abs(p.getY() - at.getY());
             if (dy < bestDy) {
                 bestDy = dy;
                 best = p;
             }
         }
-        return best != null && bestDy <= 3 ? best : v.storeSpot();
+        return best != null && bestDy <= 2 ? best : null;
+    }
+
+    /** Is the block one of the building's own (its walls, its roof)? */
+    private static boolean onBuilding(Building b, Village v, BlockPos p) {
+        for (Blueprint.Piece piece : b.blueprint(v.wood).pieces) if (piece.pos().equals(p)) return true;
+        return false;
+    }
+
+    /** Every time someone was put elsewhere by hand while a player was near: the reason, for the tests. */
+    public static final java.util.List<String> SNAPS = new java.util.ArrayList<>();
+
+    /** Puts a body elsewhere (a stuck one), and notes it if a player could have seen it. */
+    static void snap(ServerLevel level, net.minecraft.world.entity.Entity e, BlockPos to, String why) {
+        BlockPos was = e.blockPosition();
+        e.snapTo(to.getX() + 0.5, to.getY(), to.getZ() + 0.5, e.getYRot(), 0);
+        if (level.getNearestPlayer(e, 48) != null) {
+            String line = (e.hasCustomName() ? e.getCustomName().getString() : e.getName().getString()) + ": " + why + " " + was.toShortString()
+                    + " -> " + to.toShortString();
+            SNAPS.add(line);
+            Minecraftportsmod.LOGGER.info("[snap] {}", line);
+        }
     }
 
     private static BlockPos spawnPoint(ServerLevel level, Village v, Dweller d) {

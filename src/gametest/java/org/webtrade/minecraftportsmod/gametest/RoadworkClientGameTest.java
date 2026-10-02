@@ -326,7 +326,10 @@ public class RoadworkClientGameTest implements FabricClientGameTest {
                     var bodies = crewBodies(s, a[0]);
                     madeA[0] = w.side(a[0]).done();
                     for (var e : bodies) {
-                        if (e.getMainHandItem().getItem().toString().contains("axe") && e.activity().getString().startsWith("Making")) seen[0] = true;
+                        String held = e.getMainHandItem().getItem().toString(), act = e.activity().getString();
+                        // (a shovel to dig, an axe for a tree in the way, planks on a bridge)
+                        if ((held.contains("axe") || held.contains("shovel") || held.contains("planks"))
+                                && (act.startsWith("Making") || act.startsWith("Building a bridge"))) seen[0] = true;
                     }
                     if (st % 5 == 0) {
                         log("{} s (village time {}): A made {} blocks, B {} | bodies of A's crew: {}", st * 2, data.dayTicks(), (int) w.side(a[0]).done(),
@@ -351,7 +354,28 @@ public class RoadworkClientGameTest implements FabricClientGameTest {
                 for (var e : logsBefore.entrySet()) {
                     if (e.getValue() > madeA[0] - 6) continue;
                     onMade++;
-                    if (l.getBlockState(BlockPos.of(e.getKey())).is(BlockTags.LOGS)) standing++;
+                    BlockPos q = BlockPos.of(e.getKey());
+                    if (!l.getBlockState(q).is(BlockTags.LOGS)) continue;
+                    // (a pile of a bridge: a log under the deck, not a tree)
+                    boolean pile = false;
+                    for (int k = 1; k <= 12 && !pile; k++) pile = l.getBlockState(q.above(k)).is(BlockTags.PLANKS);
+                    if (pile) {
+                        log("bridge pile at {}", q.toShortString());
+                        continue;
+                    }
+                    double off = 1e9;
+                    for (int i = 0; i + 1 < p.length; i += 2) off = Math.min(off, Math.hypot(p[i] - q.getX(), p[i + 1] - q.getZ()));
+                    // (a tree beside the cutting, not in it: it stays)
+                    if (off > 3.6) {
+                        log("tree beside the way at {} ({} from it)", q.toShortString(), (int) Math.round(off * 10) / 10.0);
+                        continue;
+                    }
+                    StringBuilder col = new StringBuilder();
+                    for (int k = -3; k <= 10; k++) col.append(l.getBlockState(q.above(k)).getBlock().getName().getString()).append(k == 0 ? "* " : " ");
+                    double near = 1e9;
+                    for (int i = 0; i + 1 < p.length; i += 2) near = Math.min(near, Math.hypot(p[i] - q.getX(), p[i + 1] - q.getZ()));
+                    log("log still standing at {} ({} blocks out, {} from the way): {}", q.toShortString(), e.getValue(), (int) Math.round(near * 10) / 10.0, col);
+                    standing++;
                 }
                 int after = standing;
                 VillageData data = VillageData.get(s);
@@ -367,7 +391,7 @@ public class RoadworkClientGameTest implements FabricClientGameTest {
                 }
                 log("A made {} blocks, watched; logs on what it made (50 blocks out and on): {} before, {} standing now; stretches made {}, laid {}",
                         (int) madeA[0], onMade, after, builtSegs, laidSegs);
-                if (!seen[0]) throw new AssertionError("A's crew was never seen at the end of the way, axe in hand");
+                if (!seen[0]) throw new AssertionError("A's crew was never seen at work at the end of the way");
                 if (madeA[0] < 80) throw new AssertionError("A's crew made only " + (int) madeA[0] + " blocks while watched");
                 if (onMade == 0) throw new AssertionError("no trees stood on the stretch made (the planted ones should)");
                 if (after > 0) throw new AssertionError("trees in the way were not felled: " + after + " of " + onMade + " logs still stand");
@@ -381,6 +405,21 @@ public class RoadworkClientGameTest implements FabricClientGameTest {
                     points++;
                     if (st.is(BlockTags.PLANKS) && Math.abs(top - pit[2]) <= 2) decked++;
                     tops.append(top).append(st.is(BlockTags.PLANKS) ? "P " : "=" + net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(st.getBlock()).getPath() + " ");
+                    StringBuilder col = new StringBuilder();
+                    for (int y = pit[2] - 9; y <= pit[2] + 3; y++) {
+                        var cs = l.getBlockState(new BlockPos(x, y, z));
+                        col.append(cs.isAir() ? "." : cs.is(BlockTags.PLANKS) ? "P" : cs.is(BlockTags.FENCES) ? "F" : cs.is(BlockTags.LOGS) ? "L" : !cs.getFluidState().isEmpty() ? "~" : "#");
+                    }
+                    StringBuilder ring = new StringBuilder();
+                    for (int dz = -3; dz <= 3; dz++) {
+                        for (int dx = -3; dx <= 3; dx++) {
+                            int ty = l.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x + dx, z + dz) - 1;
+                            var ts = l.getBlockState(new BlockPos(x + dx, ty, z + dz));
+                            ring.append(ts.is(BlockTags.PLANKS) ? "P" : ts.is(BlockTags.FENCES) ? "F" : ty < pit[2] - 2 ? "_" : "#");
+                        }
+                        ring.append('/');
+                    }
+                    log("pit point {} at {} {}: column {} (y {}..) around {}", k, x, z, col, pit[2] - 9, ring);
                 }
                 // (stuck anywhere else: logged; at the pit, no: the pit is bridged, not got round by being lifted over it)
                 var stuck = Roadworks.snaps().subList(snapsBefore, Roadworks.snaps().size());

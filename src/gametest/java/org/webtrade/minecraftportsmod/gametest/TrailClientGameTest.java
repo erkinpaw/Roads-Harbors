@@ -4,6 +4,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.levelgen.Heightmap;
 import org.webtrade.minecraftportsmod.Minecraftportsmod;
@@ -205,6 +206,15 @@ public class TrailClientGameTest implements FabricClientGameTest {
                     context.waitTicks(80);
                     sp.getConnection().waitForChunksRender();
                     context.takeScreenshot("trail_c_bridge");
+                    server.runOnServer(s -> {
+                        var l = s.overworld();
+                        StringBuilder fb = new StringBuilder();
+                        for (BlockPos q : BlockPos.betweenClosed(new BlockPos(bx - 8, 55, bz - 8), new BlockPos(bx + 8, 80, bz + 8))) {
+                            var st = l.getBlockState(q);
+                            if (st.is(net.minecraft.tags.BlockTags.FENCES) || st.is(net.minecraft.tags.BlockTags.PLANKS)) fb.append(q.toShortString()).append(' ').append(st).append("; ");
+                        }
+                        log("bridge blocks: {}", fb);
+                    });
                 }
             }
 
