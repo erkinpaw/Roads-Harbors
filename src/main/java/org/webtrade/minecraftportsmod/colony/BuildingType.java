@@ -75,12 +75,12 @@ public enum BuildingType {
 
     // the animals (husbandry): a fenced run with the keeper's lodge at its front; the animals in it are real ones
     /** The poultry yard: hens in a run; eggs and fowl, fed on grain. */
-    COOP(Branch.FOOD, FARM, null, 5, 1, Job.HERDER, 0xD8C890, Items.EGG, 3, false, Map.of(Res.WOOD, 30, Res.PLANKS, 16, Res.JOINERY, 8)),
+    COOP(Branch.FOOD, FARM, null, 5, 1, Job.HERDER, 0xD8C890, Items.EGG, 3, false, Map.of(Res.WOOD, 30, Res.PLANKS, 16, Res.WHEAT, 10)),
     /** The sheepfold: sheep, shorn for their wool; a little mutton; fed on grain. */
-    SHEEP_PEN(Branch.FOOD, COOP, null, 6, 1, Job.HERDER, 0xE8E8E0, Items.WOOL.white(), 3, false, Map.of(Res.WOOD, 35, Res.PLANKS, 20, Res.JOINERY, 10)),
+    SHEEP_PEN(Branch.FOOD, COOP, null, 6, 1, Job.HERDER, 0xE8E8E0, Items.WOOL.white(), 3, false, Map.of(Res.WOOD, 35, Res.PLANKS, 20, Res.WHEAT, 15)),
     /** The cattle barn: cows; milk and beef, and their hides; fed on grain, milked into the locksmith's buckets. */
     CATTLE_BARN(Branch.FOOD, SHEEP_PEN, null, 6, 1, Job.HERDER, 0x6A4A30, Items.MILK_BUCKET, 3, false,
-            Map.of(Res.WOOD, 40, Res.PLANKS, 30, Res.STONE, 10, Res.JOINERY, 16)),
+            Map.of(Res.WOOD, 40, Res.PLANKS, 30, Res.STONE, 10, Res.WHEAT, 20)),
     /** The locksmith's (metalwork): iron and coal into buckets, chains, lanterns, hinges. */
     LOCKSMITH(Branch.MINE, MINE_HOUSE, null, 3, 1, Job.LOCKSMITH, 0x4A4A55, Items.LANTERN, 3, false, Map.of(Res.WOOD, 30, Res.STONE, 40, Res.IRON, 6));
 

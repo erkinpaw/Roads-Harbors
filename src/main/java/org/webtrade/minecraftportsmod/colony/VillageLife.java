@@ -1128,32 +1128,40 @@ public final class VillageLife {
     /** The homes not yet furnished to their top level. */
     static int homesToFurnish(Village v) {
         int n = 0;
-        for (Building b : v.buildings) if (b.standing() && b.type.isHome() && b.type != BuildingType.TENT && b.level < b.type.maxLevel) n++;
+        for (Building b : v.buildings) if (b.standing() && b.type.branch == BuildingType.Branch.HOME && b.type != BuildingType.TENT && b.type != BuildingType.HUT && b.level < b.type.maxLevel) n++;
         return n;
     }
 
     /** The joiner's finer work: beds, tables, chairs and cupboards, of planks and wool (or a hide), for the homes and to sell. */
     static void furniture(Village v) {
         int batches = furnitureBatches(v);
-        int made = 0, wool = 0, hides = 0;
+        int made = 0, wool = 0, hides = 0, plainPlanks = 0, plainSticks = 0;
         for (int i = 0; i < batches; i++) {
             if (v.stock(Res.FURNITURE) >= Math.max(12, target(v, Res.FURNITURE) * 2) || v.full(Res.FURNITURE)) break;
-            if (v.stock(Res.PLANKS) < 3) break;
+            // a bed or a chair of wool or a hide; with neither, a plain table or cupboard of more wood
             Res soft = v.stock(Res.WOOL) > 0 ? Res.WOOL : v.stock(Res.LEATHER) > 0 ? Res.LEATHER : null;
-            if (soft == null) break;
-            v.add(Res.PLANKS, -3);
-            v.add(soft, -1);
+            int planks = soft != null ? 3 : 4, sticks = soft != null ? 0 : 2;
+            if (v.stock(Res.PLANKS) < planks || v.stock(Res.STICKS) < sticks) break;
+            v.add(Res.PLANKS, -planks);
+            v.add(Res.STICKS, -sticks);
+            if (soft != null) v.add(soft, -1);
             v.add(Res.FURNITURE, 1);
             if (soft == Res.WOOL) wool++;
-            else hides++;
+            else if (soft == Res.LEATHER) hides++;
+            plainPlanks += planks - 3;
+            plainSticks += sticks;
             made++;
         }
         if (made == 0) return;
-        v.used.merge(Res.PLANKS, 3 * made, Integer::sum);
+        v.used.merge(Res.PLANKS, 3 * made + plainPlanks, Integer::sum);
+        if (plainSticks > 0) {
+            v.used.merge(Res.STICKS, plainSticks, Integer::sum);
+            v.workshop(BuildingType.CARPENTER, Res.STICKS, 0, plainSticks);
+        }
         if (wool > 0) v.used.merge(Res.WOOL, wool, Integer::sum);
         if (hides > 0) v.used.merge(Res.LEATHER, hides, Integer::sum);
         v.made.merge(Res.FURNITURE, made, Integer::sum);
-        v.workshop(BuildingType.CARPENTER, Res.PLANKS, 0, 3 * made);
+        v.workshop(BuildingType.CARPENTER, Res.PLANKS, 0, 3 * made + plainPlanks);
         if (wool > 0) v.workshop(BuildingType.CARPENTER, Res.WOOL, 0, wool);
         if (hides > 0) v.workshop(BuildingType.CARPENTER, Res.LEATHER, 0, hides);
         v.workshop(BuildingType.CARPENTER, Res.FURNITURE, made, 0);
@@ -1597,6 +1605,8 @@ public final class VillageLife {
         int bestScore = Integer.MIN_VALUE;
         for (BuildingType t : BuildingType.values()) {
             if (!t.isNode() || Tree.node(v, t) != Tree.Node.READY || declined(v, "research:" + t.id(), today)) continue;
+            // (the runs and the locksmith's only when the village is ready to keep them: else it would save up for good)
+            if (t.isPen() && !husbandry(v, t) || t == BuildingType.LOCKSMITH && !locksmith(v)) continue;
             boolean mine = t.branch == v.focus || t.branch == BuildingType.Branch.HOME || t.branch == BuildingType.Branch.STORE
                     || t.parent == null && (t.job != null && v.workers(t.job) > 0 || t == BuildingType.MARKET && v.adults() >= 4)
                     || t == BuildingType.FARM && v.workers(Job.FARMER) > 0

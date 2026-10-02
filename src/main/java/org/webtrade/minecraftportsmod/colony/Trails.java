@@ -392,14 +392,31 @@ public final class Trails {
      * joining at a village on the same network): no fork, one trail through it; a fork nothing meets at is dropped.
      */
     static void mergeBends(VillageData data) {
+        // (one fork dropped can leave the next a bend: until nothing changes)
+        for (int pass = 0; pass < 4 && mergeBendsOnce(data); pass++) {
+        }
+    }
+
+    private static boolean mergeBendsOnce(VillageData data) {
+        boolean changed = false;
         for (int j : new ArrayList<>(data.junctions.keySet())) {
             List<Trail> at = new ArrayList<>();
-            for (Trail t : data.trails.values()) if (t.ready() && (t.a == j || t.b == j)) at.add(t);
+            for (Trail t : data.trails.values()) if ((t.a == j || t.b == j) && !t.none()) at.add(t);
             if (at.isEmpty()) {
                 data.junctions.remove(j);
+                changed = true;
                 continue;
             }
-            if (at.size() != 2) continue;
+            // a fork at the end of a stub of a few blocks, nothing else at it: the stub and the fork are dropped
+            if (at.size() == 1 && at.getFirst().ready() && at.getFirst().length() <= 4) {
+                Trail stub = at.getFirst();
+                data.trails.remove(key(stub.a, stub.b));
+                data.junctions.remove(j);
+                data.changed();
+                changed = true;
+                continue;
+            }
+            if (at.size() != 2 || !at.get(0).ready() || !at.get(1).ready()) continue;
             Trail t1 = at.get(0), t2 = at.get(1);
             int x = t1.a == j ? t1.b : t1.a, y = t2.a == j ? t2.b : t2.a;
             if (x == y || data.trails.containsKey(key(x, y))) {
@@ -437,7 +454,9 @@ public final class Trails {
             data.trails.put(key(t.a, t.b), t);
             data.junctions.remove(j);
             data.changed();
+            changed = true;
         }
+        return changed;
     }
 
     /** Nothing made yet (a trail just worked out). */
@@ -1360,6 +1379,29 @@ public final class Trails {
                 }
             }
         }
+        // along a slant the rails of the edge step sideways: a corner rail (on a plank of its own, outside the deck)
+        // closes each such step, so that the rail runs on unbroken
+        for (BlockPos r : new ArrayList<>(rails)) {
+            for (int[] d : new int[][]{{1, 1}, {1, -1}, {-1, 1}, {-1, -1}}) {
+                // (the rail beside it may be of the stretch before: what stands in the world counts)
+                BlockPos o = r.offset(d[0], 0, d[1]);
+                if (!level.getBlockState(o).is(BlockTags.FENCES)) continue;
+                BlockPos c1 = r.offset(d[0], 0, 0), c2 = r.offset(0, 0, d[1]);
+                if (level.getBlockState(c1).is(BlockTags.FENCES) || level.getBlockState(c2).is(BlockTags.FENCES)) continue;
+                // the corner off the walking deck (no plank under it yet)
+                boolean deck1 = level.getBlockState(c1.below()).is(BlockTags.PLANKS) || middle.contains(pk(c1.getX(), c1.getZ()));
+                boolean deck2 = level.getBlockState(c2.below()).is(BlockTags.PLANKS) || middle.contains(pk(c2.getX(), c2.getZ()));
+                if (deck1 && deck2) continue;
+                BlockPos c = deck1 ? c2 : c1;
+                BlockPos under = c.below();
+                BlockState us = level.getBlockState(under);
+                if (us.canBeReplaced() || !us.getFluidState().isEmpty()) level.setBlock(under, wood(a, "planks"), FLAGS);
+                if (level.getBlockState(c).canBeReplaced()) {
+                    level.setBlock(c, wood(a, "fence"), FLAGS);
+                    rails.add(c);
+                }
+            }
+        }
         // the rails joined into one (and to those of the stretch before)
         for (BlockPos r : rails) {
             for (BlockPos q : new BlockPos[]{r, r.north(), r.south(), r.east(), r.west()}) {
@@ -1396,6 +1438,22 @@ public final class Trails {
                 for (BlockPos q : tree) {
                     BlockState qs = level.getBlockState(q);
                     if (qs.is(BlockTags.LOGS) || qs.is(BlockTags.LEAVES)) level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);
+                }
+            } else {
+                // a trunk with no crown left (its leaves taken down over the stretch before): the whole trunk,
+                // its other columns too (a thick one)
+                java.util.ArrayDeque<BlockPos> open = new java.util.ArrayDeque<>(List.of(p));
+                java.util.Set<BlockPos> seen = new java.util.HashSet<>(List.of(p));
+                int n = 0;
+                while (!open.isEmpty() && n < 96) {
+                    BlockPos q = open.poll();
+                    if (!level.getBlockState(q).is(BlockTags.LOGS)) continue;
+                    level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);
+                    n++;
+                    for (BlockPos r : BlockPos.betweenClosed(q.offset(-1, 0, -1), q.offset(1, 1, 1))) {
+                        BlockPos rr = r.immutable();
+                        if (Math.abs(rr.getX() - x) <= 2 && Math.abs(rr.getZ() - z) <= 2 && rr.getY() > ground && seen.add(rr)) open.add(rr);
+                    }
                 }
             }
             break;
