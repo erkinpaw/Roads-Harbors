@@ -45,7 +45,9 @@ final class Paths {
         BlockPos door = doorstep(v, b);
         if (!Construction.loaded(level, door)) return false;
         BlockPos goal = squareEdge(level, v, door);
-        List<int[]> route = route(level, v, door, goal, b);
+        // a short bridge over a stream rather than a long way round it (people would not walk that); never a long one
+        List<int[]> route = route(level, v, door, goal, b, BRIDGE_STEP);
+        if (route != null && longestWet(route) > PlotFinder.BRIDGE) route = route(level, v, door, goal, b, -1);
         if (route == null) {
             org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("[paths] {}: no way from {} #{} at {} to {}", v.name, b.type.id(), b.id,
                     door.toShortString(), goal.toShortString());
@@ -58,6 +60,18 @@ final class Paths {
                 door.toShortString(), goal.toShortString(), way.size(), wet);
         carve(level, v, way);
         return true;
+    }
+
+    /** What a step over water (a bridge's) costs the way, against 1 for a step on the land. */
+    private static final double BRIDGE_STEP = 2.5;
+
+    private static int longestWet(List<int[]> route) {
+        int best = 0, run = 0;
+        for (int[] c : route) {
+            run = c[3] == 1 ? run + 1 : 0;
+            best = Math.max(best, run);
+        }
+        return best;
     }
 
     /** Where a building's path starts: just outside its plot, in front (whatever work spot it has inside). */
@@ -141,7 +155,7 @@ final class Paths {
      * The way from the door to the goal over the land, cell by cell (x, z, the ground's height): round plots, trees
      * and water; along paths already there when it can; steep ground only if there is no other way.
      */
-    private static List<int[]> route(ServerLevel level, Village v, BlockPos from, BlockPos to, Building self) {
+    private static List<int[]> route(ServerLevel level, Village v, BlockPos from, BlockPos to, Building self, double water) {
         int x0 = Math.min(from.getX(), to.getX()) - MARGIN, z0 = Math.min(from.getZ(), to.getZ()) - MARGIN;
         int w = Math.abs(from.getX() - to.getX()) + 2 * MARGIN + 1, h = Math.abs(from.getZ() - to.getZ()) + 2 * MARGIN + 1;
         int n = w * h;
@@ -198,11 +212,11 @@ final class Paths {
                 int nx = c.x + s[0], nz = c.z + s[1];
                 if (nx < 0 || nz < 0 || nx >= w || nz >= h) continue;
                 int m = nx * h + nz;
-                if (kind[m] == 2) continue;
+                if (kind[m] == 2 || kind[m] == 3 && water < 0) continue;
                 int dy = Math.abs(ground[m] - ground[k]);
                 // along a path already there is easiest; steep ground is hard (and will be dug or built up); over water
                 // only if there is no way round (a bridge is a lot of work)
-                double step = (kind[m] == 1 ? 0.35 : kind[m] == 3 ? 6.0 : 1.0) + (dy == 0 ? 0 : dy == 1 ? 0.6 : dy * 4.0);
+                double step = (kind[m] == 1 ? 0.35 : kind[m] == 3 ? water : 1.0) + (dy == 0 ? 0 : dy == 1 ? 0.6 : dy * 4.0);
                 double g = cost[k] + step;
                 if (g < cost[m]) {
                     cost[m] = g;

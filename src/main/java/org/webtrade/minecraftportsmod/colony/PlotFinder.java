@@ -279,11 +279,11 @@ final class PlotFinder {
         return false;
     }
 
-    /** Is there water within {@code r} of a point (looked at every other column; the generator's land where not loaded)? */
+    /** Is there water within {@code r} of a point (the generator's land where not loaded)? */
     static boolean wet(ServerLevel level, Village v, BlockPos c, int r) {
         VillageTerrain.Grid grid = null;
-        for (int x = -r; x <= r; x += 2) {
-            for (int z = -r; z <= r; z += 2) {
+        for (int x = -r; x <= r; x++) {
+            for (int z = -r; z <= r; z++) {
                 int px = c.getX() + x, pz = c.getZ() + z;
                 // (the water of the village's own fields and troughs is no shore)
                 if (DwellerGoals.inPlot(v, px, pz, 0)) continue;

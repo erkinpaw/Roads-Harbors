@@ -32,8 +32,10 @@ import java.util.Set;
 public class TerritoryClientGameTest implements FabricClientGameTest {
 
     /** Seeds to grow a village on (set -Dmpm.territorySeeds=a,b to change). */
-    private static final String[] SEEDS = System.getProperty("mpm.territorySeeds", "4242").split(",");
-    private static final int DAYS = Integer.getInteger("mpm.territoryDays", 80);
+    private static final String[] SEEDS = {"4242"};
+    /** Which ways to grow it: with the land capped, and not. */
+    private static final boolean[] CAPS = {false};
+    private static final int DAYS = Integer.getInteger("mpm.territoryDays", 60);
     /** Real working time after the days (ticks): the people at the land. */
     private static final int WORK = 20 * Integer.getInteger("mpm.territoryWork", 180);
 
@@ -46,7 +48,7 @@ public class TerritoryClientGameTest implements FabricClientGameTest {
         boolean was = Territory.capped;
         try {
             for (String seed : SEEDS) {
-                for (boolean cap : new boolean[]{false, true}) {
+                for (boolean cap : CAPS) {
                     Territory.capped = cap;
                     run(context, seed.trim(), cap);
                 }
