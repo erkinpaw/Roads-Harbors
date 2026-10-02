@@ -1000,8 +1000,11 @@ public final class DwellerGoals {
             job = v == null ? null : Tidy.take(v, r.blockPosition());
             timer = 0;
             swings = 0;
-            r.hold(new ItemStack(job != null && (job.kind() == Tidy.Kind.HOLE || job.kind() == Tidy.Kind.LEDGE || job.kind() == Tidy.Kind.PUDDLE)
-                    ? net.minecraft.world.item.Items.WOODEN_SHOVEL : net.minecraft.world.item.Items.WOODEN_HOE));
+            r.hold(new ItemStack(job == null ? net.minecraft.world.item.Items.WOODEN_HOE : switch (job.kind()) {
+                case HOLE, LEDGE, PUDDLE, BUMP -> net.minecraft.world.item.Items.WOODEN_SHOVEL;
+                case TREE, POST -> net.minecraft.world.item.Items.STONE_AXE;
+                default -> net.minecraft.world.item.Items.WOODEN_HOE;
+            }));
         }
 
         @Override
@@ -1037,7 +1040,7 @@ public final class DwellerGoals {
                             p.getX() + 0.5, p.getY() + 0.7, p.getZ() + 0.5, 6, 0.3, 0.2, 0.3, 0.05);
                     level.playSound(null, p, st.getSoundType().getHitSound(), net.minecraft.sounds.SoundSource.BLOCKS, 0.5F, 1.0F);
                 }
-                if (++swings >= (job.kind() == Tidy.Kind.WEED ? 2 : 4)) {
+                if (++swings >= (job.kind() == Tidy.Kind.WEED ? 2 : job.kind() == Tidy.Kind.TREE ? 10 : 4)) {
                     Tidy.finish(level, v, job);
                     job = null;
                 }

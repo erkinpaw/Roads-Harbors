@@ -903,5 +903,8 @@
   "minecraftportsmod.trade.coming_home": "%s возвращается домой: везёт %s, в кошельке %s изумр.",
   "minecraftportsmod.trade.spare": "Лишнее",
   "minecraftportsmod.trade.deals": "Сделки",
-  "minecraftportsmod.vboard.slots": "Очередь"
+  "minecraftportsmod.vboard.slots": "Очередь",
+  "minecraftportsmod.act.tidy_tree": "Рубит дерево",
+  "minecraftportsmod.act.tidy_post": "Выкорчёвывает пень",
+  "minecraftportsmod.act.tidy_bump": "Срезает бугор"
 }

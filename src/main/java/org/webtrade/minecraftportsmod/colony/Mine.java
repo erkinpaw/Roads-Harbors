@@ -28,7 +28,7 @@ public final class Mine {
 
     /** The miners' house the mine starts at, or null. */
     static Building house(Village v) {
-        for (Building b : v.buildings) if (b.type.branch == BuildingType.Branch.MINE && b.standing()) return b;
+        for (Building b : v.buildings) if (b.type == BuildingType.MINE_HOUSE && b.standing()) return b;
         return null;
     }
 

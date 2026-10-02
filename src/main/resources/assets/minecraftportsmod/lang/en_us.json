@@ -903,5 +903,8 @@
   "minecraftportsmod.trade.coming_home": "%s is coming home with %s and %s emeralds.",
   "minecraftportsmod.trade.spare": "To spare",
   "minecraftportsmod.trade.deals": "Deals",
-  "minecraftportsmod.vboard.slots": "Queue"
+  "minecraftportsmod.vboard.slots": "Queue",
+  "minecraftportsmod.act.tidy_tree": "Felling a tree",
+  "minecraftportsmod.act.tidy_post": "Taking away a stump",
+  "minecraftportsmod.act.tidy_bump": "Levelling a bump"
 }
