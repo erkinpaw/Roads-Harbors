@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BiomeTags;
@@ -1322,8 +1323,10 @@ public final class Trails {
      * where the ground is below it; posts down to the bottom every few blocks; rails beside it where the land falls
      * away. Where the ground is at the deck's height (the edges), the way is trodden there as anywhere.
      */
-    private static void span(ServerLevel level, VillageData data, Village a, int x0, int z0, int x1, int z1, int d0, int d1, boolean alongX) {
+    private static void span(ServerLevel level, VillageData data, Village a, int x0, int z0, int x1, int z1, int d0, int d1, boolean runAlongX) {
         double dx = x1 - x0, dz = z1 - z0, len = Math.max(1e-6, Math.hypot(dx, dz));
+        // (the deck lies across this stretch's own way: a bend in the run turns it)
+        boolean alongX = Math.abs(dx) == Math.abs(dz) ? runAlongX : Math.abs(dx) > Math.abs(dz);
         java.util.Map<Long, Integer> deckAt = new java.util.LinkedHashMap<>();
         java.util.Set<Long> edges = new java.util.HashSet<>();
         for (double t = 0; t <= len + 1e-6; t += 0.25) {
@@ -1391,6 +1394,9 @@ public final class Trails {
                 // the corner off the walking deck (no plank under it yet)
                 boolean deck1 = level.getBlockState(c1.below()).is(BlockTags.PLANKS) || middle.contains(pk(c1.getX(), c1.getZ()));
                 boolean deck2 = level.getBlockState(c2.below()).is(BlockTags.PLANKS) || middle.contains(pk(c2.getX(), c2.getZ()));
+                // (never on the walking line: only out at the edge, two blocks off the way's middle)
+                deck1 |= offLine(c1, x0, z0, x1, z1) < 1.9;
+                deck2 |= offLine(c2, x0, z0, x1, z1) < 1.9;
                 if (deck1 && deck2) continue;
                 BlockPos c = deck1 ? c2 : c1;
                 BlockPos under = c.below();
@@ -1400,6 +1406,35 @@ public final class Trails {
                     level.setBlock(c, wood(a, "fence"), FLAGS);
                     rails.add(c);
                 }
+            }
+        }
+        // a rail with the deck on all four sides of it stands on the walkway (on a bend one stretch's edge is the
+        // next one's middle): taken away, here and of the stretches beside
+        int minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE, mx0 = Integer.MAX_VALUE, mx1 = Integer.MIN_VALUE, mz0 = Integer.MAX_VALUE, mz1 = Integer.MIN_VALUE;
+        for (var e : deckAt.entrySet()) {
+            int x = (int) (e.getKey() >> 32), z = (int) (long) e.getKey();
+            minY = Math.min(minY, e.getValue());
+            maxY = Math.max(maxY, e.getValue());
+            mx0 = Math.min(mx0, x);
+            mx1 = Math.max(mx1, x);
+            mz0 = Math.min(mz0, z);
+            mz1 = Math.max(mz1, z);
+        }
+        if (minY != Integer.MAX_VALUE) {
+            for (BlockPos q : BlockPos.betweenClosed(mx0 - 3, minY, mz0 - 3, mx1 + 3, maxY + 2, mz1 + 3)) {
+                if (!level.getBlockState(q).is(BlockTags.FENCES) || !level.getBlockState(q.below()).is(BlockTags.PLANKS)) continue;
+                boolean inside = true;
+                for (Direction d : Direction.Plane.HORIZONTAL) {
+                    if (!level.getBlockState(q.relative(d).below()).is(BlockTags.PLANKS)) {
+                        inside = false;
+                        break;
+                    }
+                }
+                if (!inside) continue;
+                BlockPos gone = q.immutable();
+                level.setBlock(gone, Blocks.AIR.defaultBlockState(), FLAGS);
+                rails.remove(gone);
+                for (Direction d : Direction.Plane.HORIZONTAL) rails.add(gone.relative(d));
             }
         }
         // the rails joined into one (and to those of the stretch before)
@@ -1413,8 +1448,14 @@ public final class Trails {
         }
     }
 
+    /** How far a block's middle is from the line through (x0, z0) and (x1, z1) (the blocks' middles). */
+    private static double offLine(BlockPos c, int x0, int z0, int x1, int z1) {
+        double dx = x1 - x0, dz = z1 - z0, len = Math.hypot(dx, dz);
+        if (len < 1e-6) return Math.hypot(c.getX() - x0, c.getZ() - z0);
+        return Math.abs((c.getX() - x0) * dz - (c.getZ() - z0) * dx) / len;
+    }
+
     /**
-     * Fells what grows on a column    /**
      * Fells what grows on a column: a tree whose trunk stands here (logs and crown, all of it), and leaves (a bush)
      * down to the ground. A giant too big to fell whole loses what of it stands here.
      */

@@ -405,6 +405,21 @@ public class RoadworkClientGameTest implements FabricClientGameTest {
                     points++;
                     if (st.is(BlockTags.PLANKS) && Math.abs(top - pit[2]) <= 2) decked++;
                     tops.append(top).append(st.is(BlockTags.PLANKS) ? "P " : "=" + net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(st.getBlock()).getPath() + " ");
+                    StringBuilder col = new StringBuilder();
+                    for (int y = pit[2] - 9; y <= pit[2] + 3; y++) {
+                        var cs = l.getBlockState(new BlockPos(x, y, z));
+                        col.append(cs.isAir() ? "." : cs.is(BlockTags.PLANKS) ? "P" : cs.is(BlockTags.FENCES) ? "F" : cs.is(BlockTags.LOGS) ? "L" : !cs.getFluidState().isEmpty() ? "~" : "#");
+                    }
+                    StringBuilder ring = new StringBuilder();
+                    for (int dz = -3; dz <= 3; dz++) {
+                        for (int dx = -3; dx <= 3; dx++) {
+                            int ty = l.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x + dx, z + dz) - 1;
+                            var ts = l.getBlockState(new BlockPos(x + dx, ty, z + dz));
+                            ring.append(ts.is(BlockTags.PLANKS) ? "P" : ts.is(BlockTags.FENCES) ? "F" : ty < pit[2] - 2 ? "_" : "#");
+                        }
+                        ring.append('/');
+                    }
+                    log("pit point {} at {} {}: column {} (y {}..) around {}", k, x, z, col, pit[2] - 9, ring);
                 }
                 // (stuck anywhere else: logged; at the pit, no: the pit is bridged, not got round by being lifted over it)
                 var stuck = Roadworks.snaps().subList(snapsBefore, Roadworks.snaps().size());
