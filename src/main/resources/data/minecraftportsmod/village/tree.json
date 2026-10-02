@@ -2616,6 +2616,97 @@
      "per": 10
     }
    ]
+  },
+  "farmyard": {
+   "name": "Скотный двор",
+   "workers": [
+    1,
+    2,
+    3
+   ],
+   "recipes": [
+    {
+     "lvl": 1,
+     "out": {
+      "i": "egg",
+      "n": 1
+     },
+     "use": [],
+     "per": 4
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "feather",
+      "n": 1
+     },
+     "use": [],
+     "per": 1
+    },
+    {
+     "lvl": 1,
+     "out": {
+      "i": "cooked_chicken",
+      "n": 1
+     },
+     "use": [],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "white_wool",
+      "n": 1
+     },
+     "use": [],
+     "per": 5
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "cooked_mutton",
+      "n": 1
+     },
+     "use": [],
+     "per": 1
+    },
+    {
+     "lvl": 2,
+     "out": {
+      "i": "cooked_porkchop",
+      "n": 1
+     },
+     "use": [],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "milk",
+      "n": 1
+     },
+     "use": [],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "leather",
+      "n": 1
+     },
+     "use": [],
+     "per": 2
+    },
+    {
+     "lvl": 3,
+     "out": {
+      "i": "steak",
+      "n": 1
+     },
+     "use": [],
+     "per": 1
+    }
+   ]
   }
  },
  "items": {

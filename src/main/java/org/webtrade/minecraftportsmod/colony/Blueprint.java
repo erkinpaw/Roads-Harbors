@@ -95,8 +95,9 @@ public final class Blueprint {
             case FARM -> b.farm();
             case FIELD -> b.field(rnd, crop);
             case MARKET -> b.market(rnd);
-            case COOP, SHEEP_PEN, CATTLE_BARN -> b.pen();
+            case FARMYARD -> b.farmyard();
             case LOCKSMITH -> b.locksmith();
+            case WEAVER, SMELTER, GLASSWORKS -> b.craftHouse();
         }
         b.upTo[1] = b.pieces.size();
         // the additions draw on their own dice: the building under them stays the same
@@ -543,19 +544,20 @@ public final class Blueprint {
                     chimney();
                 }
             }
-            case COOP, SHEEP_PEN, CATTLE_BARN -> {
+            case FARMYARD -> {
+                // the runs of the level, and its lights
+                for (Herds.Run r : Herds.runs(type.half)) if (r.level() == level) run(r);
                 int h = type.half;
                 if (level == 2) {
-                    // lanterns on the run's corner posts
-                    for (int[] c : new int[][]{{-h, -h}, {h, -h}, {h, h - 5}}) set(c[0], 1, c[1], block("lantern"));
+                    for (int[] c : new int[][]{{-h, -h}, {h, Herds.FRONT}}) set(c[0], 1, c[1], block("lantern"));
                     set(h - 2, 0, h - 3, block("hay_block"));
                 } else {
-                    set(h - 1, 1, h - 3, block("hay_block"));
-                    set(h, 0, h - 1, block("composter"));
+                    set(h, 1, -h, block("lantern"));
+                    set(h - 4, 0, h - 1, block("water_cauldron").setValue(BlockStateProperties.LEVEL_CAULDRON, 3));
                     set(h - 2, 0, h - 1, barrel());
                 }
             }
-            case SAWMILL, CARPENTER, LOCKSMITH -> {
+            case SAWMILL, CARPENTER, LOCKSMITH, WEAVER, SMELTER, GLASSWORKS -> {
                 if (level == 2) {
                     porch(rnd);
                     set(-3, 0, 2, barrel());
@@ -641,27 +643,15 @@ public final class Blueprint {
     }
 
     /**
-     * A run for animals: a fence round the back of the plot with a gate in it, the keeper's lodge (a bed, a chest)
-     * in the front corner, the yard with the hay beside it. The animals are put in by {@link Herds}.
+     * The farmyard: the keeper's lodge (a bed, a chest) in the front corner, the yard with the hay beside it, and
+     * behind them the runs of the animals, each fenced, with a gate: the hens' at first; the other runs come with
+     * the levels ({@link #extras}). The animals are put in by {@link Herds}.
      */
-    private void pen() {
+    private void farmyard() {
         int h = type.half;
         BlockState planks = wood("planks"), log = wood("log");
         levelAll(block("grass_block"), block("grass_block"), h);
-        // the run: a fence all round, the gate in its front side
-        int front = h - 5;
-        for (int x = -h; x <= h; x++) {
-            for (int z = -h; z <= front; z++) {
-                if (Math.abs(x) != h && z != -h && z != front) continue;
-                if (x == 2 && z == front) {
-                    set(x, 0, z, wood("fence_gate").setValue(BlockStateProperties.HORIZONTAL_FACING, frame.front())
-                            .setValue(BlockStateProperties.OPEN, false));
-                } else {
-                    shaped(x, 0, z, wood("fence"));
-                }
-            }
-        }
-        // (nothing inside the run to climb on: from a block's top an animal is over the fence)
+        for (Herds.Run r : Herds.runs(h)) if (r.level() == 1) run(r);
         // the keeper's lodge: log corners, plank walls, a window each side, a flat roof of slabs
         int x0 = -h, x1 = -h + 4, z0 = h - 4, z1 = h;
         for (int x = x0; x <= x1; x++) for (int z = z0; z <= z1; z++) surface(x, z, planks);
@@ -681,16 +671,56 @@ public final class Blueprint {
         set(x0 + 2, 0, z1, wood("door").setValue(BlockStateProperties.HORIZONTAL_FACING, in).setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.LOWER));
         set(x0 + 2, 1, z1, wood("door").setValue(BlockStateProperties.HORIZONTAL_FACING, in).setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.UPPER));
         for (int x = x0; x <= x1; x++) for (int z = z0; z <= z1; z++) set(x, 3, z, wood("slab").setValue(BlockStateProperties.SLAB_TYPE, SlabType.BOTTOM));
-        bed(x0 + 1, z0 + 1, type == BuildingType.SHEEP_PEN ? "white" : "brown");
+        bed(x0 + 1, z0 + 1, "brown");
         set(x0 + 3, 0, z0 + 1, block("chest").setValue(BlockStateProperties.HORIZONTAL_FACING, frame.front()));
         set(x0 + 3, 1, z0 + 1, block("lantern"));
-        // the yard: hay for the animals, a barrel
+        // the yard: hay for the animals, a barrel, the hens' composter
         set(h - 1, 0, h - 3, block("hay_block"));
         set(h - 1, 0, h - 2, barrel());
-        if (type == BuildingType.CATTLE_BARN) set(h - 3, 0, h - 3, block("water_cauldron").setValue(BlockStateProperties.LEVEL_CAULDRON, 3));
-        if (type == BuildingType.COOP) set(h - 3, 0, h - 3, block("composter"));
-        workSpot = frame.at(2, 0, front + 1);
+        set(h - 3, 0, h - 3, block("composter"));
+        workSpot = frame.at(2, 0, Herds.FRONT + 1);
         size = h - 1;
+    }
+
+    /** One run of the farmyard: a fence all round it, its gate on the side away from the other runs. */
+    private void run(Herds.Run r) {
+        int h = type.half;
+        int gx = (r.x0() + r.x1()) / 2, gz = r.z1() == Herds.FRONT ? Herds.FRONT : -h;
+        Direction gateFacing = r.z1() == Herds.FRONT ? frame.front() : frame.front().getOpposite();
+        for (int x = r.x0(); x <= r.x1(); x++) {
+            for (int z = r.z0(); z <= r.z1(); z++) {
+                if (x != r.x0() && x != r.x1() && z != r.z0() && z != r.z1()) continue;
+                if (x == gx && z == gz) {
+                    set(x, 0, z, wood("fence_gate").setValue(BlockStateProperties.HORIZONTAL_FACING, gateFacing).setValue(BlockStateProperties.OPEN, false));
+                } else {
+                    shaped(x, 0, z, wood("fence"));
+                }
+            }
+        }
+        // (nothing inside the run to climb on: from a block's top an animal is over the fence)
+    }
+
+    /** A craftsman's house (the weaver's, the smelter, the glassworks): a cottage with its work at the door. */
+    private void craftHouse() {
+        BlockState planks = wood("planks");
+        boolean stone = type != BuildingType.WEAVER;
+        cottage(2, wood("log"), stone ? block("cobblestone") : planks, stone ? block("cobblestone") : planks, planks);
+        oneBed(type == BuildingType.WEAVER ? "pink" : type == BuildingType.SMELTER ? "red" : "light_blue");
+        switch (type) {
+            case WEAVER -> {
+                set(1, 0, 3, block("loom").setValue(BlockStateProperties.HORIZONTAL_FACING, frame.front().getOpposite()));
+                set(-1, 0, 3, block("white_wool"));
+            }
+            case SMELTER -> {
+                set(1, 0, 3, block("blast_furnace").setValue(BlockStateProperties.HORIZONTAL_FACING, frame.front()));
+                set(-1, 0, 3, block("furnace").setValue(BlockStateProperties.HORIZONTAL_FACING, frame.front()));
+            }
+            default -> {
+                set(1, 0, 3, block("furnace").setValue(BlockStateProperties.HORIZONTAL_FACING, frame.front()));
+                set(-1, 0, 3, block("glass"));
+            }
+        }
+        workSpot = frame.at(1, 0, 4);
     }
 
     /** The locksmith's: a stone cottage, an anvil and a furnace at the door. */

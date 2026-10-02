@@ -72,6 +72,8 @@ public final class Trade {
             case LEATHER -> 0.15;
             case METALWARE -> 0.5;
             case FURNITURE -> 0.4;
+            case CLOTH -> 0.12;
+            case GLASS -> 0.1;
         };
     }
 
@@ -120,6 +122,8 @@ public final class Trade {
                 case LEATHER -> new ItemStack(Items.LEATHER);
                 case METALWARE -> new ItemStack(Items.LANTERN);
                 case FURNITURE -> new ItemStack(Items.BED.red());
+                case CLOTH -> new ItemStack(Items.CARPET.white());
+                case GLASS -> new ItemStack(Items.GLASS);
             };
         }
         return new ItemStack(switch (w.tool()) {

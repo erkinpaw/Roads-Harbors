@@ -932,5 +932,22 @@
   "minecraftportsmod.act.eggs": "Собирает яйца",
   "minecraftportsmod.act.roadwork_bridge": "Строит мост на тропе до %s",
   "minecraftportsmod.act.metalwork": "Работает в слесарне",
-  "minecraftportsmod.act.joinering": "Работает за верстаком"
+  "minecraftportsmod.act.joinering": "Работает за верстаком",
+  "minecraftportsmod.building.farmyard": "Скотный двор",
+  "minecraftportsmod.building.weaver": "Ткацкая",
+  "minecraftportsmod.building.smelter": "Плавильня",
+  "minecraftportsmod.building.glassworks": "Стекольня",
+  "minecraftportsmod.tree.desc.farmyard": "Загоны с животными. 1 ур.: куры. 2 ур.: овцы и свиньи. 3 ур.: коровы. Кормятся пшеницей.",
+  "minecraftportsmod.tree.desc.weaver": "Шерсть в ткани: нить, ковры, крашеная шерсть, флаги.",
+  "minecraftportsmod.tree.desc.smelter": "Плавит руду шахтёров с углём: железа больше.",
+  "minecraftportsmod.tree.desc.glassworks": "Песок и уголь в стекло, панели и склянки.",
+  "minecraftportsmod.job.weaver": "Ткач",
+  "minecraftportsmod.job.smelter": "Плавильщик",
+  "minecraftportsmod.job.glassblower": "Стеклодув",
+  "minecraftportsmod.res.cloth": "Ткани",
+  "minecraftportsmod.res.glass": "Стекло",
+  "minecraftportsmod.act.weaving": "Ткёт",
+  "minecraftportsmod.act.smelting": "Плавит руду",
+  "minecraftportsmod.act.glassblowing": "Выдувает стекло",
+  "minecraftportsmod.act.pigs": "Кормит свиней"
 }

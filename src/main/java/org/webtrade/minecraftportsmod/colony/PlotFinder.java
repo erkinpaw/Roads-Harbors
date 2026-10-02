@@ -21,6 +21,14 @@ final class PlotFinder {
     private PlotFinder() {
     }
 
+    /** Why the plots looked at in the last search were turned down (for the log when none is found). */
+    static final java.util.Map<String, Integer> WHY = new java.util.TreeMap<>();
+
+    private static boolean no(String why) {
+        WHY.merge(why, 1, Integer::sum);
+        return false;
+    }
+
     /** The ground people stand on in a column (top of the land, trees and leaves ignored). */
     static int floorAt(ServerLevel level, int x, int z) {
         int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1;
@@ -64,6 +72,7 @@ final class PlotFinder {
      * overlapped (the one being replaced).
      */
     static Blueprint.Frame find(ServerLevel level, Village v, BuildingType type, int ignore) {
+        WHY.clear();
         Blueprint.Frame f = find(level, v, type, ignore, false);
         // hilly land (a jungle, a coast of knolls): a steeper plot, cut and heaped level round it, rather than none
         return f != null ? f : find(level, v, type, ignore, true);
@@ -88,7 +97,10 @@ final class PlotFinder {
                 int x = c.getX() + (int) Math.round(Math.cos(ang) * ring);
                 int z = c.getZ() + (int) Math.round(Math.sin(ang) * ring);
                 BlockPos pos = new BlockPos(x, c.getY(), z);
-                if (clash(v, pos, half, ignore)) continue;
+                if (clash(v, pos, half, ignore)) {
+                    no("clash");
+                    continue;
+                }
                 // not out over the water in front of the village
                 Direction facing = Direction.getApproximateNearest(c.getX() - x, 0, c.getZ() - z);
                 Integer floor = floor(level, v, pos, half, steep);
@@ -224,7 +236,10 @@ final class PlotFinder {
                 double d = Math.hypot(x - c.getX(), z - c.getZ());
                 if (d < minFromCenter || d > maxFromCenter) continue;
                 BlockPos pos = new BlockPos(x, c.getY(), z);
-                if (clash(v, pos, half, ignore)) continue;
+                if (clash(v, pos, half, ignore)) {
+                    no("clash");
+                    continue;
+                }
                 Integer floor = floor(level, v, pos, half, steep);
                 if (floor == null || !fits(level, v, type, pos)) continue;
                 Direction facing = Direction.getApproximateNearest(c.getX() - x, 0, c.getZ() - z);
@@ -242,12 +257,12 @@ final class PlotFinder {
      * village may hold (when that is capped), and where people can walk to from the square on dry feet.
      */
     private static boolean fits(ServerLevel level, Village v, BuildingType type, BlockPos pos) {
-        if (!Territory.allows(v, type, pos.getX(), pos.getZ())) return false;
-        if (onPath(level, pos, type.half + 1)) return false;
-        if (type.branch != BuildingType.Branch.COAST && wet(level, v, pos, type.half + SHORE)) return false;
+        if (!Territory.allows(v, type, pos.getX(), pos.getZ())) return no("cap");
+        if (onPath(level, pos, type.half + 1)) return no("path");
+        if (type.branch != BuildingType.Branch.COAST && wet(level, v, pos, type.half + SHORE)) return no("shore");
         // (across a stream from the square: only if a short bridge will do; it is put up first)
         if (Construction.loaded(level, pos) && !Reach.ok(level, v, new BlockPos(pos.getX(), floorAt(level, pos.getX(), pos.getZ()), pos.getZ()))
-                && !bridgeable(level, v, pos)) return false;
+                && !bridgeable(level, v, pos)) return no("reach");
         return true;
     }
 
@@ -319,7 +334,8 @@ final class PlotFinder {
         var gen = level.getChunkSource().getGenerator();
         var rs = level.getChunkSource().randomState();
         int y = level.getSeaLevel() >> 2;
-        for (int[] d : new int[][]{{0, 0}, {-half, -half}, {half, half}, {-half, half}, {half, -half}}) {
+        int[][] at = half == 0 ? new int[][]{{0, 0}} : new int[][]{{0, 0}, {-half, -half}, {half, half}, {-half, half}, {half, -half}};
+        for (int[] d : at) {
             var b = gen.getBiomeSource().getNoiseBiome((center.getX() + d[0]) >> 2, y, (center.getZ() + d[1]) >> 2, rs.sampler());
             if (b.is(net.minecraft.tags.BiomeTags.IS_BEACH)) return true;
         }
@@ -340,7 +356,6 @@ final class PlotFinder {
         int sea = level.getSeaLevel();
         VillageTerrain.Grid grid = null;
         // (not on a beach: sand is no ground for a house)
-        if (beach(level, center, half)) return null;
         int sand = 0, ground = 0;
         for (int x = -half - 1; x <= half + 1; x++) {
             for (int z = -half - 1; z <= half + 1; z++) {
@@ -348,25 +363,49 @@ final class PlotFinder {
                 int f;
                 if (!Construction.loaded(level, new BlockPos(px, 0, pz))) {
                     if (grid == null) grid = v == null ? null : VillageTerrain.grid(level, v);
-                    if (grid == null) return null;
+                    if (grid == null) {
+                        no("unread");
+                        return null;
+                    }
                     Integer g = grid.at(px, pz);
-                    if (g == null || g < 0) return null;
+                    if (g == null || g < 0) {
+                        no(g == null ? "far" : "water");
+                        return null;
+                    }
                     f = g;
                 } else {
                     f = floorAt(level, px, pz);
                     BlockState st = level.getBlockState(new BlockPos(px, f - 1, pz));
-                    if (!st.getFluidState().isEmpty() || st.is(BlockTags.ICE)) return null;
+                    if (!st.getFluidState().isEmpty() || st.is(BlockTags.ICE)) {
+                        no("water");
+                        return null;
+                    }
                     ground++;
                     if (st.is(BlockTags.SAND) || st.is(net.minecraft.world.level.block.Blocks.GRAVEL)) sand++;
                 }
                 heights.add(f);
             }
         }
-        if (ground > 0 && sand * 4 > ground) return null;
+        if (ground > 0 && sand * 4 > ground) {
+            no("sand");
+            return null;
+        }
         heights.sort(Integer::compare);
         int floor = heights.get(heights.size() / 2);
-        if (floor < sea) return null;
-        if (floor - heights.getFirst() > (steep ? 4 : 3) || heights.getLast() - floor > (steep ? 4 : 3)) return null;
+        if (floor < sea) {
+            no("low");
+            return null;
+        }
+        // (where the land is loaded its sand is seen above; where it is not, a plot low down on a beach is passed
+        // over: the beach biome runs in a band along every coast, grass and all, only its low strand is sand)
+        if (ground == 0 && floor <= sea + 2 && beach(level, center, 0)) {
+            no("beach");
+            return null;
+        }
+        if (floor - heights.getFirst() > (steep ? 4 : 3) || heights.getLast() - floor > (steep ? 4 : 3)) {
+            no("steep");
+            return null;
+        }
         return floor;
     }
 }

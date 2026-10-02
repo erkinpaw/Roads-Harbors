@@ -18,8 +18,9 @@ import org.webtrade.minecraftportsmod.colony.VillageData;
 import org.webtrade.minecraftportsmod.colony.VillageLife;
 
 /**
- * The new branches: the animals (a chicken coop, a sheepfold, a cattle barn with real animals in their runs and a
- * herder at each), the locksmith's metalware and the joiner's furniture; what each makes and uses in a few days.
+ * The branches: the farmyard (its runs of real hens, sheep, pigs and cows, its herders), the weaver's cloth, the
+ * smelter's iron, the glassworks' glass, the locksmith's metalware and the joiner's furniture; what each makes and
+ * uses in a few days.
  */
 public class BranchesClientGameTest implements FabricClientGameTest {
 
@@ -33,7 +34,7 @@ public class BranchesClientGameTest implements FabricClientGameTest {
 
     private static String stocks(Village v) {
         StringBuilder b = new StringBuilder();
-        for (Res r : new Res[]{Res.FOOD, Res.WHEAT, Res.WOOL, Res.LEATHER, Res.IRON, Res.COAL, Res.METALWARE, Res.PLANKS, Res.FURNITURE, Res.JOINERY}) {
+        for (Res r : new Res[]{Res.FOOD, Res.WHEAT, Res.WOOL, Res.CLOTH, Res.LEATHER, Res.IRON, Res.COAL, Res.GLASS, Res.METALWARE, Res.PLANKS, Res.FURNITURE, Res.JOINERY}) {
             b.append(r.id()).append(' ').append(v.stock(r)).append(" (+").append(v.made(r)).append(" -").append(v.used(r)).append(") ");
         }
         return b.toString();
@@ -43,26 +44,36 @@ public class BranchesClientGameTest implements FabricClientGameTest {
         StringBuilder b = new StringBuilder();
         for (Building x : v.buildings()) {
             if (!x.type.isPen()) continue;
-            String tag = "mpm_herd_" + v.id + "_" + x.id;
-            var list = s.overworld().getEntitiesOfClass(Animal.class, new AABB(x.origin).inflate(40, 16, 40), a -> a.entityTags().contains(tag));
+            var list = herd(s, v, x);
             int sheared = 0, young = 0;
+            java.util.Map<String, Integer> kinds = new java.util.TreeMap<>();
             for (Animal a : list) {
                 if (a instanceof Sheep sh && sh.isSheared()) sheared++;
                 if (a.isBaby()) young++;
+                kinds.merge(a.getType().toShortString(), 1, Integer::sum);
             }
-            b.append(x.type.id()).append(" L").append(x.level()).append(": ").append(list.size()).append(" animals (").append(young).append(" young, ")
-                    .append(sheared).append(" shorn); ");
+            b.append(x.type.id()).append(" L").append(x.level()).append(": ").append(list.size()).append(" animals ").append(kinds).append(" (").append(young)
+                    .append(" young, ").append(sheared).append(" shorn); ");
         }
         return b.toString();
     }
 
+    private static java.util.List<Animal> herd(MinecraftServer s, Village v, Building x) {
+        String prefix = "mpm_herd_" + v.id + "_" + x.id + "_";
+        return s.overworld().getEntitiesOfClass(Animal.class, new AABB(x.origin).inflate(40, 16, 40),
+                a -> a.entityTags().stream().anyMatch(t -> t.startsWith(prefix)));
+    }
+
+    /** The kinds of animals in the farmyards. */
+    private static java.util.Set<String> kinds(MinecraftServer s, Village v) {
+        java.util.Set<String> out = new java.util.TreeSet<>();
+        for (Building x : v.buildings()) if (x.type.isPen()) for (Animal a : herd(s, v, x)) out.add(a.getType().toShortString());
+        return out;
+    }
+
     private static int animals(MinecraftServer s, Village v) {
         int n = 0;
-        for (Building x : v.buildings()) {
-            if (!x.type.isPen()) continue;
-            String tag = "mpm_herd_" + v.id + "_" + x.id;
-            n += s.overworld().getEntitiesOfClass(Animal.class, new AABB(x.origin).inflate(40, 16, 40), a -> a.entityTags().contains(tag)).size();
-        }
+        for (Building x : v.buildings()) if (x.type.isPen()) n += herd(s, v, x).size();
         return n;
     }
 
@@ -84,10 +95,11 @@ public class BranchesClientGameTest implements FabricClientGameTest {
                 server.runCommand("village give 1 " + g);
             }
             for (String b : new String[]{"hut 1", "hut 1", "hut 1", "field 1", "farm 1", "smithy 1", "mine_house 2", "locksmith 1", "wood_hut 1",
-                    "sawmill 1", "carpenter 2", "coop 1", "sheep_pen 2", "cattle_barn 1"}) {
+                    "sawmill 1", "carpenter 2", "farmyard 3", "weaver 1", "smelter 1", "glassworks 1"}) {
                 server.runCommand("village build 1 " + b);
             }
-            for (String j : new String[]{"farmer", "farmer", "herder", "herder", "herder", "locksmith", "joiner", "smith", "miner", "woodcutter"}) {
+            for (String j : new String[]{"farmer", "farmer", "herder", "herder", "herder", "locksmith", "joiner", "smith", "miner", "miner", "woodcutter",
+                    "weaver", "smelter", "glassblower"}) {
                 server.runCommand("village grow 1 " + j);
             }
             server.runOnServer(s -> {
@@ -145,8 +157,7 @@ public class BranchesClientGameTest implements FabricClientGameTest {
             server.runOnServer(s -> {
                 Village v = village(s);
                 for (Building x : v.buildings()) {
-                    if (!x.type.isPen() && x.type != org.webtrade.minecraftportsmod.colony.BuildingType.LOCKSMITH
-                            && x.type != org.webtrade.minecraftportsmod.colony.BuildingType.CARPENTER) continue;
+                    if (!x.type.isPen() && x.type.job == null) continue;
                     int[][] f = VillageLife.flows(v, x);
                     StringBuilder b = new StringBuilder();
                     for (Res r : Res.values()) {
@@ -158,6 +169,10 @@ public class BranchesClientGameTest implements FabricClientGameTest {
                 for (var l : v.log()) log("log {}: {}", l.day(), l.text().getString());
                 log("herds at the end: {}", herds(s, v));
                 if (animals(s, v) == 0) throw new AssertionError("no animals in the runs");
+                log("kinds of animals: {}", kinds(s, v));
+                if (kinds(s, v).size() < 4) throw new AssertionError("a farmyard at level 3 keeps hens, sheep, pigs and cows: " + kinds(s, v));
+                if (v.made(Res.CLOTH) == 0 && v.stock(Res.CLOTH) == 0) throw new AssertionError("no cloth");
+                if (v.stock(Res.GLASS) == 0) throw new AssertionError("no glass");
                 if (v.stock(Res.WOOL) + v.used(Res.WOOL) == 0 && v.made(Res.WOOL) == 0) throw new AssertionError("no wool");
                 if (v.stock(Res.METALWARE) == 0) throw new AssertionError("no metalware");
                 if (v.stock(Res.FURNITURE) == 0) throw new AssertionError("no furniture");
