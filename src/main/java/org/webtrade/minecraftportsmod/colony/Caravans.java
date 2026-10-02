@@ -42,7 +42,7 @@ public final class Caravans {
     static final int SEEN = 80;
     /** The goods traded. */
     static final Res[] GOODS = {Res.FOOD, Res.WOOD, Res.STONE, Res.PLANKS, Res.STICKS, Res.COAL, Res.IRON, Res.WHEAT, Res.JOINERY,
-            Res.TOOLS1, Res.TOOLS2, Res.TOOLS3};
+            Res.TOOLS1, Res.TOOLS2, Res.TOOLS3, Res.WOOL, Res.LEATHER, Res.METALWARE, Res.FURNITURE};
     /** The most a merchant's mules carry, all told. */
     public static final int MAX_LOAD = 1000;
     /** A round is not worth the walk for less than this much to sell and buy, all told. */

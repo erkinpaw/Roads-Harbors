@@ -121,6 +121,10 @@ public final class TreeData {
             case "tools1" -> Res.TOOLS1;
             case "tools2" -> Res.TOOLS2;
             case "tools3" -> Res.TOOLS3;
+            case "wool" -> Res.WOOL;
+            case "leather" -> Res.LEATHER;
+            case "metalware" -> Res.METALWARE;
+            case "furnishings" -> Res.FURNITURE;
             default -> null;
         };
     }
@@ -130,6 +134,16 @@ public final class TreeData {
      * village's wood ("stairs" → "spruce_stairs"), else of oak.
      */
     public static Item gameItem(Village v, String id) {
+        // (a few of the tree's names are not the game's)
+        id = switch (id) {
+            case "milk" -> "milk_bucket";
+            case "steak" -> "cooked_beef";
+            case "lapis" -> "lapis_lazuli";
+            case "carpet" -> "white_carpet";
+            case "banner" -> "white_banner";
+            case "chain" -> "iron_chain";
+            default -> id;
+        };
         for (String name : new String[]{id, (v == null ? "oak" : v.wood) + "_" + id, "oak_" + id}) {
             var it = BuiltInRegistries.ITEM.getOptional(Identifier.withDefaultNamespace(name));
             if (it.isPresent() && it.get() != Items.AIR) return it.get();

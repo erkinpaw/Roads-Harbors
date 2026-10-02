@@ -1200,7 +1200,7 @@ public final class Trails {
     }
 
     /** The ground of a column: its top block, trees, bushes and grass aside (water counts: its surface). */
-    static int groundAt(ServerLevel level, int x, int z) {
+    public static int groundAt(ServerLevel level, int x, int z) {
         int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) - 1;
         while (y > level.getMinY()) {
             BlockState s = level.getBlockState(new BlockPos(x, y, z));
@@ -1321,6 +1321,7 @@ public final class Trails {
         // (a column that is edge of one slice and middle of the next is the middle)
         java.util.Set<Long> middle = new java.util.HashSet<>(deckAt.keySet());
         middle.removeAll(edges);
+        List<BlockPos> rails = new ArrayList<>();
         for (var e : deckAt.entrySet()) {
             long k = e.getKey();
             int x = (int) (k >> 32), z = (int) k, deckY = e.getValue();
@@ -1346,7 +1347,10 @@ public final class Trails {
             if (edge) {
                 // the rail on the deck's edge; under it, every third block along the bridge, a post to the bottom
                 BlockPos rail = deck.above();
-                if (level.getBlockState(rail).canBeReplaced()) level.setBlock(rail, wood(a, "fence"), FLAGS | Block.UPDATE_NEIGHBORS);
+                if (level.getBlockState(rail).canBeReplaced()) {
+                    level.setBlock(rail, wood(a, "fence"), FLAGS | Block.UPDATE_NEIGHBORS);
+                    rails.add(rail);
+                }
                 if (Math.floorMod(alongX ? x : z, 3) == 0) {
                     for (int y = g + (dry ? 1 : 0); y < deckY; y++) {
                         BlockPos q = new BlockPos(x, y, z);
@@ -1354,6 +1358,15 @@ public final class Trails {
                         if (qs.canBeReplaced() || !qs.getFluidState().isEmpty()) level.setBlock(q, wood(a, "log"), FLAGS);
                     }
                 }
+            }
+        }
+        // the rails joined into one (and to those of the stretch before)
+        for (BlockPos r : rails) {
+            for (BlockPos q : new BlockPos[]{r, r.north(), r.south(), r.east(), r.west()}) {
+                BlockState st = level.getBlockState(q);
+                if (!st.is(BlockTags.FENCES)) continue;
+                BlockState joined = Block.updateFromNeighbourShapes(st, level, q);
+                if (joined != st) level.setBlock(q, joined, FLAGS);
             }
         }
     }

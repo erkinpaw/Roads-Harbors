@@ -103,6 +103,7 @@ public final class VillageManager {
                 if (t % 40 == 0) bodies(level, data, v);
                 if (t % 200 == 0) Greening.step(level, v, 60);
                 if (t % 100 == 0) Tidy.survey(level, v, RND, 120);
+                if (t % 200 == 100) Herds.step(level, v);
             }
         }
     }

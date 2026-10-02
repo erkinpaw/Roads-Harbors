@@ -124,7 +124,7 @@ final class WorkGoal extends Goal {
 
     static boolean ahead(Village v, Dweller d, int dayTime) {
         if (d.job == null || d.job.makes == null) return false;
-        int quota = VillageLife.daily(v, d.job);
+        int quota = VillageLife.dailyOf(v, d);
         double part = Math.max(0, Math.min(1, (dayTime - 1000) / 10000.0 + 0.12));
         return d.earned >= quota * part;
     }
@@ -237,7 +237,8 @@ final class WorkGoal extends Goal {
             case FISHER -> fisher(level, v);
             case FARMER -> farmer(level, v);
             case GATHERER -> gatherer(level, v);
-            case MERCHANT, SAWYER, SCOUT, SMITH, JOINER -> {
+            case HERDER -> herder(level, v, d);
+            case MERCHANT, SAWYER, SCOUT, SMITH, JOINER, LOCKSMITH -> {
             }
         }
     }
@@ -252,7 +253,8 @@ final class WorkGoal extends Goal {
             case FISHER -> Items.COD;
             case FARMER -> Items.WHEAT;
             case GATHERER -> Items.SWEET_BERRIES;
-            case MERCHANT, SAWYER, SCOUT, SMITH, JOINER -> Items.EMERALD;
+            case HERDER -> Items.EGG;
+            case MERCHANT, SAWYER, SCOUT, SMITH, JOINER, LOCKSMITH -> Items.EMERALD;
         }));
         activity("delivering", res.displayName(), carried);
         // a store that can't be walked to (a cliff, water between): after a while the load goes by cart, as it were
@@ -904,6 +906,130 @@ final class WorkGoal extends Goal {
             }
             default -> phase = Phase.FIND;
         }
+    }
+
+    // ------------------------------------------------------------------ the herder
+
+    /** The animal the herder is seeing to. */
+    private net.minecraft.world.entity.animal.Animal beast;
+
+    /**
+     * The herder at his run: calls an animal over to the fence, stands outside it and feeds it, shears a sheep with its
+     * wool grown, milks a cow, takes a hen's eggs; brings the food to the store (the wool goes in at once).
+     */
+    private void herder(ServerLevel level, Village v, Dweller d) {
+        Building pen = VillageLife.pen(v, d);
+        if (pen == null) {
+            r.hold(ItemStack.EMPTY);
+            forage(level, v);
+            return;
+        }
+        Blueprint.Frame f = new Blueprint.Frame(pen.origin, pen.front);
+        int h = pen.type.half, front = h - 5;
+        switch (phase) {
+            case FIND -> {
+                beast = null;
+                List<net.minecraft.world.entity.animal.Animal> herd = Herds.animals(level, v, pen);
+                if (herd.isEmpty()) {
+                    activity("herding");
+                    r.hold(new ItemStack(Items.WHEAT));
+                    waitBy(level, f.at(2, 0, front + 1));
+                    return;
+                }
+                // a sheep with its wool grown first, else any (each in turn)
+                for (var a : herd) if (a instanceof net.minecraft.world.entity.animal.sheep.Sheep s && s.readyForShearing() && !a.isBaby()) beast = a;
+                if (beast == null) beast = herd.get(r.getRandom().nextInt(herd.size()));
+                // where to stand: outside the fence, on the side nearest the animal
+                double lx = local(f, beast.getX(), beast.getZ())[0], lz = local(f, beast.getX(), beast.getZ())[1];
+                int sx, sz;
+                double toSide = h - Math.abs(lx), toBack = lz + h, toFront = front - lz;
+                if (toFront <= toSide && toFront <= toBack) {
+                    sx = (int) Math.round(Math.max(-h + 6, Math.min(h - 1, lx)));
+                    sz = front + 1;
+                } else if (toBack <= toSide) {
+                    sx = (int) Math.round(Math.max(-h + 1, Math.min(h - 1, lx)));
+                    sz = -h - 1;
+                } else {
+                    sx = lx < 0 ? -h - 1 : h + 1;
+                    sz = (int) Math.round(Math.max(-h + 1, Math.min(front - 1, lz)));
+                }
+                BlockPos at = f.at(sx, 0, sz);
+                stand = PlotFinder.standAt(level, at.getX(), at.getZ(), pen.origin.getY());
+                if (stand == null) stand = f.at(2, 0, front + 1);
+                phase = Phase.GO;
+                timer = 0;
+            }
+            case GO -> {
+                activity("herding");
+                r.hold(new ItemStack(Items.WHEAT));
+                if (beast == null || !beast.isAlive()) {
+                    phase = Phase.FIND;
+                    return;
+                }
+                if (walk(stand, 1.2)) {
+                    phase = Phase.WORK;
+                    timer = 0;
+                } else if (++timer > GIVE_UP) {
+                    phase = Phase.FIND;
+                }
+            }
+            case WORK -> {
+                if (beast == null || !beast.isAlive()) {
+                    phase = Phase.FIND;
+                    return;
+                }
+                // the animal is called over to the fence (it comes for the grain)
+                r.getLookControl().setLookAt(beast, 30, 30);
+                if (timer % 20 == 0) beast.getNavigation().moveTo(stand.getX() + 0.5, stand.getY(), stand.getZ() + 0.5, 1.0);
+                boolean sheep = beast instanceof net.minecraft.world.entity.animal.sheep.Sheep s0 && s0.readyForShearing() && !beast.isBaby();
+                boolean cow = beast instanceof net.minecraft.world.entity.animal.cow.Cow && !beast.isBaby();
+                boolean hen = beast instanceof net.minecraft.world.entity.animal.chicken.Chicken && !beast.isBaby();
+                double near = beast.distanceToSqr(r);
+                // fed first (the grain in hand), then the work of it
+                if (timer < 60) {
+                    activity("feeding");
+                    r.hold(new ItemStack(Items.WHEAT));
+                } else {
+                    activity(sheep ? "shearing" : cow ? "milking" : hen ? "eggs" : "feeding");
+                    r.hold(new ItemStack(sheep ? Job.HERDER.tool(Math.max(1, v.toolLevel(Job.HERDER))) : cow ? Items.BUCKET : Items.WHEAT));
+                }
+                if (++timer % 15 == 0 && near < 16) r.swing(InteractionHand.MAIN_HAND);
+                if (timer == 50 && near < 25) {
+                    level.sendParticles(ParticleTypes.HEART, beast.getX(), beast.getY() + beast.getBbHeight() + 0.3, beast.getZ(), 2, 0.3, 0.2, 0.3, 0);
+                }
+                if (timer < 120) return;
+                if (near < 25) {
+                    if (sheep) {
+                        ((net.minecraft.world.entity.animal.sheep.Sheep) beast).setSheared(true);
+                        level.playSound(null, beast.blockPosition(), SoundEvents.SHEEP_SHEAR, SoundSource.NEUTRAL, 1.0F, 1.0F);
+                        level.sendParticles(new ItemParticleOption(ParticleTypes.ITEM, ItemStackTemplate.fromNonEmptyStack(new ItemStack(Items.WOOL.white()))),
+                                beast.getX(), beast.getY() + 0.7, beast.getZ(), 8, 0.3, 0.3, 0.3, 0.05);
+                        int wool = 1 + r.getRandom().nextInt(3);
+                        if (!v.full(Res.WOOL)) v.add(Res.WOOL, wool);
+                        Dweller me = dweller(v);
+                        if (me != null) me.found += wool;
+                        VillageData.get(level.getServer()).changed();
+                    } else if (cow) {
+                        level.playSound(null, beast.blockPosition(), SoundEvents.COW_MILK, SoundSource.NEUTRAL, 1.0F, 1.0F);
+                        carried += 6;
+                    } else if (hen) {
+                        level.playSound(null, beast.blockPosition(), SoundEvents.CHICKEN_EGG, SoundSource.NEUTRAL, 1.0F, 1.0F);
+                        carried += 4;
+                    } else {
+                        carried += 2;
+                    }
+                }
+                phase = carried >= 12 ? Phase.DELIVER : Phase.FIND;
+            }
+            default -> phase = Phase.FIND;
+        }
+    }
+
+    /** World coordinates in a plot's own (x to its right, z to its front). */
+    private static double[] local(Blueprint.Frame f, double x, double z) {
+        double dx = x - (f.origin().getX() + 0.5), dz = z - (f.origin().getZ() + 0.5);
+        Direction right = f.right(), front = f.front();
+        return new double[]{dx * right.getStepX() + dz * right.getStepZ(), dx * front.getStepX() + dz * front.getStepZ()};
     }
 
     /** No field yet: berries, roots and mushrooms from around the village. */
