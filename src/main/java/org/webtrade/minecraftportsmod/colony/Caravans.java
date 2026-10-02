@@ -722,8 +722,8 @@ public final class Caravans {
                 if (t.at < length(p) - 20 && playerNear(level, a[0], a[1], SEEN) && level.hasChunkAt(pos) && level.isPositionEntityTicking(pos)) {
                     var e = org.webtrade.minecraftportsmod.registry.ModContent.RESIDENT.create(level, net.minecraft.world.entity.EntitySpawnReason.MOB_SUMMONED);
                     if (e != null) {
-                        int y = PlotFinder.floorAt(level, a[0], a[1]);
-                        e.snapTo(a[0] + 0.5, y, a[1] + 0.5, 0, 0);
+                        net.minecraft.core.BlockPos stand = PlotFinder.ground(level, a[0], a[1]);
+                        e.snapTo(stand.getX() + 0.5, stand.getY(), stand.getZ() + 0.5, 0, 0);
                         e.syncColony(m, home, data.day);
                         level.addFreshEntity(e);
                         m.body = e.getUUID();

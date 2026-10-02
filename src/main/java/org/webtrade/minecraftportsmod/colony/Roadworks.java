@@ -854,7 +854,7 @@ public final class Roadworks {
                         if (to != null) {
                             BlockPos was = e.blockPosition();
                             e.getNavigation().stop();
-                            e.snapTo(to.getX() + 0.5, to.getY(), to.getZ() + 0.5, e.getYRot(), 0);
+                            VillageManager.snap(level, e, to, "crew stuck");
                             SNAPS.add(was);
                             Minecraftportsmod.LOGGER.info("Crew member {} of {} stuck at {} ({}): put at {}", d.name, v.name, was.toShortString(),
                                     level.getBlockState(was).getBlock(), to.toShortString());
@@ -878,7 +878,8 @@ public final class Roadworks {
             if (body == null) continue;
             // (by day a few steps behind the end of the way, on what is made: they walk up to it)
             int[] p = day ? w.at(s == w.sa ? Math.max(0, w.front(s) - 6) : Math.min(w.length(), w.front(s) + 6)) : where;
-            body.snapTo(p[0] + 0.5, PlotFinder.floorAt(level, p[0], p[1]), p[1] + 0.5, 0, 0);
+            BlockPos stand = PlotFinder.ground(level, p[0], p[1]);
+            body.snapTo(stand.getX() + 0.5, stand.getY(), stand.getZ() + 0.5, 0, 0);
             body.syncColony(d, v, data.day);
             level.addFreshEntity(body);
             d.body = body.getUUID();
