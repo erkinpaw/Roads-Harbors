@@ -33,7 +33,7 @@ public final class Tidy {
 
     /** What needs doing at a spot. */
     public enum Kind {
-        HOLE, PUDDLE, LEDGE, WEED, LEAVES, TREE, POST, BUMP;
+        HOLE, PUDDLE, LEDGE, WEED, LEAVES, TREE, POST, BUMP, HANGING, DEBRIS, PIT;
 
         String act() {
             return "tidy_" + name().toLowerCase(java.util.Locale.ROOT);
@@ -56,20 +56,15 @@ public final class Tidy {
     }
 
     static void clear() {
+        OWED.clear();
         TODO.clear();
         TAKEN.clear();
         NEVER.clear();
     }
 
-    /** The village's own land: round every building, and round the middle. */
+    /** The village's own land (see {@link Territory}). */
     static boolean territory(Village v, int x, int z) {
-        if (Math.abs(x - v.center.getX()) <= 14 && Math.abs(z - v.center.getZ()) <= 14) return true;
-        for (Building b : v.buildings) {
-            // (round the woodcutters' hut is their grove: only its own yard is the village's)
-            int h = b.type.half + (b.type == BuildingType.WOOD_HUT ? 2 : 8);
-            if (Math.abs(x - b.origin.getX()) <= h && Math.abs(z - b.origin.getZ()) <= h) return true;
-        }
-        return false;
+        return Territory.contains(v, x, z);
     }
 
     private static boolean inPlot(Village v, int x, int z) {
@@ -121,6 +116,16 @@ public final class Tidy {
             BlockPos l = new BlockPos(x, leafTop, z);
             if (level.getBlockState(l).is(BlockTags.LEAVES) && !trunkNear(level, l)) return new Job(Kind.LEAVES, l);
         }
+        // up the column: what the wild left in the air (vines, cocoa pods, a branch of a felled tree)
+        for (int y = ground + 1; y <= ground + 28; y++) {
+            BlockPos q = new BlockPos(x, y, z);
+            BlockState s = level.getBlockState(q);
+            if (s.isAir()) continue;
+            if (WorkGoal.hangs(s)) return new Job(Kind.HANGING, q);
+            if (s.is(BlockTags.LOGS) && y > ground + 1 && !level.getBlockState(q.below()).is(BlockTags.LOGS) && !nearBuilding(v, x, z, 1)) {
+                return new Job(Kind.DEBRIS, q);
+            }
+        }
         // a puddle: a little water lying on the land (not the sea, not the river)
         if (!above.getFluidState().isEmpty() || !top.getFluidState().isEmpty()) {
             BlockPos w = !above.getFluidState().isEmpty() ? g.above() : g;
@@ -146,6 +151,11 @@ public final class Tidy {
             k++;
         }
         if (lowest - ground >= 1 && Construction.natural(top)) return new Job(Kind.HOLE, g);
+        // a pit: lower by two or more than the land round it (the middle of the heights a few blocks out)
+        if (Construction.natural(top) && !top.is(Blocks.DIRT_PATH) && !top.is(Blocks.FARMLAND) && !nearBuilding(v, x, z, 1)) {
+            int around = around(level, v, x, z);
+            if (around != Integer.MIN_VALUE && around - ground >= 2) return new Job(Kind.PIT, g);
+        }
         // a bump: one column standing up over all of its neighbours
         int highestN = Integer.MIN_VALUE;
         for (int h : n) highestN = Math.max(highestN, h);
@@ -159,6 +169,28 @@ public final class Tidy {
             return new Job(Kind.LEDGE, g);
         }
         return null;
+    }
+
+    /**
+     * The lie of the land round a column: the middle of the ground heights on a ring three blocks out (dry land
+     * only, plots aside); Integer.MIN_VALUE if there is too little of it to tell (the shore, the village's middle).
+     */
+    private static int around(ServerLevel level, Village v, int x, int z) {
+        List<Integer> hs = new ArrayList<>();
+        for (int dx = -3; dx <= 3; dx++) {
+            for (int dz = -3; dz <= 3; dz++) {
+                if (Math.max(Math.abs(dx), Math.abs(dz)) != 3) continue;
+                int px = x + dx, pz = z + dz;
+                if (inPlot(v, px, pz) || !Construction.loaded(level, new BlockPos(px, 0, pz))) continue;
+                int f = PlotFinder.floorAt(level, px, pz) - 1;
+                BlockState st = level.getBlockState(new BlockPos(px, f, pz));
+                if (!st.getFluidState().isEmpty()) return Integer.MIN_VALUE;
+                hs.add(f);
+            }
+        }
+        if (hs.size() < 16) return Integer.MIN_VALUE;
+        hs.sort(Integer::compare);
+        return hs.get(hs.size() / 2);
     }
 
     /** The woodcutters' grove: round their hut, out past its yard. */
@@ -221,10 +253,42 @@ public final class Tidy {
         return false;
     }
 
+    // ------------------------------------------------------------------ the work of time no one saw
+
+    /** Jobs of upkeep a grown-up gets through in a day's spare time. */
+    static final int PER_DAY = 6;
+    /** The upkeep owed by each village for days that went by unwatched (or were skipped). */
+    private static final Map<Integer, Integer> OWED = new HashMap<>();
+
+    /** A day went by with no one there to see the village's people at work on its land. */
+    static void owe(Village v, int adults) {
+        OWED.merge(v.id, adults * PER_DAY, (a, b) -> Math.min(a + b, 2000));
+    }
+
+    /**
+     * The work of the days no one saw, done now that the land is loaded: what the people would have got through, in
+     * the order they would have (the nearest to the middle first). A batch at a time.
+     */
+    static void catchUp(ServerLevel level, Village v, RandomSource rnd) {
+        int owed = OWED.getOrDefault(v.id, 0);
+        if (owed <= 0) return;
+        survey(level, v, rnd, 600);
+        int done = 0;
+        for (int i = 0; i < 40 && owed > 0; i++) {
+            Job j = take(level, v, v.center);
+            if (j == null) break;
+            finish(level, v, j);
+            owed--;
+            done++;
+        }
+        // (nothing left to do: the rest of the time went on nothing)
+        OWED.put(v.id, done == 0 ? 0 : owed);
+    }
+
     // ------------------------------------------------------------------ doing it
 
     /** A job for someone (the nearest to them of what is listed), taken so that no one else goes to it. */
-    static Job take(Village v, BlockPos near) {
+    static Job take(ServerLevel level, Village v, BlockPos near) {
         Deque<Job> todo = TODO.get(v.id);
         if (todo == null || todo.isEmpty()) return null;
         Set<BlockPos> taken = TAKEN.computeIfAbsent(v.id, k -> new HashSet<>());
@@ -238,7 +302,13 @@ public final class Tidy {
                 best = j;
             }
         }
-        if (best != null) taken.add(best.pos());
+        if (best == null) return null;
+        // (across the water, up a cliff: not for today)
+        if (!Reach.ok(level, v, best.pos())) {
+            drop(v, best);
+            return null;
+        }
+        taken.add(best.pos());
         return best;
     }
 
@@ -314,6 +384,59 @@ public final class Tidy {
                 if (logs > 0) {
                     v.add(Res.WOOD, logs);
                     v.made.merge(Res.WOOD, logs, Integer::sum);
+                }
+            }
+            case HANGING -> {
+                // the whole of it: the vine down to its end and along, the pods beside it
+                Deque<BlockPos> open = new ArrayDeque<>();
+                Set<BlockPos> seen = new HashSet<>();
+                open.add(p);
+                seen.add(p);
+                while (!open.isEmpty() && seen.size() < 200) {
+                    BlockPos q = open.poll();
+                    if (!WorkGoal.hangs(level.getBlockState(q))) continue;
+                    level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);
+                    for (Direction d : Direction.values()) {
+                        BlockPos n = q.relative(d);
+                        if (seen.add(n) && WorkGoal.hangs(level.getBlockState(n))) open.add(n);
+                    }
+                }
+            }
+            case DEBRIS -> {
+                // a branch left in the air: its logs (to the store), its leaves and what hangs on them
+                Deque<BlockPos> open = new ArrayDeque<>();
+                Set<BlockPos> seen = new HashSet<>();
+                open.add(p);
+                seen.add(p);
+                int logs = 0;
+                while (!open.isEmpty() && seen.size() < 400) {
+                    BlockPos q = open.poll();
+                    BlockState s = level.getBlockState(q);
+                    boolean log = s.is(BlockTags.LOGS);
+                    if (!log && !s.is(BlockTags.LEAVES) && !WorkGoal.hangs(s)) continue;
+                    if (inPlot(v, q.getX(), q.getZ())) continue;
+                    if (log) logs++;
+                    level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);
+                    for (BlockPos n : BlockPos.betweenClosed(q.offset(-1, -1, -1), q.offset(1, 1, 1))) {
+                        if (seen.add(n.immutable())) open.add(n.immutable());
+                    }
+                }
+                if (logs > 0) {
+                    v.add(Res.WOOD, logs);
+                    v.made.merge(Res.WOOD, logs, Integer::sum);
+                }
+            }
+            case PIT -> {
+                // earth heaped up a block or two at a time, up to the land round it
+                int to = around(level, v, p.getX(), p.getZ());
+                if (to == Integer.MIN_VALUE) break;
+                to = Math.min(to, p.getY() + 2);
+                for (int y = p.getY(); y < to; y++) {
+                    BlockPos q = new BlockPos(p.getX(), y, p.getZ());
+                    BlockState s = level.getBlockState(q.above());
+                    if (!s.isAir() && !s.canBeReplaced()) break;
+                    level.setBlock(q, Blocks.DIRT.defaultBlockState(), FLAGS);
+                    level.setBlock(q.above(), Blocks.GRASS_BLOCK.defaultBlockState(), FLAGS);
                 }
             }
             case POST -> {

@@ -96,8 +96,7 @@ final class WorkGoal extends Goal {
     }
 
     private static boolean workHours(ResidentEntity r) {
-        int t = r.dayTime();
-        return t >= 1000 && t < 11500;
+        return Routine.working(r);
     }
 
     @Override
@@ -186,7 +185,7 @@ final class WorkGoal extends Goal {
         r.walking = r.level().getGameTime();
         if (r.getNavigation().isDone() || --repath[0] <= 0) {
             repath[0] = 40;
-            r.getNavigation().moveTo(to.getX() + 0.5, to.getY(), to.getZ() + 0.5, 0.6);
+            r.getNavigation().moveTo(to.getX() + 0.5, to.getY(), to.getZ() + 0.5, Routine.mode(r).speed);
         }
         return false;
     }
@@ -291,6 +290,11 @@ final class WorkGoal extends Goal {
                     // the woodcutters fell by their hut, not all over the country
                     if (!land && hut != null && base.distSqr(hut) > (DwellerGoals.GROVE + 8) * (DwellerGoals.GROVE + 8)) continue;
                     if (r.getRandom().nextInt(3) == 0) continue;   // not everyone at the same tree
+                    // (none across the water or up a cliff: only what can be walked to)
+                    if (!Reach.ok(level, v, base)) {
+                        bad.add(base);
+                        continue;
+                    }
                     // a real tree, with a crown of its own (not the logs of a bench, a field's edge, a house)
                     if (tree(level, base, v) == null) {
                         bad.add(base);
@@ -392,7 +396,7 @@ final class WorkGoal extends Goal {
                     if (st.is(BlockTags.LOGS)) {
                         level.destroyBlock(p, false, r, 512);
                         carried++;
-                    } else if (st.is(BlockTags.LEAVES)) {
+                    } else if (st.is(BlockTags.LEAVES) || hangs(st)) {
                         if (r.getRandom().nextInt(4) == 0) level.destroyBlock(p, false, r, 512);
                         else level.removeBlock(p, false);
                         i--;   // leaves go quicker
@@ -442,12 +446,14 @@ final class WorkGoal extends Goal {
         while (!open.isEmpty()) {
             BlockPos p = open.poll();
             logs.add(p);
-            if (logs.size() > 160) return null;
+            if (logs.size() > 400) return null;
             for (int dx = -1; dx <= 1; dx++) {
-                for (int dy = 0; dy <= 1; dy++) {
+                for (int dy = -1; dy <= 1; dy++) {
                     for (int dz = -1; dz <= 1; dz++) {
                         BlockPos n = p.offset(dx, dy, dz);
                         if (Math.abs(n.getX() - base.getX()) > 7 || Math.abs(n.getZ() - base.getZ()) > 7 || !seen.add(n)) continue;
+                        // down only beside the foot (the rest of a thick trunk on lower ground): no other tree's crown
+                        if (n.getY() < base.getY() && (n.getY() < base.getY() - 3 || Math.abs(n.getX() - base.getX()) > 1 || Math.abs(n.getZ() - base.getZ()) > 1)) continue;
                         BlockState s = level.getBlockState(n);
                         // the posts of a house the tree leans on are not part of it
                         if (s.is(BlockTags.LOGS) && (v == null || !DwellerGoals.inside(v, n.getX(), n.getZ()))) open.add(n);
@@ -467,7 +473,7 @@ final class WorkGoal extends Goal {
                 if (natural(level.getBlockState(n)) && seenLeaves.add(n)) front.add(n);
             }
         }
-        while (!front.isEmpty() && leaves.size() < 700) {
+        while (!front.isEmpty() && leaves.size() < 1600) {
             BlockPos p = front.poll();
             leaves.add(p);
             for (Direction dir : Direction.values()) {
@@ -482,7 +488,38 @@ final class WorkGoal extends Goal {
         leaves.sort(Comparator.comparingInt((BlockPos p) -> -p.getY()));
         List<BlockPos> out = new ArrayList<>(logs);
         out.addAll(leaves);
+        out.addAll(hanging(level, out));
         return out;
+    }
+
+    /** What hangs on a tree and would be left in the air without it: vines (down to their ends), cocoa pods, a bees' nest. */
+    static List<BlockPos> hanging(ServerLevel level, List<BlockPos> tree) {
+        List<BlockPos> out = new ArrayList<>();
+        Set<BlockPos> seen = new HashSet<>(tree);
+        Deque<BlockPos> open = new ArrayDeque<>();
+        for (BlockPos t : tree) {
+            for (Direction dir : Direction.values()) {
+                BlockPos n = t.relative(dir);
+                if (seen.add(n) && hangs(level.getBlockState(n))) open.add(n);
+            }
+        }
+        while (!open.isEmpty() && out.size() < 600) {
+            BlockPos p = open.poll();
+            out.add(p);
+            // a vine hangs on down; and to the side along the leaves it covers
+            for (Direction dir : Direction.values()) {
+                if (dir == Direction.UP) continue;
+                BlockPos n = p.relative(dir);
+                if (seen.add(n) && level.getBlockState(n).is(Blocks.VINE)) open.add(n);
+            }
+        }
+        out.sort(Comparator.comparingInt((BlockPos p) -> -p.getY()));
+        return out;
+    }
+
+    static boolean hangs(BlockState s) {
+        return s.is(Blocks.VINE) || s.is(Blocks.COCOA) || s.is(Blocks.BEE_NEST) || s.is(Blocks.GLOW_LICHEN) || s.is(Blocks.MOSS_CARPET)
+                || s.is(Blocks.PALE_HANGING_MOSS);
     }
 
     private static boolean natural(BlockState s) {
@@ -519,6 +556,10 @@ final class WorkGoal extends Goal {
                 for (BlockPos p : DwellerGoals.stone(level, v)) {
                     if (bad.contains(p) || !DwellerGoals.mineable(level, v, p)) continue;
                     if (r.getRandom().nextInt(3) == 0) continue;
+                    if (!Reach.ok(level, v, p.above())) {
+                        bad.add(p);
+                        continue;
+                    }
                     target = p;
                     break;
                 }

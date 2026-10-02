@@ -42,6 +42,8 @@ public class ResidentEntity extends PathfinderMob {
 
     /** When it last tried to walk somewhere and wasn't there yet (game time): a body standing still then is stuck. */
     public long walking;
+    /** The part of the day its way-finding is set for (see {@link org.webtrade.minecraftportsmod.colony.Routine}). */
+    public org.webtrade.minecraftportsmod.colony.Routine.Mode routine;
 
     public static final int SKINS = 9;
     private static final EntityDataAccessor<Integer> DATA_SKIN = SynchedEntityData.defineId(ResidentEntity.class, EntityDataSerializers.INT);
@@ -115,6 +117,12 @@ public class ResidentEntity extends PathfinderMob {
         goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.4));
         goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 8.0F));
         goalSelector.addGoal(8, new RandomLookAroundGoal(this));
+    }
+
+    @Override
+    protected void customServerAiStep(ServerLevel level) {
+        if (colony() && tickCount % 20 == 0) org.webtrade.minecraftportsmod.colony.Routine.apply(this);
+        super.customServerAiStep(level);
     }
 
     @Override
