@@ -932,5 +932,22 @@
   "minecraftportsmod.act.eggs": "Collecting eggs",
   "minecraftportsmod.act.roadwork_bridge": "Building a bridge on the trail to %s",
   "minecraftportsmod.act.metalwork": "At the locksmith's anvil",
-  "minecraftportsmod.act.joinering": "At the workbench"
+  "minecraftportsmod.act.joinering": "At the workbench",
+  "minecraftportsmod.building.farmyard": "Farmyard",
+  "minecraftportsmod.building.weaver": "Weaver's",
+  "minecraftportsmod.building.smelter": "Smelter",
+  "minecraftportsmod.building.glassworks": "Glassworks",
+  "minecraftportsmod.tree.desc.farmyard": "Runs of animals. Lvl 1: hens. Lvl 2: sheep and pigs. Lvl 3: cows. Fed on grain.",
+  "minecraftportsmod.tree.desc.weaver": "Wool into cloth: string, carpets, dyed wool, banners.",
+  "minecraftportsmod.tree.desc.smelter": "Smelts the miners' ore with coal: more iron.",
+  "minecraftportsmod.tree.desc.glassworks": "Sand and coal into glass, panes and bottles.",
+  "minecraftportsmod.job.weaver": "Weaver",
+  "minecraftportsmod.job.smelter": "Smelter",
+  "minecraftportsmod.job.glassblower": "Glassblower",
+  "minecraftportsmod.res.cloth": "Cloth",
+  "minecraftportsmod.res.glass": "Glass",
+  "minecraftportsmod.act.weaving": "Weaving",
+  "minecraftportsmod.act.smelting": "Smelting ore",
+  "minecraftportsmod.act.glassblowing": "Blowing glass",
+  "minecraftportsmod.act.pigs": "Feeding the pigs"
 }

@@ -45,7 +45,11 @@ public enum Res {
     /** The locksmith's work, counted as one: buckets, chains, lanterns, hinges and nails. */
     METALWARE(Items.LANTERN),
     /** The joiner's finer work (his workshop raised a level): beds, tables, chairs, cupboards. The better homes are furnished with it. */
-    FURNITURE(Items.BED.red());
+    FURNITURE(Items.BED.red()),
+    /** The weaver's work, counted as one: string, carpets, dyed wool, banners. */
+    CLOTH(Items.CARPET.white()),
+    /** The glassworks' sand and fire: glass, panes, bottles. */
+    GLASS(Items.GLASS);
 
     /** The tools of a level (1 wooden, 2 stone, 3 iron). */
     public static Res tools(int level) {
@@ -54,7 +58,7 @@ public enum Res {
 
     /** Goods only some trades use: none kept (nor bought) by a village that has no use for them. */
     public boolean optional() {
-        return this == WOOL || this == LEATHER || this == METALWARE || this == FURNITURE;
+        return this == WOOL || this == LEATHER || this == METALWARE || this == FURNITURE || this == CLOTH || this == GLASS;
     }
 
     /** The level of a store of tools (0: not tools). */
@@ -81,7 +85,7 @@ public enum Res {
         return switch (this) {
             case FOOD -> Kind.FOOD;
             case WOOD, STONE, IRON, COAL, WHEAT, WOOL, LEATHER -> Kind.RAW;
-            case PLANKS, STICKS, JOINERY, METALWARE, FURNITURE -> Kind.BUILDING;
+            case PLANKS, STICKS, JOINERY, METALWARE, FURNITURE, CLOTH, GLASS -> Kind.BUILDING;
             case TOOLS1, TOOLS2, TOOLS3 -> Kind.TOOLS;
         };
     }
@@ -131,6 +135,8 @@ public enum Res {
                     || stack.is(Items.SHEARS) ? 1 : 0;
             case FURNITURE -> stack.is(ItemTags.BEDS) || stack.is(Items.BOOKSHELF) || stack.is(Items.LECTERN) || stack.is(Items.ITEM_FRAME)
                     || stack.is(Items.PAINTING) ? 1 : 0;
+            case CLOTH -> stack.is(ItemTags.WOOL_CARPETS) || stack.is(ItemTags.BANNERS) || stack.is(Items.STRING) ? 1 : 0;
+            case GLASS -> stack.is(Items.GLASS) || stack.is(Items.GLASS_PANE) || stack.is(Items.GLASS_BOTTLE) ? 1 : 0;
         };
     }
 }

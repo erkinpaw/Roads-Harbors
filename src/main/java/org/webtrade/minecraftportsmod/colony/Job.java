@@ -34,7 +34,13 @@ public enum Job {
     /** Keeps the village's animals (hens, sheep, cows): food, wool, hides; the animals eat grain. Lives at his run. */
     HERDER(Res.FOOD, 18, Items.WHEAT, Items.SHEARS, Items.SHEARS, Items.SHEARS),
     /** Works the locksmith's: iron and coal into metalware. Makes nothing of his own: see the workshop. */
-    LOCKSMITH(null, 0, Items.IRON_INGOT, Items.IRON_INGOT, Items.IRON_INGOT, Items.IRON_INGOT);
+    LOCKSMITH(null, 0, Items.IRON_INGOT, Items.IRON_INGOT, Items.IRON_INGOT, Items.IRON_INGOT),
+    /** Works the weaver's: wool into cloth (string, carpets, dyed wool, banners). Makes nothing of his own: see the workshop. */
+    WEAVER(null, 0, Items.STRING, Items.STRING, Items.STRING, Items.STRING),
+    /** Works the smelter: the miners' ore smelted, more iron of it than the miners get by themselves. */
+    SMELTER(null, 0, Items.RAW_IRON, Items.RAW_IRON, Items.RAW_IRON, Items.RAW_IRON),
+    /** Works the glassworks: sand and fire into glass. */
+    GLASSBLOWER(null, 0, Items.GLASS_BOTTLE, Items.GLASS_BOTTLE, Items.GLASS_BOTTLE, Items.GLASS_BOTTLE);
 
     /** How fast the work goes: bare hands (no smithy), then the smithy's levels: wooden, stone, iron tools. */
     public static final double[] TOOL_SPEED = {0.6, 1.0, 1.3, 1.6};

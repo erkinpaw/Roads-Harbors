@@ -940,7 +940,8 @@ public final class DwellerGoals {
         /** Where each of the trades that make nothing themselves works: the stall, the sawmill, the map table. */
         private static BuildingType placeOf(Job j) {
             return j == Job.MERCHANT ? BuildingType.MARKET : j == Job.SAWYER ? BuildingType.SAWMILL : j == Job.SCOUT ? BuildingType.CARTOGRAPHER
-                    : j == Job.SMITH ? BuildingType.SMITHY : j == Job.JOINER ? BuildingType.CARPENTER : j == Job.LOCKSMITH ? BuildingType.LOCKSMITH : null;
+                    : j == Job.SMITH ? BuildingType.SMITHY : j == Job.JOINER ? BuildingType.CARPENTER : j == Job.LOCKSMITH ? BuildingType.LOCKSMITH
+                    : j == Job.WEAVER ? BuildingType.WEAVER : j == Job.SMELTER ? BuildingType.SMELTER : j == Job.GLASSBLOWER ? BuildingType.GLASSWORKS : null;
         }
 
         private Building stall() {
@@ -998,6 +999,23 @@ public final class DwellerGoals {
                         r.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
                         r.level().playSound(null, saw, net.minecraft.sounds.SoundEvents.UI_STONECUTTER_TAKE_RESULT,
                                 net.minecraft.sounds.SoundSource.BLOCKS, 0.5F, 0.9F + r.getRandom().nextFloat() * 0.2F);
+                    }
+                }
+                return;
+            }
+            if (job == Job.WEAVER || job == Job.SMELTER || job == Job.GLASSBLOWER) {
+                // at the loom, the furnaces, the glass furnace: the work at the door
+                r.hold(new ItemStack(job == Job.WEAVER ? net.minecraft.world.item.Items.STRING : job == Job.SMELTER ? net.minecraft.world.item.Items.RAW_IRON
+                        : net.minecraft.world.item.Items.GLASS_BOTTLE));
+                r.setActivity(act(job == Job.WEAVER ? "weaving" : job == Job.SMELTER ? "smelting" : "glassblowing"));
+                if (walk(r, spot, 1.2, repath)) {
+                    BlockPos bench = b.blueprint(v.wood).frame.at(1, 0, 3);
+                    r.getLookControl().setLookAt(bench.getX() + 0.5, bench.getY() + 0.8, bench.getZ() + 0.5);
+                    if (++ticks % 30 == 0) {
+                        r.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+                        var sound = job == Job.WEAVER ? net.minecraft.sounds.SoundEvents.UI_LOOM_TAKE_RESULT
+                                : job == Job.SMELTER ? net.minecraft.sounds.SoundEvents.BLASTFURNACE_FIRE_CRACKLE : net.minecraft.sounds.SoundEvents.FURNACE_FIRE_CRACKLE;
+                        r.level().playSound(null, bench, sound, net.minecraft.sounds.SoundSource.BLOCKS, 0.5F, 0.9F + r.getRandom().nextFloat() * 0.2F);
                     }
                 }
                 return;

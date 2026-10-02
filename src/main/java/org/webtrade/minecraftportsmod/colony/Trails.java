@@ -1357,21 +1357,15 @@ public final class Trails {
         }
     }
 
-    /** Leaves and vines left hanging over a column of the cutting, held by no trunk near them: taken down. */
+    /** Leaves and vines over a column of the cutting: taken down (the crowns beside it cut back over it). */
     private static void loose(ServerLevel level, int x, int z) {
         int ground = groundAt(level, x, z);
         for (int y = ground + 1; y <= ground + 32; y++) {
             BlockPos p = new BlockPos(x, y, z);
             BlockState st = level.getBlockState(p);
-            if (WorkGoal.hangs(st) || st.is(BlockTags.LEAVES) && !trunkNear(level, p)) level.setBlock(p, Blocks.AIR.defaultBlockState(), FLAGS);
+            // (the crowns of the trees beside the cutting are cut back over it too: vines would grow down from them again)
+            if (WorkGoal.hangs(st) || st.is(BlockTags.LEAVES)) level.setBlock(p, Blocks.AIR.defaultBlockState(), FLAGS);
         }
-    }
-
-    private static boolean trunkNear(ServerLevel level, BlockPos p) {
-        for (BlockPos q : BlockPos.betweenClosed(p.offset(-3, -4, -3), p.offset(3, 2, 3))) {
-            if (level.getBlockState(q).is(BlockTags.LOGS)) return true;
-        }
-        return false;
     }
 
     /**

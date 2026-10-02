@@ -125,6 +125,7 @@ public final class TreeData {
             case "leather" -> Res.LEATHER;
             case "metalware" -> Res.METALWARE;
             case "furnishings" -> Res.FURNITURE;
+            case "glass" -> Res.GLASS;
             default -> null;
         };
     }

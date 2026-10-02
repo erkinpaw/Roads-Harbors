@@ -237,7 +237,7 @@ final class WorkGoal extends Goal {
             case FARMER -> farmer(level, v);
             case GATHERER -> gatherer(level, v);
             case HERDER -> herder(level, v, d);
-            case MERCHANT, SAWYER, SCOUT, SMITH, JOINER, LOCKSMITH -> {
+            case MERCHANT, SAWYER, SCOUT, SMITH, JOINER, LOCKSMITH, WEAVER, SMELTER, GLASSBLOWER -> {
             }
         }
     }
@@ -253,7 +253,7 @@ final class WorkGoal extends Goal {
             case FARMER -> Items.WHEAT;
             case GATHERER -> Items.SWEET_BERRIES;
             case HERDER -> Items.EGG;
-            case MERCHANT, SAWYER, SCOUT, SMITH, JOINER, LOCKSMITH -> Items.EMERALD;
+            case MERCHANT, SAWYER, SCOUT, SMITH, JOINER, LOCKSMITH, WEAVER, SMELTER, GLASSBLOWER -> Items.EMERALD;
         }));
         activity("delivering", res.displayName(), carried);
         // a store that can't be walked to (a cliff, water between): after a while the load goes by cart, as it were
@@ -966,7 +966,6 @@ final class WorkGoal extends Goal {
             return;
         }
         Blueprint.Frame f = new Blueprint.Frame(pen.origin, pen.front);
-        int h = pen.type.half, front = h - 5;
         switch (phase) {
             case FIND -> {
                 beast = null;
@@ -974,29 +973,23 @@ final class WorkGoal extends Goal {
                 if (herd.isEmpty()) {
                     activity("herding");
                     r.hold(new ItemStack(Items.WHEAT));
-                    waitBy(level, f.at(2, 0, front + 1));
+                    waitBy(level, f.at(2, 0, Herds.FRONT + 1));
                     return;
                 }
                 // a sheep with its wool grown first, else any (each in turn)
                 for (var a : herd) if (a instanceof net.minecraft.world.entity.animal.sheep.Sheep s && s.readyForShearing() && !a.isBaby()) beast = a;
                 if (beast == null) beast = herd.get(r.getRandom().nextInt(herd.size()));
-                // where to stand: outside the fence, on the side nearest the animal
-                double lx = local(f, beast.getX(), beast.getZ())[0], lz = local(f, beast.getX(), beast.getZ())[1];
-                int sx, sz;
-                double toSide = h - Math.abs(lx), toBack = lz + h, toFront = front - lz;
-                if (toFront <= toSide && toFront <= toBack) {
-                    sx = (int) Math.round(Math.max(-h + 6, Math.min(h - 1, lx)));
-                    sz = front + 1;
-                } else if (toBack <= toSide) {
-                    sx = (int) Math.round(Math.max(-h + 1, Math.min(h - 1, lx)));
-                    sz = -h - 1;
-                } else {
-                    sx = lx < 0 ? -h - 1 : h + 1;
-                    sz = (int) Math.round(Math.max(-h + 1, Math.min(front - 1, lz)));
+                Herds.Run run = Herds.runOf(v, pen, beast);
+                if (run == null) {
+                    beast = null;
+                    return;
                 }
-                BlockPos at = f.at(sx, 0, sz);
+                // where to stand: outside the run's fence, on its open side nearest the animal
+                double[] l = local(f, beast.getX(), beast.getZ());
+                int[] spot = Herds.keeperSpot(pen, run, l[0], l[1]);
+                BlockPos at = f.at(spot[0], 0, spot[1]);
                 stand = PlotFinder.standAt(level, at.getX(), at.getZ(), pen.origin.getY());
-                if (stand == null) stand = f.at(2, 0, front + 1);
+                if (stand == null) stand = f.at(2, 0, Herds.FRONT + 1);
                 phase = Phase.GO;
                 timer = 0;
             }
@@ -1025,13 +1018,14 @@ final class WorkGoal extends Goal {
                 boolean sheep = beast instanceof net.minecraft.world.entity.animal.sheep.Sheep s0 && s0.readyForShearing() && !beast.isBaby();
                 boolean cow = beast instanceof net.minecraft.world.entity.animal.cow.Cow && !beast.isBaby();
                 boolean hen = beast instanceof net.minecraft.world.entity.animal.chicken.Chicken && !beast.isBaby();
+                boolean pig = beast instanceof net.minecraft.world.entity.animal.pig.Pig && !beast.isBaby();
                 double near = beast.distanceToSqr(r);
                 // fed first (the grain in hand), then the work of it
                 if (timer < 60) {
                     activity("feeding");
                     r.hold(new ItemStack(Items.WHEAT));
                 } else {
-                    activity(sheep ? "shearing" : cow ? "milking" : hen ? "eggs" : "feeding");
+                    activity(sheep ? "shearing" : cow ? "milking" : hen ? "eggs" : pig ? "pigs" : "feeding");
                     r.hold(new ItemStack(sheep ? Job.HERDER.tool(Math.max(1, v.toolLevel(Job.HERDER))) : cow ? Items.BUCKET : Items.WHEAT));
                 }
                 if (++timer % 15 == 0 && near < 16) r.swing(InteractionHand.MAIN_HAND);
@@ -1055,6 +1049,9 @@ final class WorkGoal extends Goal {
                         carried += 6;
                     } else if (hen) {
                         level.playSound(null, beast.blockPosition(), SoundEvents.CHICKEN_EGG, SoundSource.NEUTRAL, 1.0F, 1.0F);
+                        carried += 4;
+                    } else if (pig) {
+                        level.playSound(null, beast.blockPosition(), SoundEvents.PIG_EAT_BABY.value(), SoundSource.NEUTRAL, 1.0F, 1.0F);
                         carried += 4;
                     } else {
                         carried += 2;

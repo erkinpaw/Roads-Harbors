@@ -73,16 +73,20 @@ public enum BuildingType {
     /** The farmstead: a barn by the fields. More fields, and more kinds of crops, with its levels. */
     FARM(Branch.FOOD, FIELD, null, 3, 1, Job.FARMER, 0xB08A30, Items.HAY_BLOCK, 3, false, Map.of(Res.WOOD, 45, Res.STONE, 20)),
 
-    // the animals (husbandry): a fenced run with the keeper's lodge at its front; the animals in it are real ones
-    /** The poultry yard: hens in a run; eggs and fowl, fed on grain. */
-    COOP(Branch.FOOD, FARM, null, 5, 1, Job.HERDER, 0xD8C890, Items.EGG, 3, false, Map.of(Res.WOOD, 30, Res.PLANKS, 16, Res.WHEAT, 10)),
-    /** The sheepfold: sheep, shorn for their wool; a little mutton; fed on grain. */
-    SHEEP_PEN(Branch.FOOD, COOP, null, 6, 1, Job.HERDER, 0xE8E8E0, Items.WOOL.white(), 3, false, Map.of(Res.WOOD, 35, Res.PLANKS, 20, Res.WHEAT, 15)),
-    /** The cattle barn: cows; milk and beef, and their hides; fed on grain, milked into the locksmith's buckets. */
-    CATTLE_BARN(Branch.FOOD, SHEEP_PEN, null, 6, 1, Job.HERDER, 0x6A4A30, Items.MILK_BUCKET, 3, false,
-            Map.of(Res.WOOD, 40, Res.PLANKS, 30, Res.STONE, 10, Res.WHEAT, 20)),
+    /**
+     * The farmyard (husbandry): the keeper's lodge and yard in front, runs of real animals behind, a new run with
+     * each level: hens first (eggs, fowl, feathers); sheep and pigs (wool, pork); then cows (milk, beef, hides). The
+     * animals are fed on grain.
+     */
+    FARMYARD(Branch.FOOD, FARM, null, 7, 1, Job.HERDER, 0xD8C890, Items.LEAD, 3, false, Map.of(Res.WOOD, 40, Res.PLANKS, 24, Res.WHEAT, 15)),
+    /** The weaver's: the farmyard's wool into string, carpets, dyed wool and banners. */
+    WEAVER(Branch.FOOD, FARMYARD, null, 3, 1, Job.WEAVER, 0xC86A8A, Items.LOOM, 3, false, Map.of(Res.WOOD, 30, Res.PLANKS, 30, Res.WOOL, 10)),
     /** The locksmith's (metalwork): iron and coal into buckets, chains, lanterns, hinges. */
-    LOCKSMITH(Branch.MINE, MINE_HOUSE, null, 3, 1, Job.LOCKSMITH, 0x4A4A55, Items.LANTERN, 3, false, Map.of(Res.WOOD, 30, Res.STONE, 40, Res.IRON, 6));
+    LOCKSMITH(Branch.MINE, MINE_HOUSE, null, 3, 1, Job.LOCKSMITH, 0x4A4A55, Items.LANTERN, 3, false, Map.of(Res.WOOD, 30, Res.STONE, 40, Res.IRON, 6)),
+    /** The smelter: the miners' ore smelted in its furnaces, with coal: much more iron than the miners get by themselves. */
+    SMELTER(Branch.MINE, MINE_HOUSE, null, 3, 1, Job.SMELTER, 0x8A4A2A, Items.BLAST_FURNACE, 3, false, Map.of(Res.STONE, 60, Res.PLANKS, 30, Res.WOOD, 10)),
+    /** The glassworks: sand from the shore and fire into glass, panes and bottles. */
+    GLASSWORKS(Branch.MINE, SMELTER, null, 3, 1, Job.GLASSBLOWER, 0x9AD0E0, Items.GLASS, 3, false, Map.of(Res.STONE, 40, Res.PLANKS, 20, Res.IRON, 3));
 
     /**
      * The branches of the development tree. Three are what a village can make its speciality (food, wood, ore); the
@@ -152,16 +156,17 @@ public enum BuildingType {
             case FARM -> Sub.FARMING;
             case SAWMILL -> Sub.LOGGING;
             case CARPENTER -> Sub.JOINERY;
-            case COOP, SHEEP_PEN, CATTLE_BARN -> Sub.HUSBANDRY;
+            case FARMYARD, WEAVER -> Sub.HUSBANDRY;
             case LOCKSMITH -> Sub.METALWORK;
+            case SMELTER, GLASSWORKS -> Sub.MINING;
             default -> null;
         };
     }
 
     /** The level a building of the node before this one must have for this one to open (the woods and the mine: once the smithy stands). */
     public int opensAt() {
-        return this == MINE_HOUSE || this == WOOD_HUT || this == CARPENTER || this == COOP ? 1
-                : this == SHEEP_PEN || this == CATTLE_BARN || this == LOCKSMITH ? 2 : 3;
+        return this == MINE_HOUSE || this == WOOD_HUT || this == CARPENTER || this == FARMYARD ? 1
+                : this == WEAVER || this == LOCKSMITH || this == SMELTER || this == GLASSWORKS ? 2 : 3;
     }
 
     public final Branch branch;
@@ -233,9 +238,9 @@ public enum BuildingType {
         return job != null;
     }
 
-    /** A run of animals (the hens, the sheep, the cows). */
+    /** The farmyard: runs of animals. */
     public boolean isPen() {
-        return this == COOP || this == SHEEP_PEN || this == CATTLE_BARN;
+        return this == FARMYARD;
     }
 
     /** How far from the middle of the tree: 1 for a root. */
@@ -268,6 +273,8 @@ public enum BuildingType {
 
     public static BuildingType byId(String id) {
         for (BuildingType t : values()) if (t.id().equals(id)) return t;
+        // (the runs of old, each of its own, are the farmyard now)
+        if (id.equals("coop") || id.equals("sheep_pen") || id.equals("cattle_barn")) return FARMYARD;
         return null;
     }
 }
