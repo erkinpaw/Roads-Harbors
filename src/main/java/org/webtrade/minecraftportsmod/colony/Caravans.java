@@ -42,7 +42,7 @@ public final class Caravans {
     static final int SEEN = 80;
     /** The goods traded. */
     static final Res[] GOODS = {Res.FOOD, Res.WOOD, Res.STONE, Res.PLANKS, Res.STICKS, Res.COAL, Res.IRON, Res.WHEAT, Res.JOINERY,
-            Res.TOOLS1, Res.TOOLS2, Res.TOOLS3};
+            Res.TOOLS1, Res.TOOLS2, Res.TOOLS3, Res.WOOL, Res.LEATHER, Res.METALWARE, Res.FURNITURE};
     /** The most a merchant's mules carry, all told. */
     public static final int MAX_LOAD = 1000;
     /** A round is not worth the walk for less than this much to sell and buy, all told. */
@@ -722,8 +722,8 @@ public final class Caravans {
                 if (t.at < length(p) - 20 && playerNear(level, a[0], a[1], SEEN) && level.hasChunkAt(pos) && level.isPositionEntityTicking(pos)) {
                     var e = org.webtrade.minecraftportsmod.registry.ModContent.RESIDENT.create(level, net.minecraft.world.entity.EntitySpawnReason.MOB_SUMMONED);
                     if (e != null) {
-                        int y = PlotFinder.floorAt(level, a[0], a[1]);
-                        e.snapTo(a[0] + 0.5, y, a[1] + 0.5, 0, 0);
+                        net.minecraft.core.BlockPos stand = PlotFinder.ground(level, a[0], a[1]);
+                        e.snapTo(stand.getX() + 0.5, stand.getY(), stand.getZ() + 0.5, 0, 0);
                         e.syncColony(m, home, data.day);
                         level.addFreshEntity(e);
                         m.body = e.getUUID();

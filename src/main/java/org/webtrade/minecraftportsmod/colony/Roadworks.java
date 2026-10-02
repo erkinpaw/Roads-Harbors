@@ -700,6 +700,36 @@ public final class Roadworks {
         return new BlockPos(x, PlotFinder.floorAt(level, x, z), z);
     }
 
+    /** A crew member's place in his crew (0 the first), or -1. */
+    static int crewIndex(VillageData data, Village v, Dweller d) {
+        Work w = workOf(data, v, d);
+        Side s = w == null ? null : w.side(v.id);
+        return s == null ? -1 : s.crew.indexOf(d.id);
+    }
+
+    /**
+     * What a crew member works at: the ground a little ahead of the end of what is made (by his side of the way), or
+     * the end of the deck where a bridge goes out over water or a gap. Null if nothing is loaded there.
+     */
+    static BlockPos workBlock(ServerLevel level, VillageData data, Village v, Dweller d) {
+        Work w = workOf(data, v, d);
+        Side s = w == null ? null : w.side(v.id);
+        if (s == null || s.state != WORKING) return null;
+        double dir = s == w.sa ? 1 : -1, end = w.front(s);
+        double ahead = Math.max(0, Math.min(w.length(), end + dir * 2));
+        int[] p = w.at(ahead);
+        double h = Math.toRadians(w.heading(ahead) + 90);
+        int off = s.crew.indexOf(d.id) == 0 ? -1 : 1;
+        int x = p[0] + (int) Math.round(Math.cos(h) * off), z = p[1] + (int) Math.round(Math.sin(h) * off);
+        if (!level.hasChunkAt(new BlockPos(x, 0, z))) return null;
+        if (wet(level, x, z)) {
+            // over water: the end of the deck
+            int[] q = w.at(standing(level, w, s, end));
+            return new BlockPos(q[0], PlotFinder.floorAt(level, q[0], q[1]) - 1, q[1]);
+        }
+        return new BlockPos(x, Trails.groundAt(level, x, z), z);
+    }
+
     /**
      * The next few steps of a crew member towards where he works: along the way made (so over its bridges, never
      * down into the gap or the water beside them); first back onto the way if he is off it.
@@ -854,7 +884,7 @@ public final class Roadworks {
                         if (to != null) {
                             BlockPos was = e.blockPosition();
                             e.getNavigation().stop();
-                            e.snapTo(to.getX() + 0.5, to.getY(), to.getZ() + 0.5, e.getYRot(), 0);
+                            VillageManager.snap(level, e, to, "crew stuck");
                             SNAPS.add(was);
                             Minecraftportsmod.LOGGER.info("Crew member {} of {} stuck at {} ({}): put at {}", d.name, v.name, was.toShortString(),
                                     level.getBlockState(was).getBlock(), to.toShortString());
@@ -878,7 +908,8 @@ public final class Roadworks {
             if (body == null) continue;
             // (by day a few steps behind the end of the way, on what is made: they walk up to it)
             int[] p = day ? w.at(s == w.sa ? Math.max(0, w.front(s) - 6) : Math.min(w.length(), w.front(s) + 6)) : where;
-            body.snapTo(p[0] + 0.5, PlotFinder.floorAt(level, p[0], p[1]), p[1] + 0.5, 0, 0);
+            BlockPos stand = PlotFinder.ground(level, p[0], p[1]);
+            body.snapTo(stand.getX() + 0.5, stand.getY(), stand.getZ() + 0.5, 0, 0);
             body.syncColony(d, v, data.day);
             level.addFreshEntity(body);
             d.body = body.getUUID();

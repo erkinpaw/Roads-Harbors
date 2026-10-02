@@ -37,11 +37,24 @@ public enum Res {
     /** The smith's work: tools for the trades, wooden, stone, iron; each worker wears them out. */
     TOOLS1(Items.WOODEN_PICKAXE),
     TOOLS2(Items.STONE_PICKAXE),
-    TOOLS3(Items.IRON_PICKAXE);
+    TOOLS3(Items.IRON_PICKAXE),
+    /** Shorn from the village's sheep at the sheepfold: beds and carpets are made with it. */
+    WOOL(Items.WOOL.white()),
+    /** The hides of the cattle barn: chairs, saddles, the covers of books. */
+    LEATHER(Items.LEATHER),
+    /** The locksmith's work, counted as one: buckets, chains, lanterns, hinges and nails. */
+    METALWARE(Items.LANTERN),
+    /** The joiner's finer work (his workshop raised a level): beds, tables, chairs, cupboards. The better homes are furnished with it. */
+    FURNITURE(Items.BED.red());
 
     /** The tools of a level (1 wooden, 2 stone, 3 iron). */
     public static Res tools(int level) {
         return level <= 1 ? TOOLS1 : level == 2 ? TOOLS2 : TOOLS3;
+    }
+
+    /** Goods only some trades use: none kept (nor bought) by a village that has no use for them. */
+    public boolean optional() {
+        return this == WOOL || this == LEATHER || this == METALWARE || this == FURNITURE;
     }
 
     /** The level of a store of tools (0: not tools). */
@@ -67,8 +80,8 @@ public enum Res {
     public Kind kind() {
         return switch (this) {
             case FOOD -> Kind.FOOD;
-            case WOOD, STONE, IRON, COAL, WHEAT -> Kind.RAW;
-            case PLANKS, STICKS, JOINERY -> Kind.BUILDING;
+            case WOOD, STONE, IRON, COAL, WHEAT, WOOL, LEATHER -> Kind.RAW;
+            case PLANKS, STICKS, JOINERY, METALWARE, FURNITURE -> Kind.BUILDING;
             case TOOLS1, TOOLS2, TOOLS3 -> Kind.TOOLS;
         };
     }
@@ -112,6 +125,12 @@ public enum Res {
             case TOOLS1 -> stack.is(Items.WOODEN_PICKAXE) || stack.is(Items.WOODEN_AXE) || stack.is(Items.WOODEN_SHOVEL) || stack.is(Items.WOODEN_HOE) ? 1 : 0;
             case TOOLS2 -> stack.is(Items.STONE_PICKAXE) || stack.is(Items.STONE_AXE) || stack.is(Items.STONE_SHOVEL) || stack.is(Items.STONE_HOE) ? 1 : 0;
             case TOOLS3 -> stack.is(Items.IRON_PICKAXE) || stack.is(Items.IRON_AXE) || stack.is(Items.IRON_SHOVEL) || stack.is(Items.IRON_HOE) ? 1 : 0;
+            case WOOL -> stack.is(ItemTags.WOOL) ? 1 : 0;
+            case LEATHER -> stack.is(Items.LEATHER) || stack.is(Items.RABBIT_HIDE) ? 1 : 0;
+            case METALWARE -> stack.is(Items.BUCKET) || stack.is(Items.IRON_CHAIN) || stack.is(Items.LANTERN) || stack.is(Items.IRON_BARS)
+                    || stack.is(Items.SHEARS) ? 1 : 0;
+            case FURNITURE -> stack.is(ItemTags.BEDS) || stack.is(Items.BOOKSHELF) || stack.is(Items.LECTERN) || stack.is(Items.ITEM_FRAME)
+                    || stack.is(Items.PAINTING) ? 1 : 0;
         };
     }
 }

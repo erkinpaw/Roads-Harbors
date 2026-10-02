@@ -28,6 +28,32 @@ final class PlotFinder {
         return y + 1;
     }
 
+    /**
+     * Where someone can stand in the column (x, z) nearest the height {@code near}: solid underfoot, room for the
+     * feet and the head; looked for a few blocks up and down (not the top of the column: in a village that is a
+     * roof). Null if there is no such place close by.
+     */
+    public static BlockPos standAt(ServerLevel level, int x, int z, int near) {
+        for (int d = 0; d <= 6; d++) {
+            for (int y : d == 0 ? new int[]{near} : new int[]{near + d, near - d}) {
+                BlockPos p = new BlockPos(x, y, z);
+                BlockState below = level.getBlockState(p.below());
+                if (!below.isFaceSturdy(level, p.below(), net.minecraft.core.Direction.UP) && !below.is(BlockTags.SLABS) && !below.is(BlockTags.STAIRS)) continue;
+                if (!level.getBlockState(p).getCollisionShape(level, p).isEmpty() || !level.getBlockState(p.above()).getCollisionShape(level, p.above()).isEmpty()) continue;
+                if (!level.getBlockState(p).getFluidState().isEmpty()) continue;
+                return p;
+            }
+        }
+        return null;
+    }
+
+    /** {@link #standAt} near the ground of the column (trees and plants aside), or that ground itself. */
+    public static BlockPos ground(ServerLevel level, int x, int z) {
+        int g = Trails.groundAt(level, x, z) + 1;
+        BlockPos p = standAt(level, x, z, g);
+        return p != null ? p : new BlockPos(x, g, z);
+    }
+
     private static boolean isPlant(BlockState s) {
         return s.is(BlockTags.LOGS) || s.is(BlockTags.LEAVES) || s.is(net.minecraft.world.level.block.Blocks.BAMBOO)
                 || s.is(net.minecraft.world.level.block.Blocks.CACTUS);
@@ -52,8 +78,8 @@ final class PlotFinder {
         }
         BlockPos c = v.center;
         int half = type.half;
-        // (the mine keeps well away from the houses even with no rock to go by)
-        boolean mine = type.branch == BuildingType.Branch.MINE;
+        // (the mine keeps away from the houses even with no rock to go by; the smithy is in the village like any workshop)
+        boolean mine = type == BuildingType.MINE_HOUSE;
         int first = mine ? MINE_AWAY : 8 + half, last = mine ? MINE_AWAY + 40 : MAX_RING + (steep ? 16 : 0);
         for (int ring = first; ring <= last; ring += 2) {
             int steps = Math.max(12, ring * 2);
@@ -101,8 +127,8 @@ final class PlotFinder {
     private static BlockPos anchor(ServerLevel level, Village v, BuildingType type) {
         switch (type.branch) {
             case MINE -> {
-                // the rock well away from the houses (noise, dust, the mine behind it); the farthest there is if none is that far
-                return farRock(level, v);
+                // the miners' house: by the rock (noise, dust, the mine behind it); else on a knoll, or down in a hollow
+                return type == BuildingType.MINE_HOUSE ? mineSpot(level, v) : null;
             }
             case WOOD -> {
                 for (BlockPos t : DwellerGoals.trees(level, v)) if (t.distSqr(v.center) > WOOD_AWAY * WOOD_AWAY) return t;
@@ -127,7 +153,7 @@ final class PlotFinder {
      * nearest first; null if there is none in reach.
      */
     private static BlockPos farRock(ServerLevel level, Village v) {
-        for (int d = MINE_AWAY; d <= MINE_AWAY + 40; d += 4) {
+        for (int d = MINE_AWAY; d <= ROCK_REACH; d += 4) {
             int steps = Math.max(24, d / 2);
             for (int a = 0; a < steps; a++) {
                 double ang = a * Math.PI * 2 / steps + v.id;
@@ -140,20 +166,55 @@ final class PlotFinder {
         return null;
     }
 
-    /** How far out of the village the mine and the woodcutters stand. */
-    static final int MINE_AWAY = 85, WOOD_AWAY = 24;
+    /**
+     * Where the miners dig with no rock about: the highest ground some way out if it rises well over the village (a
+     * knoll), else the lowest dry ground if it falls well below it (a hollow); null if the land is flat all round.
+     */
+    private static BlockPos hillOrHollow(ServerLevel level, Village v) {
+        BlockPos high = null, low = null;
+        int top = Integer.MIN_VALUE, bottom = Integer.MAX_VALUE, c = v.center.getY();
+        for (int d = MINE_AWAY; d <= MINE_AWAY + 50; d += 6) {
+            int steps = Math.max(16, d / 2);
+            for (int a = 0; a < steps; a++) {
+                double ang = a * Math.PI * 2 / steps + v.id;
+                int x = v.center.getX() + (int) Math.round(Math.cos(ang) * d), z = v.center.getZ() + (int) Math.round(Math.sin(ang) * d);
+                if (!Construction.loaded(level, new BlockPos(x, 0, z))) continue;
+                int f = floorAt(level, x, z);
+                if (!level.getBlockState(new BlockPos(x, f - 1, z)).getFluidState().isEmpty()) continue;
+                if (f > top) {
+                    top = f;
+                    high = new BlockPos(x, f, z);
+                }
+                if (f < bottom) {
+                    bottom = f;
+                    low = new BlockPos(x, f, z);
+                }
+            }
+        }
+        if (high != null && top >= c + 5) return high;
+        if (low != null && bottom <= c - 4) return low;
+        return null;
+    }
+
+    /** The miners' house's place: the nearest bare rock in reach; else a knoll or a hollow; null: anywhere some way out. */
+    private static BlockPos mineSpot(ServerLevel level, Village v) {
+        BlockPos rock = farRock(level, v);
+        return rock != null ? rock : hillOrHollow(level, v);
+    }
+
+    /** How far out of the village the miners' house stands at least (rock looked for out to {@link #ROCK_REACH}), and the woodcutters. */
+    static final int MINE_AWAY = 40, ROCK_REACH = 125, WOOD_AWAY = 24;
 
     /** A plot as close as can be to a point, not too near the middle of the village (the trades keep apart). */
     private static Blueprint.Frame near(ServerLevel level, Village v, BuildingType type, BlockPos anchor, int ignore, boolean steep) {
         BlockPos c = v.center;
         int half = type.half;
-        int minFromCenter = switch (type.branch) {
-            case MINE -> MINE_AWAY - 4;
+        int minFromCenter = type == BuildingType.MINE_HOUSE ? MINE_AWAY - 4 : switch (type.branch) {
             case WOOD -> WOOD_AWAY - 4;
             case FOOD -> 10;
             default -> type.isWorkshop() ? 16 : 10;
         };
-        int maxFromCenter = type.branch == BuildingType.Branch.MINE ? MINE_AWAY + 45 : type.branch == BuildingType.Branch.WOOD ? 80 : MAX_RING + 12;
+        int maxFromCenter = type == BuildingType.MINE_HOUSE ? ROCK_REACH + 10 : type.branch == BuildingType.Branch.WOOD ? 80 : MAX_RING + 12;
         for (int ring = half + 2; ring <= 22; ring += 2) {
             int steps = Math.max(8, ring * 2);
             for (int a = 0; a < steps; a++) {
@@ -186,6 +247,18 @@ final class PlotFinder {
      * The floor height for a plot: the middle of the land there, if it is dry, loaded and no steeper than a small
      * terrace; else null.
      */
+    /** Is the plot on a beach (by the world's biomes: known even where the land is not loaded)? */
+    static boolean beach(ServerLevel level, BlockPos center, int half) {
+        var gen = level.getChunkSource().getGenerator();
+        var rs = level.getChunkSource().randomState();
+        int y = level.getSeaLevel() >> 2;
+        for (int[] d : new int[][]{{0, 0}, {-half, -half}, {half, half}, {-half, half}, {half, -half}}) {
+            var b = gen.getBiomeSource().getNoiseBiome((center.getX() + d[0]) >> 2, y, (center.getZ() + d[1]) >> 2, rs.sampler());
+            if (b.is(net.minecraft.tags.BiomeTags.IS_BEACH)) return true;
+        }
+        return false;
+    }
+
     static Integer floor(ServerLevel level, BlockPos center, int half) {
         return floor(level, null, center, half, false);
     }
@@ -199,6 +272,9 @@ final class PlotFinder {
         List<Integer> heights = new ArrayList<>();
         int sea = level.getSeaLevel();
         VillageTerrain.Grid grid = null;
+        // (not on a beach: sand is no ground for a house)
+        if (beach(level, center, half)) return null;
+        int sand = 0, ground = 0;
         for (int x = -half - 1; x <= half + 1; x++) {
             for (int z = -half - 1; z <= half + 1; z++) {
                 int px = center.getX() + x, pz = center.getZ() + z;
@@ -213,10 +289,13 @@ final class PlotFinder {
                     f = floorAt(level, px, pz);
                     BlockState st = level.getBlockState(new BlockPos(px, f - 1, pz));
                     if (!st.getFluidState().isEmpty() || st.is(BlockTags.ICE)) return null;
+                    ground++;
+                    if (st.is(BlockTags.SAND) || st.is(net.minecraft.world.level.block.Blocks.GRAVEL)) sand++;
                 }
                 heights.add(f);
             }
         }
+        if (ground > 0 && sand * 4 > ground) return null;
         heights.sort(Integer::compare);
         int floor = heights.get(heights.size() / 2);
         if (floor < sea) return null;

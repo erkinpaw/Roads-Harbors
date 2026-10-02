@@ -33,7 +33,7 @@ public final class Tidy {
 
     /** What needs doing at a spot. */
     public enum Kind {
-        HOLE, PUDDLE, LEDGE, WEED, LEAVES;
+        HOLE, PUDDLE, LEDGE, WEED, LEAVES, TREE, POST, BUMP;
 
         String act() {
             return "tidy_" + name().toLowerCase(java.util.Locale.ROOT);
@@ -50,7 +50,7 @@ public final class Tidy {
     /** Spots no one could get to: left alone. */
     private static final Map<Integer, Set<BlockPos>> NEVER = new HashMap<>();
     /** How many jobs a village's list holds. */
-    private static final int LIST = 80;
+    private static final int LIST = 160;
 
     private Tidy() {
     }
@@ -85,6 +85,7 @@ public final class Tidy {
         if (s.isAir() || s.getBlock() instanceof SaplingBlock || s.getBlock() instanceof CropBlock) return false;
         return s.is(BlockTags.FLOWERS) || s.is(Blocks.SHORT_GRASS) || s.is(Blocks.TALL_GRASS) || s.is(Blocks.FERN) || s.is(Blocks.LARGE_FERN)
                 || s.is(Blocks.DEAD_BUSH) || s.is(Blocks.SWEET_BERRY_BUSH) || s.is(Blocks.BUSH) || s.is(Blocks.SHORT_DRY_GRASS) || s.is(Blocks.TALL_DRY_GRASS)
+                || s.is(Blocks.VINE) || s.is(Blocks.SUGAR_CANE) || s.is(Blocks.PUMPKIN) || s.is(Blocks.MELON)
                 || s.getBlock() instanceof BushBlock && s.canBeReplaced();
     }
 
@@ -126,6 +127,16 @@ public final class Tidy {
             return smallWater(level, w) ? new Job(Kind.PUDDLE, w) : null;
         }
         if (weed(above)) return new Job(Kind.WEED, g.above());
+        // a tree on the village's land (the woodcutters' grove aside): felled; a stump or a lone post: taken away
+        BlockPos up = g.above();
+        BlockState stand = level.getBlockState(up);
+        if (stand.is(BlockTags.LOGS) && !grove(v, x, z)) {
+            boolean crown = false;
+            for (int k = 1; k <= 12 && !crown; k++) crown = level.getBlockState(up.above(k)).is(BlockTags.LEAVES);
+            return new Job(crown ? Kind.TREE : Kind.POST, up);
+        }
+        if (stand.is(BlockTags.FENCES) && !level.getBlockState(up.above()).is(BlockTags.FENCES) && level.getBlockState(up.above()).isAir()
+                && !nearBuilding(v, x, z, 1)) return new Job(Kind.POST, up);
         // a hole or a crack: lower than its neighbours all round by two or more
         int[] n = new int[4];
         int k = 0, lowest = Integer.MAX_VALUE;
@@ -134,7 +145,13 @@ public final class Tidy {
             lowest = Math.min(lowest, n[k]);
             k++;
         }
-        if (lowest - ground >= 2 && Construction.natural(top)) return new Job(Kind.HOLE, g);
+        if (lowest - ground >= 1 && Construction.natural(top)) return new Job(Kind.HOLE, g);
+        // a bump: one column standing up over all of its neighbours
+        int highestN = Integer.MIN_VALUE;
+        for (int h : n) highestN = Math.max(highestN, h);
+        if (ground - highestN >= 1 && Construction.natural(top) && !top.is(Blocks.DIRT_PATH) && (above.isAir() || above.canBeReplaced())) {
+            return new Job(Kind.BUMP, g);
+        }
         // a ledge by the buildings and paths: two to five straight down to a neighbour (a higher cliff is the land's own)
         int drop = ground - lowest;
         if (drop >= 2 && drop <= 5 && Construction.natural(top) && !top.is(Blocks.DIRT_PATH) && (above.isAir() || above.canBeReplaced())
@@ -142,6 +159,24 @@ public final class Tidy {
             return new Job(Kind.LEDGE, g);
         }
         return null;
+    }
+
+    /** The woodcutters' grove: round their hut, out past its yard. */
+    private static boolean grove(Village v, int x, int z) {
+        for (Building b : v.buildings) {
+            if (b.type != BuildingType.WOOD_HUT) continue;
+            int h = b.type.half + 14;
+            if (Math.abs(x - b.origin.getX()) <= h && Math.abs(z - b.origin.getZ()) <= h) return true;
+        }
+        return false;
+    }
+
+    private static boolean nearBuilding(Village v, int x, int z, int margin) {
+        for (Building b : v.buildings) {
+            int h = b.type.half + margin;
+            if (Math.abs(x - b.origin.getX()) <= h && Math.abs(z - b.origin.getZ()) <= h) return true;
+        }
+        return false;
     }
 
     private static boolean trunkNear(ServerLevel level, BlockPos p) {
@@ -258,6 +293,53 @@ public final class Tidy {
                     if (level.getBlockState(q).is(BlockTags.LEAVES) && !trunkNear(level, q)) clump.add(q.immutable());
                 }
                 for (BlockPos q : clump) level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);
+            }
+            case TREE -> {
+                // felled whole, crown and all; the logs go to the store
+                BlockPos foot = p;
+                while (level.getBlockState(foot.below()).is(BlockTags.LOGS)) foot = foot.below();
+                List<BlockPos> tree = WorkGoal.tree(level, foot, null);
+                int logs = 0;
+                if (tree != null) {
+                    for (BlockPos t : tree) {
+                        if (level.getBlockState(t).is(BlockTags.LOGS)) logs++;
+                        level.setBlock(t, Blocks.AIR.defaultBlockState(), FLAGS);
+                    }
+                }
+                // (and what hangs round it: loose leaves, vines)
+                for (BlockPos q : BlockPos.betweenClosed(foot.offset(-4, 0, -4), foot.offset(4, 16, 4))) {
+                    BlockState s = level.getBlockState(q);
+                    if (s.is(Blocks.VINE) || s.is(BlockTags.LEAVES) && !trunkNear(level, q)) level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);
+                }
+                if (logs > 0) {
+                    v.add(Res.WOOD, logs);
+                    v.made.merge(Res.WOOD, logs, Integer::sum);
+                }
+            }
+            case POST -> {
+                // a stump, a lone post: the column of it taken away
+                BlockPos q = p;
+                while (level.getBlockState(q).is(BlockTags.LOGS) || level.getBlockState(q).is(BlockTags.FENCES)) {
+                    level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);
+                    q = q.above();
+                }
+            }
+            case BUMP -> {
+                // cut down level with the highest of its neighbours
+                int highest = Integer.MIN_VALUE;
+                for (Direction d : Direction.Plane.HORIZONTAL) {
+                    highest = Math.max(highest, PlotFinder.floorAt(level, p.getX() + d.getStepX(), p.getZ() + d.getStepZ()) - 1);
+                }
+                BlockState over = level.getBlockState(p.above());
+                if (!over.isAir() && over.canBeReplaced()) level.setBlock(p.above(), Blocks.AIR.defaultBlockState(), FLAGS);
+                for (int y = p.getY(); y > highest; y--) {
+                    BlockPos q = new BlockPos(p.getX(), y, p.getZ());
+                    if (!Construction.natural(level.getBlockState(q))) break;
+                    level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);
+                }
+                BlockPos nt = new BlockPos(p.getX(), highest, p.getZ());
+                BlockState s = level.getBlockState(nt);
+                if (s.is(Blocks.DIRT) || s.is(Blocks.STONE) || s.is(Blocks.GRAVEL)) level.setBlock(nt, Blocks.GRASS_BLOCK.defaultBlockState(), FLAGS);
             }
             case PUDDLE -> {
                 // the puddle filled with earth, level with the land round it

@@ -38,7 +38,7 @@ public enum BuildingType {
     STONE_HOUSE(Branch.HOME, HOUSE, null, 4, 2, null, 0x8A8A8A, Items.IRON_DOOR, 3, false, Map.of(Res.STONE, 65, Res.PLANKS, 20, Res.WOOD, 10, Res.JOINERY, 14)),
     /** A stone house of two storeys, six beds. */
     STONE_HOUSE_TALL(Branch.HOME, STONE_HOUSE, null, 4, 3, null, 0x6A6A70, Items.STONE_BRICKS, 3, false,
-            Map.of(Res.STONE, 110, Res.PLANKS, 35, Res.WOOD, 10, Res.IRON, 5, Res.JOINERY, 24)),
+            Map.of(Res.STONE, 110, Res.PLANKS, 35, Res.WOOD, 10, Res.METALWARE, 6, Res.JOINERY, 24)),
 
     // ---- stores
     /** A roofed store with barrels and crates: the village's stock is kept here. */
@@ -71,7 +71,18 @@ public enum BuildingType {
     /** A field around a water channel: a farmer works it. What is sown is chosen in its menu. */
     FIELD(Branch.FOOD, null, null, 4, 0, null, 0xC8B040, Items.WHEAT, 3, true, Map.of(Res.WOOD, 6)),
     /** The farmstead: a barn by the fields. More fields, and more kinds of crops, with its levels. */
-    FARM(Branch.FOOD, FIELD, null, 3, 1, Job.FARMER, 0xB08A30, Items.HAY_BLOCK, 3, false, Map.of(Res.WOOD, 45, Res.STONE, 20));
+    FARM(Branch.FOOD, FIELD, null, 3, 1, Job.FARMER, 0xB08A30, Items.HAY_BLOCK, 3, false, Map.of(Res.WOOD, 45, Res.STONE, 20)),
+
+    // the animals (husbandry): a fenced run with the keeper's lodge at its front; the animals in it are real ones
+    /** The poultry yard: hens in a run; eggs and fowl, fed on grain. */
+    COOP(Branch.FOOD, FARM, null, 5, 1, Job.HERDER, 0xD8C890, Items.EGG, 3, false, Map.of(Res.WOOD, 30, Res.PLANKS, 16, Res.WHEAT, 10)),
+    /** The sheepfold: sheep, shorn for their wool; a little mutton; fed on grain. */
+    SHEEP_PEN(Branch.FOOD, COOP, null, 6, 1, Job.HERDER, 0xE8E8E0, Items.WOOL.white(), 3, false, Map.of(Res.WOOD, 35, Res.PLANKS, 20, Res.WHEAT, 15)),
+    /** The cattle barn: cows; milk and beef, and their hides; fed on grain, milked into the locksmith's buckets. */
+    CATTLE_BARN(Branch.FOOD, SHEEP_PEN, null, 6, 1, Job.HERDER, 0x6A4A30, Items.MILK_BUCKET, 3, false,
+            Map.of(Res.WOOD, 40, Res.PLANKS, 30, Res.STONE, 10, Res.WHEAT, 20)),
+    /** The locksmith's (metalwork): iron and coal into buckets, chains, lanterns, hinges. */
+    LOCKSMITH(Branch.MINE, MINE_HOUSE, null, 3, 1, Job.LOCKSMITH, 0x4A4A55, Items.LANTERN, 3, false, Map.of(Res.WOOD, 30, Res.STONE, 40, Res.IRON, 6));
 
     /**
      * The branches of the development tree. Three are what a village can make its speciality (food, wood, ore); the
@@ -141,13 +152,16 @@ public enum BuildingType {
             case FARM -> Sub.FARMING;
             case SAWMILL -> Sub.LOGGING;
             case CARPENTER -> Sub.JOINERY;
+            case COOP, SHEEP_PEN, CATTLE_BARN -> Sub.HUSBANDRY;
+            case LOCKSMITH -> Sub.METALWORK;
             default -> null;
         };
     }
 
     /** The level a building of the node before this one must have for this one to open (the woods and the mine: once the smithy stands). */
     public int opensAt() {
-        return this == MINE_HOUSE || this == WOOD_HUT || this == CARPENTER ? 1 : 3;
+        return this == MINE_HOUSE || this == WOOD_HUT || this == CARPENTER || this == COOP ? 1
+                : this == SHEEP_PEN || this == CATTLE_BARN || this == LOCKSMITH ? 2 : 3;
     }
 
     public final Branch branch;
@@ -217,6 +231,11 @@ public enum BuildingType {
     /** A house of one of the trades (miners, woodcutters, fishers, farmers). */
     public boolean isWorkshop() {
         return job != null;
+    }
+
+    /** A run of animals (the hens, the sheep, the cows). */
+    public boolean isPen() {
+        return this == COOP || this == SHEEP_PEN || this == CATTLE_BARN;
     }
 
     /** How far from the middle of the tree: 1 for a root. */
