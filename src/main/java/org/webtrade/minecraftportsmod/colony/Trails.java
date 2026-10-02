@@ -1360,10 +1360,10 @@ public final class Trails {
     /** Leaves and vines left hanging over a column of the cutting, held by no trunk near them: taken down. */
     private static void loose(ServerLevel level, int x, int z) {
         int ground = groundAt(level, x, z);
-        for (int y = ground + 1; y <= ground + 18; y++) {
+        for (int y = ground + 1; y <= ground + 32; y++) {
             BlockPos p = new BlockPos(x, y, z);
             BlockState st = level.getBlockState(p);
-            if (st.is(Blocks.VINE) || st.is(BlockTags.LEAVES) && !trunkNear(level, p)) level.setBlock(p, Blocks.AIR.defaultBlockState(), FLAGS);
+            if (WorkGoal.hangs(st) || st.is(BlockTags.LEAVES) && !trunkNear(level, p)) level.setBlock(p, Blocks.AIR.defaultBlockState(), FLAGS);
         }
     }
 
