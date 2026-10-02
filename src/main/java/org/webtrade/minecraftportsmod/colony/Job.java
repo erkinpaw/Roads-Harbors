@@ -30,7 +30,11 @@ public enum Job {
     /** Gathers what grows wild (berries, mushrooms, greens): a camp's first food, anywhere; no tools to it. */
     GATHERER(Res.FOOD, 28, Items.AIR, Items.AIR, Items.AIR, Items.AIR),
     /** Works the joiner's workshop: planks and sticks into joinery. Makes nothing of his own: see the workshop. */
-    JOINER(null, 0, Items.CRAFTING_TABLE, Items.CRAFTING_TABLE, Items.CRAFTING_TABLE, Items.CRAFTING_TABLE);
+    JOINER(null, 0, Items.CRAFTING_TABLE, Items.CRAFTING_TABLE, Items.CRAFTING_TABLE, Items.CRAFTING_TABLE),
+    /** Keeps the village's animals (hens, sheep, cows): food, wool, hides; the animals eat grain. Lives at his run. */
+    HERDER(Res.FOOD, 18, Items.WHEAT, Items.SHEARS, Items.SHEARS, Items.SHEARS),
+    /** Works the locksmith's: iron and coal into metalware. Makes nothing of his own: see the workshop. */
+    LOCKSMITH(null, 0, Items.IRON_INGOT, Items.IRON_INGOT, Items.IRON_INGOT, Items.IRON_INGOT);
 
     /** How fast the work goes: bare hands (no smithy), then the smithy's levels: wooden, stone, iron tools. */
     public static final double[] TOOL_SPEED = {0.6, 1.0, 1.3, 1.6};

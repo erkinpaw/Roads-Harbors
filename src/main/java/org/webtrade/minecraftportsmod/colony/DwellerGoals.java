@@ -480,6 +480,9 @@ public final class DwellerGoals {
         private final ResidentEntity r;
         private final int[] repath = {0};
         private int swing, timer;
+        /** The block being dug or hewn (its cracks shown), and how far along. */
+        private BlockPos cracking;
+        private int crack;
 
         RoadWork(ResidentEntity r) {
             this.r = r;
@@ -526,28 +529,76 @@ public final class DwellerGoals {
             if (r.isSleeping()) r.stopSleeping();
             BlockPos at = Roadworks.front(level, data, v, d);
             if (at == null) return;
-            r.hold(new ItemStack(switch (v.toolLevel(Job.WOODCUTTER)) {
-                case 3 -> net.minecraft.world.item.Items.IRON_AXE;
-                case 2 -> net.minecraft.world.item.Items.STONE_AXE;
-                default -> net.minecraft.world.item.Items.WOODEN_AXE;
-            }));
+            BlockPos work = Roadworks.workBlock(level, data, v, d);
+            BlockState ws = work == null ? null : level.getBlockState(work);
+            // the first of a crew digs (a shovel), the other hews and clears (an axe); over water both build the deck
+            boolean deck = ws != null && (ws.is(BlockTags.PLANKS) || ws.is(BlockTags.WOODEN_SLABS) || ws.is(BlockTags.LOGS)
+                    || !level.getBlockState(work.above()).getFluidState().isEmpty() || !ws.getFluidState().isEmpty());
+            // an axe only for a tree in the way (the second of a crew fells it); with no tree, both dig
+            BlockPos log = null;
+            if (!deck && work != null && Roadworks.crewIndex(data, v, d) == 1) {
+                for (BlockPos q : BlockPos.betweenClosed(work.offset(-3, 1, -3), work.offset(3, 6, 3))) {
+                    if (level.getBlockState(q).is(BlockTags.LOGS)) {
+                        log = q.immutable();
+                        break;
+                    }
+                }
+            }
+            if (log != null) {
+                work = log;
+                ws = level.getBlockState(log);
+            }
+            boolean digger = !deck && log == null;
+            int tier = v.toolLevel(Job.WOODCUTTER);
+            r.hold(new ItemStack(deck ? Items.OAK_PLANKS
+                    : digger ? (tier >= 3 ? Items.IRON_SHOVEL : tier == 2 ? Items.STONE_SHOVEL : Items.WOODEN_SHOVEL)
+                    : (tier >= 3 ? Items.IRON_AXE : tier == 2 ? Items.STONE_AXE : Items.WOODEN_AXE)));
             // (along the way made, a few steps at a time: over its bridges, not through the water beside them)
             BlockPos next = Roadworks.step(level, data, v, d, r.getX(), r.getZ());
             if (next != null && !next.equals(at)) {
                 walk(r, next, 1.5, repath);
                 r.setActivity(act("to_roadwork", Roadworks.towards(data, v, d)));
+                uncrack(level);
             } else if (walk(r, at, 3, repath)) {
-                r.setActivity(act("roadwork", Roadworks.towards(data, v, d)));
-                r.getLookControl().setLookAt(at.getX() + 0.5, at.getY() + 1.5, at.getZ() + 0.5);
-                if (++swing % 12 == 0) r.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+                r.setActivity(act(deck ? "roadwork_bridge" : "roadwork", Roadworks.towards(data, v, d)));
+                BlockPos look = work != null && work.distSqr(r.blockPosition()) < 36 ? work : at;
+                r.getLookControl().setLookAt(look.getX() + 0.5, look.getY() + (look == work ? 0.9 : 1.5), look.getZ() + 0.5);
+                if (++swing % 12 == 0) {
+                    r.swing(InteractionHand.MAIN_HAND);
+                    if (look == work && ws != null && !ws.isAir()) {
+                        // the blows land: cracks in the ground dug, chips flying, the sound of the tool
+                        if (!work.equals(cracking)) {
+                            uncrack(level);
+                            cracking = work;
+                            crack = 0;
+                        }
+                        crack = (crack + 1) % 10;
+                        level.destroyBlockProgress(r.getId(), work, crack);
+                        BlockState shown = ws.getFluidState().isEmpty() ? ws : level.getBlockState(work.below());
+                        if (!shown.isAir()) {
+                            level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, shown), work.getX() + 0.5, work.getY() + 1.0,
+                                    work.getZ() + 0.5, 6, 0.3, 0.1, 0.3, 0.1);
+                        }
+                        var sound = deck ? net.minecraft.sounds.SoundEvents.WOOD_PLACE
+                                : digger ? shown.getSoundType().getHitSound() : net.minecraft.sounds.SoundEvents.WOOD_HIT;
+                        level.playSound(null, work, sound, net.minecraft.sounds.SoundSource.BLOCKS, 0.6F, 0.9F + r.getRandom().nextFloat() * 0.2F);
+                    }
+                }
             } else {
                 r.setActivity(act("to_roadwork", Roadworks.towards(data, v, d)));
+                uncrack(level);
             }
+        }
+
+        private void uncrack(ServerLevel level) {
+            if (cracking != null) level.destroyBlockProgress(r.getId(), cracking, -1);
+            cracking = null;
         }
 
         @Override
         public void stop() {
             if (r.isSleeping()) r.stopSleeping();
+            uncrack((ServerLevel) r.level());
         }
     }
 
@@ -887,7 +938,7 @@ public final class DwellerGoals {
         /** Where each of the trades that make nothing themselves works: the stall, the sawmill, the map table. */
         private static BuildingType placeOf(Job j) {
             return j == Job.MERCHANT ? BuildingType.MARKET : j == Job.SAWYER ? BuildingType.SAWMILL : j == Job.SCOUT ? BuildingType.CARTOGRAPHER
-                    : j == Job.SMITH ? BuildingType.SMITHY : null;
+                    : j == Job.SMITH ? BuildingType.SMITHY : j == Job.JOINER ? BuildingType.CARPENTER : j == Job.LOCKSMITH ? BuildingType.LOCKSMITH : null;
         }
 
         private Building stall() {
@@ -945,6 +996,22 @@ public final class DwellerGoals {
                         r.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
                         r.level().playSound(null, saw, net.minecraft.sounds.SoundEvents.UI_STONECUTTER_TAKE_RESULT,
                                 net.minecraft.sounds.SoundSource.BLOCKS, 0.5F, 0.9F + r.getRandom().nextFloat() * 0.2F);
+                    }
+                }
+                return;
+            }
+            if (job == Job.JOINER || job == Job.LOCKSMITH) {
+                // at the bench (the joiner) or the anvil by the door (the locksmith), at the work
+                boolean lock = job == Job.LOCKSMITH;
+                r.hold(new ItemStack(lock ? net.minecraft.world.item.Items.IRON_CHAIN : net.minecraft.world.item.Items.OAK_PLANKS));
+                r.setActivity(act(lock ? "metalwork" : "joinering"));
+                if (walk(r, spot, 1.2, repath)) {
+                    BlockPos bench = b.blueprint(v.wood).frame.at(1, 0, 3);
+                    r.getLookControl().setLookAt(bench.getX() + 0.5, bench.getY() + 0.8, bench.getZ() + 0.5);
+                    if (++ticks % 30 == 0) {
+                        r.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+                        r.level().playSound(null, bench, lock ? net.minecraft.sounds.SoundEvents.ANVIL_USE : net.minecraft.sounds.SoundEvents.WOOD_HIT,
+                                net.minecraft.sounds.SoundSource.BLOCKS, lock ? 0.3F : 0.6F, 0.9F + r.getRandom().nextFloat() * 0.3F);
                     }
                 }
                 return;

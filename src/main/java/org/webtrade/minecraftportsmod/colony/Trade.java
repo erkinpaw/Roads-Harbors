@@ -68,6 +68,10 @@ public final class Trade {
             case TOOLS1 -> 0.12;
             case TOOLS2 -> 0.3;
             case TOOLS3 -> 1.2;
+            case WOOL -> 0.1;
+            case LEATHER -> 0.15;
+            case METALWARE -> 0.5;
+            case FURNITURE -> 0.4;
         };
     }
 
@@ -112,6 +116,10 @@ public final class Trade {
                 case TOOLS1 -> new ItemStack(Items.WOODEN_PICKAXE);
                 case TOOLS2 -> new ItemStack(Items.STONE_PICKAXE);
                 case TOOLS3 -> new ItemStack(Items.IRON_PICKAXE);
+                case WOOL -> new ItemStack(Items.WOOL.white());
+                case LEATHER -> new ItemStack(Items.LEATHER);
+                case METALWARE -> new ItemStack(Items.LANTERN);
+                case FURNITURE -> new ItemStack(Items.BED.red());
             };
         }
         return new ItemStack(switch (w.tool()) {
