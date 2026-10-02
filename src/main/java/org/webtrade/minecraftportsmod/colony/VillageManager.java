@@ -46,6 +46,9 @@ public final class VillageManager {
             lastTimeOfDay = -1;
             DwellerGoals.clearCaches();
             Tidy.clear();
+            Territory.clear();
+            Reach.clear();
+            PATH_RETRY.clear();
             // (worked out on other threads, keyed by the villages' ids: they would be taken for the next world's)
             Trails.reset();
             Scouting.reset();
@@ -103,6 +106,7 @@ public final class VillageManager {
                 if (t % 40 == 0) bodies(level, data, v);
                 if (t % 200 == 0) Greening.step(level, v, 60);
                 if (t % 100 == 0) Tidy.survey(level, v, RND, 120);
+                if (t % 20 == 0) Tidy.catchUp(level, v, RND);
                 if (t % 200 == 100) Herds.step(level, v);
             }
         }
@@ -113,7 +117,9 @@ public final class VillageManager {
         data.day++;
         for (Village v : new ArrayList<>(data.all())) {
             try {
-                VillageLife.day(level, data, v, !skip && watched(level, v));
+                boolean seen = !skip && watched(level, v);
+                VillageLife.day(level, data, v, seen);
+                if (!seen) Tidy.owe(v, v.adults());
             } catch (Throwable e) {
                 Minecraftportsmod.LOGGER.error("Village {} day failed", v.name, e);
             }
@@ -266,6 +272,19 @@ public final class VillageManager {
         return true;
     }
 
+    /** When each building whose path could not be laid is tried again (game time). */
+    private static final Map<Long, Long> PATH_RETRY = new HashMap<>();
+
+    private static long pathKey(Village v, Building b) {
+        return ((long) v.id << 32) | (b.id & 0xFFFFFFFFL);
+    }
+
+    /** A building with no path at its door any more (or never had one): checked now and then. */
+    private static boolean relink(ServerLevel level, Village v, Building b) {
+        if (b.type.isCenter() || (level.getGameTime() / 10 + b.id * 7L) % 60 != 0) return false;
+        return !Paths.connected(level, v, Paths.doorstep(v, b));
+    }
+
     private static void upkeep(ServerLevel level, VillageData data, Village v) {
         java.util.Set<BlockPos> posts = new java.util.HashSet<>();
         for (Building b : v.buildings) if (wantsPost(v, b)) posts.add(b.blueprint(v.wood).post);
@@ -273,11 +292,33 @@ public final class VillageManager {
             if (!Construction.plotLoaded(level, b)) continue;
             // a building taking the place of another waits until the old one is gone
             if (b.replaces >= 0 && v.building(b.replaces) != null && b.state != Building.State.PLANNED) continue;
+            // a site across the water from the square: the bridge (and the path over it) goes up first
+            if (b.state == Building.State.PLANNED && !b.paths && !b.type.isCenter()) {
+                BlockPos door = Paths.doorstep(v, b);
+                Long next = PATH_RETRY.get(pathKey(v, b));
+                if ((next == null || level.getGameTime() >= next)
+                        && !Reach.ok(level, v, new BlockPos(door.getX(), PlotFinder.floorAt(level, door.getX(), door.getZ()), door.getZ()))) {
+                    if (Paths.lay(level, v, b)) {
+                        b.paths = true;
+                        Reach.forget(v);
+                        data.changed();
+                    } else {
+                        PATH_RETRY.put(pathKey(v, b), level.getGameTime() + 1200);
+                    }
+                }
+            }
             Construction.advance(level, v, b, CATCH_UP);
-            if (b.state == Building.State.BUILT && !b.paths && b.placed >= b.blueprint(v.wood).pieces.size()) {
-                Paths.lay(level, v, b);
-                b.paths = true;
-                data.changed();
+            if (b.state == Building.State.BUILT && b.placed >= b.blueprint(v.wood).pieces.size() && (!b.paths || relink(level, v, b))) {
+                // (no way found now: tried again a little later)
+                long now = level.getGameTime();
+                Long next = PATH_RETRY.get(pathKey(v, b));
+                if (next == null || now >= next) {
+                    boolean ok = Paths.lay(level, v, b);
+                    if (ok) PATH_RETRY.remove(pathKey(v, b));
+                    else PATH_RETRY.put(pathKey(v, b), now + 1200);
+                    b.paths = true;
+                    data.changed();
+                }
             }
             // a building site's post, and later the building's name plate; a post no one wants any more comes away
             if (wantsPost(v, b)) Construction.post(level, v, b, true);

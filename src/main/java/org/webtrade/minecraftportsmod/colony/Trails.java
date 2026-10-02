@@ -1066,7 +1066,7 @@ public final class Trails {
             if (decks == null) decks = decks(level, data, t);
             // (a gap whose far side is not loaded yet: its bridge waits till it is)
             if (decks[s] == UNKNOWN || decks[s + 1] == UNKNOWN) continue;
-            line(level, data, a, x0, z0, x1, z1, decks[s], decks[s + 1], alongX(t, decks, s));
+            layStretch(level, data, a, t, decks, s);
             t.setLaid(s);
             done++;
         }
@@ -1102,13 +1102,51 @@ public final class Trails {
                 if (decks[seg] == UNKNOWN || decks[seg + 1] == UNKNOWN) return;
                 Village a = woodOf(data, t);
                 if (a == null) return;
-                line(level, data, a, p[s], p[s + 1], p[s + 2], p[s + 3], decks[seg], decks[seg + 1], alongX(t, decks, seg));
+                layStretch(level, data, a, t, decks, seg);
                 t.setLaid(seg);
                 data.changed();
                 return;
             }
         }
     }
+
+    /**
+     * Lays stretch {@code s} of a trail. A stretch of a bridge is laid along the straight line from the bank the
+     * bridge starts at to the bank it ends at (its part of that line), so the bridge is one straight span however
+     * the trail bends; a dry gap (a pit, a hollow) not too deep is filled with earth instead, and the way goes on
+     * over it.
+     */
+    private static void layStretch(ServerLevel level, VillageData data, Village a, Trail t, int[] decks, int s) {
+        int[] p = t.points;
+        int x0 = p[2 * s], z0 = p[2 * s + 1], x1 = p[2 * s + 2], z1 = p[2 * s + 3];
+        if (decks[s] == NONE || decks[s + 1] == NONE) {
+            line(level, data, a, x0, z0, x1, z1, decks[s], decks[s + 1], alongX(t, decks, s), false);
+            return;
+        }
+        int i0 = s, i1 = s + 1;
+        while (i0 > 0 && decks[i0 - 1] != NONE && decks[i0 - 1] != UNKNOWN) i0--;
+        while (i1 + 1 < decks.length && decks[i1 + 1] != NONE && decks[i1 + 1] != UNKNOWN) i1++;
+        boolean wet = false;
+        int deepest = 0;
+        for (int i = i0; i <= i1; i++) {
+            int g = groundAt(level, p[2 * i], p[2 * i + 1]);
+            if (!level.getBlockState(new BlockPos(p[2 * i], g, p[2 * i + 1])).getFluidState().isEmpty()) wet = true;
+            deepest = Math.max(deepest, Math.max(decks[i], decks[s]) - g);
+        }
+        boolean fill = !wet && deepest <= FILL;
+        double[] cum = new double[i1 - i0 + 1];
+        for (int i = i0 + 1; i <= i1; i++) cum[i - i0] = cum[i - i0 - 1] + Math.hypot(p[2 * i] - p[2 * i - 2], p[2 * i + 1] - p[2 * i - 1]);
+        double total = Math.max(1e-6, cum[i1 - i0]);
+        double u0 = cum[s - i0] / total, u1 = cum[s + 1 - i0] / total;
+        int ax = p[2 * i0], az = p[2 * i0 + 1], bx = p[2 * i1], bz = p[2 * i1 + 1];
+        int sx0 = (int) Math.round(ax + (bx - ax) * u0), sz0 = (int) Math.round(az + (bz - az) * u0);
+        int sx1 = (int) Math.round(ax + (bx - ax) * u1), sz1 = (int) Math.round(az + (bz - az) * u1);
+        boolean alongX = Math.abs(bx - ax) >= Math.abs(bz - az);
+        line(level, data, a, sx0, sz0, sx1, sz1, decks[s], decks[s + 1], alongX, fill);
+    }
+
+    /** A dry gap at most this deep is filled with earth rather than bridged. */
+    static final int FILL = 8;
 
     /** No bridge at a point of a trail (the way follows the ground). */
     static final int NONE = Integer.MIN_VALUE;
@@ -1265,7 +1303,7 @@ public final class Trails {
      * it runs smooth whatever its direction), through a cutting seven blocks wide where every tree and bush is felled.
      * Over water, a plank deck with rails on its outer edges.
      */
-    private static void line(ServerLevel level, VillageData data, Village a, int x0, int z0, int x1, int z1, int d0, int d1, boolean alongX) {
+    private static void line(ServerLevel level, VillageData data, Village a, int x0, int z0, int x1, int z1, int d0, int d1, boolean alongX, boolean fill) {
         double dx = x1 - x0, dz = z1 - z0, len = Math.max(1e-6, Math.hypot(dx, dz));
         java.util.Set<Long> way = new java.util.LinkedHashSet<>(), cutting = new java.util.LinkedHashSet<>();
         for (double t = 0; t <= len + 1e-6; t += 0.5) {
@@ -1289,7 +1327,25 @@ public final class Trails {
             if (home(data, x, z) || !level.hasChunkAt(new BlockPos(x, 0, z))) continue;
             loose(level, x, z);
         }
-        // over a gap or across water: a bridge, its deck from bank to bank
+        // a dry gap: earth heaped in up to the way's height (from edge to edge), the way trodden on it
+        if (d0 != NONE && d1 != NONE && fill) {
+            for (long k : way) {
+                int x = (int) (k >> 32), z = (int) k;
+                if (built(data, x, z) || !level.hasChunkAt(new BlockPos(x, 0, z))) continue;
+                double u = Math.max(0, Math.min(1, ((x + 0.5 - x0 - 0.5) * dx + (z + 0.5 - z0 - 0.5) * dz) / (len * len)));
+                int h = (int) Math.round(d0 + (d1 - d0) * u);
+                int g = groundAt(level, x, z);
+                for (int y = g + 1; y <= h; y++) {
+                    BlockPos q = new BlockPos(x, y, z);
+                    BlockState st = level.getBlockState(q);
+                    if (!st.isAir() && !st.canBeReplaced()) break;
+                    level.setBlock(q, y == h ? Blocks.GRASS_BLOCK.defaultBlockState() : Blocks.DIRT.defaultBlockState(), FLAGS);
+                }
+                column(level, a, x, z);
+            }
+            return;
+        }
+        // across water: a bridge, its deck from bank to bank
         if (d0 != NONE && d1 != NONE) {
             span(level, data, a, x0, z0, x1, z1, d0, d1, alongX);
             return;
@@ -1304,10 +1360,10 @@ public final class Trails {
     /** Leaves and vines left hanging over a column of the cutting, held by no trunk near them: taken down. */
     private static void loose(ServerLevel level, int x, int z) {
         int ground = groundAt(level, x, z);
-        for (int y = ground + 1; y <= ground + 18; y++) {
+        for (int y = ground + 1; y <= ground + 32; y++) {
             BlockPos p = new BlockPos(x, y, z);
             BlockState st = level.getBlockState(p);
-            if (st.is(Blocks.VINE) || st.is(BlockTags.LEAVES) && !trunkNear(level, p)) level.setBlock(p, Blocks.AIR.defaultBlockState(), FLAGS);
+            if (WorkGoal.hangs(st) || st.is(BlockTags.LEAVES) && !trunkNear(level, p)) level.setBlock(p, Blocks.AIR.defaultBlockState(), FLAGS);
         }
     }
 
