@@ -235,8 +235,8 @@ public final class Tree {
         }
         // the lamps and torches the level brings
         out.put(Res.COAL, level >= 3 ? 2 : 1);
-        // a home's rooms furnished: a bed's worth for each of its people, and as much again at the top
-        if (t.isHome() && t != BuildingType.TENT) out.merge(Res.FURNITURE, level >= 3 ? 2 * t.beds : t.beds, Integer::sum);
+        // a house's rooms furnished (not a hut's): a bed's worth for each of its people, and as much again at the top
+        if (t.branch == BuildingType.Branch.HOME && t != BuildingType.TENT && t != BuildingType.HUT) out.merge(Res.FURNITURE, level >= 3 ? 2 * t.beds : t.beds, Integer::sum);
         // the buckets of a cattle barn; the fittings of the forge and the mine at the top
         if (t == BuildingType.CATTLE_BARN || level >= 3 && (t == BuildingType.SMITHY || t == BuildingType.MINE_HOUSE || t == BuildingType.LOCKSMITH)) {
             out.merge(Res.METALWARE, 2, Integer::sum);

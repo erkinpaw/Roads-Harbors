@@ -22,6 +22,8 @@ final class Herds {
     }
 
     private static final RandomSource RND = RandomSource.create();
+    /** The run's setting once it has had its first animals. */
+    static final String STOCKED = "stocked";
 
     /** The animals a run of this kind keeps at a level. */
     static int size(BuildingType t, int level) {
@@ -82,9 +84,14 @@ final class Herds {
             List<Animal> herd = animals(level, v, b);
             int want = size(b.type, b.level);
             if (herd.size() >= want) continue;
-            // a new run: stocked at once with grown animals; a herd short of its number: a young one now and then
-            boolean stock = herd.isEmpty();
-            int n = stock ? want : RND.nextInt(6) == 0 ? 1 : 0;
+            // a new run: stocked once with grown animals (brought from the market); a herd short of its number: a
+            // young one now and then; a run left with none (killed, run off): a young one bought in, rarely
+            boolean stock = herd.isEmpty() && !STOCKED.equals(b.option);
+            int n = stock ? want : RND.nextInt(herd.isEmpty() ? 30 : 6) == 0 ? 1 : 0;
+            if (stock) {
+                b.option = STOCKED;
+                VillageData.get(level.getServer()).changed();
+            }
             for (int i = 0; i < n; i++) {
                 BlockPos at = spot(level, v, b);
                 if (at == null) break;
