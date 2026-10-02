@@ -68,18 +68,15 @@ public final class DwellerGoals {
     }
 
     private static boolean night(ResidentEntity r) {
-        int t = r.dayTime();
-        return t >= 12500 && t < 23450;
+        return Routine.asleep(r);
     }
 
     private static boolean workHours(ResidentEntity r) {
-        int t = r.dayTime();
-        return t >= 1000 && t < 11500;
+        return Routine.working(r);
     }
 
     private static boolean afternoon(ResidentEntity r) {
-        int t = r.dayTime();
-        return t >= 6000 && t < 11500;
+        return Routine.afternoon(r);
     }
 
     private static boolean grownUp(ResidentEntity r) {
@@ -104,7 +101,7 @@ public final class DwellerGoals {
         r.walking = r.level().getGameTime();
         if (r.getNavigation().isDone() || --repath[0] <= 0) {
             repath[0] = 40;
-            r.getNavigation().moveTo(to.getX() + 0.5, to.getY(), to.getZ() + 0.5, 0.55);
+            r.getNavigation().moveTo(to.getX() + 0.5, to.getY(), to.getZ() + 0.5, Routine.mode(r).speed);
         }
         return false;
     }
@@ -176,10 +173,15 @@ public final class DwellerGoals {
         for (int i = 0; i < 40; i++) {
             double a = rnd.nextDouble() * Math.PI * 2;
             // the quarry away from the houses too
-            int dist = 30 + rnd.nextInt(16);
+            int dist = 30 + rnd.nextInt(40);
             int x = v.center.getX() + (int) (Math.cos(a) * dist), z = v.center.getZ() + (int) (Math.sin(a) * dist);
             if (!dryAround(level, v, x, z, 5)) continue;
+            // (off the village's own land: there pits are filled, not dug)
+            if (Territory.contains(v, x - 4, z - 4) || Territory.contains(v, x + 4, z + 4) || Territory.contains(v, x - 4, z + 4)
+                    || Territory.contains(v, x + 4, z - 4)) continue;
             int top = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1;
+            // (where the miner can walk to, and back with the stone, on dry feet)
+            if (!Reach.ok(level, v, new BlockPos(x, top + 1, z))) continue;
             // no digging into sand or gravel: it slides in and buries the digger
             boolean loose = false;
             for (int dx = -3; dx <= 3 && !loose; dx++) {
@@ -1064,12 +1066,12 @@ public final class DwellerGoals {
         @Override
         public void start() {
             Village v = village(r);
-            job = v == null ? null : Tidy.take(v, r.blockPosition());
+            job = v == null ? null : Tidy.take((ServerLevel) r.level(), v, r.blockPosition());
             timer = 0;
             swings = 0;
             r.hold(new ItemStack(job == null ? net.minecraft.world.item.Items.WOODEN_HOE : switch (job.kind()) {
-                case HOLE, LEDGE, PUDDLE, BUMP -> net.minecraft.world.item.Items.WOODEN_SHOVEL;
-                case TREE, POST -> net.minecraft.world.item.Items.STONE_AXE;
+                case HOLE, LEDGE, PUDDLE, BUMP, PIT -> net.minecraft.world.item.Items.WOODEN_SHOVEL;
+                case TREE, POST, DEBRIS -> net.minecraft.world.item.Items.STONE_AXE;
                 default -> net.minecraft.world.item.Items.WOODEN_HOE;
             }));
         }

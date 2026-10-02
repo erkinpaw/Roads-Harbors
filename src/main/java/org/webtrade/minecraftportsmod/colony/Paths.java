@@ -33,47 +33,108 @@ final class Paths {
     private Paths() {
     }
 
-    /** Lays the path of a building that has just been finished. */
-    static void lay(ServerLevel level, Village v, Building b) {
-        if (b.type.isCenter()) return;
-        BlockPos door = b.blueprint(v.wood).workSpot;
-        if (!Construction.loaded(level, door)) return;
-        // where the path goes: the nearest trodden path, else the edge of the middle
-        BlockPos goal = nearestPath(level, v, door, b);
-        List<int[]> route = route(level, v, door, goal, b);
-        if (route == null) return;
-        carve(level, v, route);
+    /**
+     * Lays the path of a building that has just been finished: from its door towards the square, the way people
+     * would walk there. Where a street already runs that way, the new path joins it (walking an old path is easier
+     * than treading a new one); else it makes a street of its own. So the streets leave the square in the directions
+     * the village has grown in, and the houses' paths run into them: one network, not a tree grown from the first
+     * house. False if no way could be found (tried again later).
+     */
+    static boolean lay(ServerLevel level, Village v, Building b) {
+        if (b.type.isCenter()) return true;
+        BlockPos door = doorstep(v, b);
+        if (!Construction.loaded(level, door)) return false;
+        BlockPos goal = squareEdge(level, v, door);
+        // a short bridge over a stream rather than a long way round it (people would not walk that); never a long one
+        List<int[]> route = route(level, v, door, goal, b, BRIDGE_STEP);
+        if (route != null && longestWet(route) > PlotFinder.BRIDGE) route = route(level, v, door, goal, b, -1);
+        if (route == null) {
+            org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("[paths] {}: no way from {} #{} at {} to {}", v.name, b.type.id(), b.id,
+                    door.toShortString(), goal.toShortString());
+            return false;
+        }
+        List<int[]> way = straighten(level, v, route);
+        int wet = 0;
+        for (int[] c : way) if (c[3] == 1) wet++;
+        org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("[paths] {}: {} #{} from {} to {}: {} steps, {} over water", v.name, b.type.id(), b.id,
+                door.toShortString(), goal.toShortString(), way.size(), wet);
+        carve(level, v, way);
+        return true;
     }
 
-    /** The nearest block of path already laid (not this building's own doorstep), or the edge of the middle. */
-    private static BlockPos nearestPath(ServerLevel level, Village v, BlockPos door, Building self) {
-        BlockPos best = null;
-        double bestD = Double.MAX_VALUE;
-        // the middle: a few steps out from the fire (or the well), on the side facing the door
-        double dx = door.getX() - v.center.getX(), dz = door.getZ() - v.center.getZ(), len = Math.max(1, Math.hypot(dx, dz));
-        int edge = 4;
-        BlockPos mid = new BlockPos(v.center.getX() + (int) Math.round(dx / len * edge), v.center.getY(), v.center.getZ() + (int) Math.round(dz / len * edge));
-        bestD = door.distSqr(mid);
-        best = mid;
-        int r = (int) Math.min(REACH, Math.sqrt(bestD) + 2);
-        for (int x = -r; x <= r; x++) {
-            for (int z = -r; z <= r; z++) {
-                if (x * x + z * z > r * r) continue;
-                int px = door.getX() + x, pz = door.getZ() + z;
-                // the doorstep of the building itself doesn't count
-                if (Math.abs(px - door.getX()) <= 1 && Math.abs(pz - door.getZ()) <= 1) continue;
-                if (!Construction.loaded(level, new BlockPos(px, 0, pz))) continue;
-                int y = PlotFinder.floorAt(level, px, pz) - 1;
-                if (!level.getBlockState(new BlockPos(px, y, pz)).is(Blocks.DIRT_PATH)) continue;
-                if (inPlot(v, px, pz, 0, self)) continue;
-                double d = (double) x * x + (double) z * z;
-                if (d < bestD) {
-                    bestD = d;
-                    best = new BlockPos(px, y + 1, pz);
+    /** What a step over water (a bridge's) costs the way, against 1 for a step on the land. */
+    private static final double BRIDGE_STEP = 2.5;
+
+    private static int longestWet(List<int[]> route) {
+        int best = 0, run = 0;
+        for (int[] c : route) {
+            run = c[3] == 1 ? run + 1 : 0;
+            best = Math.max(best, run);
+        }
+        return best;
+    }
+
+    /** Where a building's path starts: just outside its plot, in front (whatever work spot it has inside). */
+    static BlockPos doorstep(Village v, Building b) {
+        return b.blueprint(v.wood).frame.at(0, 0, b.type.half + 1);
+    }
+
+    /** The edge of the square on the side facing a point: a step out from the fire, the well or the paving. */
+    static BlockPos squareEdge(ServerLevel level, Village v, BlockPos from) {
+        Building center = null;
+        for (Building b : v.buildings) if (b.type.isCenter()) center = b;
+        int edge = (center == null ? 2 : center.type.half) + 2;
+        double dx = from.getX() - v.center.getX(), dz = from.getZ() - v.center.getZ(), len = Math.max(1, Math.hypot(dx, dz));
+        int x = v.center.getX() + (int) Math.round(dx / len * edge), z = v.center.getZ() + (int) Math.round(dz / len * edge);
+        return new BlockPos(x, Construction.loaded(level, new BlockPos(x, 0, z)) ? PlotFinder.floorAt(level, x, z) : v.center.getY(), z);
+    }
+
+    /**
+     * Does a path lead from the building's door to the square (over paths and bridges, a little way round)? A path
+     * cut by some later work is found out this way, and laid again.
+     */
+    static boolean connected(ServerLevel level, Village v, BlockPos door) {
+        Building center = null;
+        for (Building b : v.buildings) if (b.type.isCenter()) center = b;
+        int reach = (center == null ? 2 : center.type.half) + 3;
+        java.util.ArrayDeque<int[]> open = new java.util.ArrayDeque<>();
+        java.util.Set<Long> seen = new java.util.HashSet<>();
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                int x = door.getX() + dx, z = door.getZ() + dz;
+                if (way(level, x, z) && seen.add(Blueprint.key(x, z))) open.add(new int[]{x, z});
+            }
+        }
+        while (!open.isEmpty() && seen.size() < 6000) {
+            int[] c = open.poll();
+            if (Math.abs(c[0] - v.center.getX()) <= reach && Math.abs(c[1] - v.center.getZ()) <= reach) return true;
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    int x = c[0] + dx, z = c[1] + dz;
+                    if (!Construction.loaded(level, new BlockPos(x, 0, z))) return true;
+                    if (seen.add(Blueprint.key(x, z)) && way(level, x, z)) open.add(new int[]{x, z});
                 }
             }
         }
-        return best;
+        return false;
+    }
+
+    /** A column one walks along: a trodden path, a bridge's deck, the square's paving. */
+    static boolean way(ServerLevel level, int x, int z) {
+        BlockState s = level.getBlockState(new BlockPos(x, PlotFinder.floorAt(level, x, z) - 1, z));
+        return s.is(Blocks.DIRT_PATH) || s.is(BlockTags.PLANKS) || s.is(Blocks.STONE_BRICKS) || s.is(Blocks.COBBLESTONE) || s.is(Blocks.GRAVEL);
+    }
+
+    /** Is there a path at the building's door (its own, or one going by)? */
+    static boolean linked(ServerLevel level, Building b, BlockPos door) {
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                int x = door.getX() + dx, z = door.getZ() + dz;
+                BlockState s = level.getBlockState(new BlockPos(x, PlotFinder.floorAt(level, x, z) - 1, z));
+                if (s.is(Blocks.DIRT_PATH)) return true;
+            }
+        }
+        return false;
     }
 
     private static boolean inPlot(Village v, int x, int z, int margin, Building except) {
@@ -94,7 +155,7 @@ final class Paths {
      * The way from the door to the goal over the land, cell by cell (x, z, the ground's height): round plots, trees
      * and water; along paths already there when it can; steep ground only if there is no other way.
      */
-    private static List<int[]> route(ServerLevel level, Village v, BlockPos from, BlockPos to, Building self) {
+    private static List<int[]> route(ServerLevel level, Village v, BlockPos from, BlockPos to, Building self, double water) {
         int x0 = Math.min(from.getX(), to.getX()) - MARGIN, z0 = Math.min(from.getZ(), to.getZ()) - MARGIN;
         int w = Math.abs(from.getX() - to.getX()) + 2 * MARGIN + 1, h = Math.abs(from.getZ() - to.getZ()) + 2 * MARGIN + 1;
         int n = w * h;
@@ -151,11 +212,11 @@ final class Paths {
                 int nx = c.x + s[0], nz = c.z + s[1];
                 if (nx < 0 || nz < 0 || nx >= w || nz >= h) continue;
                 int m = nx * h + nz;
-                if (kind[m] == 2) continue;
+                if (kind[m] == 2 || kind[m] == 3 && water < 0) continue;
                 int dy = Math.abs(ground[m] - ground[k]);
                 // along a path already there is easiest; steep ground is hard (and will be dug or built up); over water
                 // only if there is no way round (a bridge is a lot of work)
-                double step = (kind[m] == 1 ? 0.35 : kind[m] == 3 ? 6.0 : 1.0) + (dy == 0 ? 0 : dy == 1 ? 0.6 : dy * 4.0);
+                double step = (kind[m] == 1 ? 0.35 : kind[m] == 3 ? water : 1.0) + (dy == 0 ? 0 : dy == 1 ? 0.6 : dy * 4.0);
                 double g = cost[k] + step;
                 if (g < cost[m]) {
                     cost[m] = g;
@@ -171,6 +232,51 @@ final class Paths {
             if (k == start) break;
         }
         Collections.reverse(out);
+        return out;
+    }
+
+    /**
+     * Each crossing of water made straight: from the last dry step before it to the first after, in a line (if that
+     * line keeps off the plots), so that the bridge over it is one straight span.
+     */
+    private static List<int[]> straighten(ServerLevel level, Village v, List<int[]> route) {
+        List<int[]> out = new ArrayList<>();
+        int i = 0, n = route.size();
+        while (i < n) {
+            if (route.get(i)[3] != 1 || i == 0) {
+                out.add(route.get(i++));
+                continue;
+            }
+            int a = i - 1, b = i;
+            while (b < n && route.get(b)[3] == 1) b++;
+            if (b >= n) {
+                while (i < n) out.add(route.get(i++));
+                break;
+            }
+            int[] from = route.get(a), to = route.get(b);
+            List<int[]> line = new ArrayList<>();
+            int steps = Math.max(Math.abs(to[0] - from[0]), Math.abs(to[1] - from[1]));
+            boolean ok = steps > 0;
+            int deck = Math.max(from[2], to[2]);
+            for (int k = 1; k < steps && ok; k++) {
+                int x = from[0] + Math.round((to[0] - from[0]) * (float) k / steps), z = from[1] + Math.round((to[1] - from[1]) * (float) k / steps);
+                if (inPlot(v, x, z, 0, null) || !Construction.loaded(level, new BlockPos(x, 0, z))) ok = false;
+                int y = PlotFinder.floorAt(level, x, z) - 1;
+                boolean wet = !level.getBlockState(new BlockPos(x, y, z)).getFluidState().isEmpty() || !level.getBlockState(new BlockPos(x, y + 1, z)).getFluidState().isEmpty();
+                int surf = y;
+                while (!level.getBlockState(new BlockPos(x, surf + 1, z)).getFluidState().isEmpty()) surf++;
+                if (wet) deck = Math.max(deck, surf + 1);
+                line.add(new int[]{x, z, wet ? surf + 1 : y, 1});
+            }
+            if (ok) {
+                // one level all the way across
+                for (int[] c : line) c[2] = deck;
+                out.addAll(line);
+            } else {
+                for (int k = i; k < b; k++) out.add(route.get(k));
+            }
+            i = b;
+        }
         return out;
     }
 
@@ -201,7 +307,8 @@ final class Paths {
             cells.add(new int[]{c[0], c[1], c[2], y[i], c[3], i});
             int[] prev = route.get(Math.max(0, i - 1)), next = route.get(Math.min(n - 1, i + 1));
             int dx = Integer.signum(next[0] - prev[0]), dz = Integer.signum(next[1] - prev[1]);
-            if (dx == 0 && dz == 0) continue;
+            // (a bridge's deck is laid whole below)
+            if (dx == 0 && dz == 0 || c[3] == 1) continue;
             // (to the right of the way it goes; along a diagonal, the one column that closes the gap)
             int sx = c[0] - dz, sz = c[1] + dx;
             if (dx != 0 && dz != 0) {
@@ -215,27 +322,14 @@ final class Paths {
             way.add(k);
             cells.add(new int[]{sx, sz, g, y[i], c[3], -1});
         }
+        bridges(level, v, route, y, way);
         Map<Long, Boolean> done = new HashMap<>();
-        BlockState deck = wood(v, "planks"), rail = wood(v, "fence");
         for (int[] cell : cells) {
             int x = cell[0], z = cell[1], ground = cell[2], top = cell[3];
             int i = cell[5];
             if (done.put(Blueprint.key(x, z), true) != null) continue;
             BlockPos p = new BlockPos(x, top, z);
-            if (cell[4] == 1) {
-                // a bridge: planks over the water (at least a block above it), rails where the water is beside it
-                top = Math.max(top, ground);
-                p = new BlockPos(x, top, z);
-                level.setBlock(p, deck, FLAGS);
-                for (int k = 1; k <= 2; k++) if (!level.getBlockState(p.above(k)).isAir()) level.setBlock(p.above(k), Blocks.AIR.defaultBlockState(), FLAGS);
-                for (Direction d : Direction.Plane.HORIZONTAL) {
-                    BlockPos side = p.relative(d);
-                    if (way.contains(Blueprint.key(side.getX(), side.getZ()))) continue;
-                    boolean water = !level.getBlockState(side).getFluidState().isEmpty() || !level.getBlockState(side.below()).getFluidState().isEmpty();
-                    if (water && level.getBlockState(side).canBeReplaced()) level.setBlock(side, rail, FLAGS | Block.UPDATE_NEIGHBORS);
-                }
-                continue;
-            }
+            if (cell[4] == 1) continue;
             // built up: earth under it
             for (int k = ground + 1; k < top; k++) level.setBlock(new BlockPos(x, k, z), Blocks.DIRT.defaultBlockState(), FLAGS);
             // dug down: what was above goes
@@ -265,6 +359,56 @@ final class Paths {
             }
             // a lamp by the way now and then (if there is coal for it)
             if (i > 2 && i % LAMP_EVERY == 0 && i < n - 2) lamp(level, v, route, i, way, y[i]);
+        }
+    }
+
+    /**
+     * The bridges of a path: each run of steps over water gets a straight deck three planks wide across the way it
+     * crosses, at one height, with rails along both sides from bank to bank.
+     */
+    private static void bridges(ServerLevel level, Village v, List<int[]> route, int[] y, java.util.Set<Long> way) {
+        BlockState deck = wood(v, "planks"), rail = wood(v, "fence");
+        int n = route.size();
+        for (int i = 0; i < n; i++) {
+            if (route.get(i)[3] != 1) continue;
+            int a = i, b = i;
+            while (b + 1 < n && route.get(b + 1)[3] == 1) b++;
+            int[] s0 = route.get(Math.max(0, a - 1)), s1 = route.get(Math.min(n - 1, b + 1));
+            int top = Integer.MIN_VALUE;
+            for (int k = a; k <= b; k++) top = Math.max(top, Math.max(y[k], route.get(k)[2]));
+            // across: the way the crossing goes, on the whole (east-west or north-south)
+            boolean alongX = Math.abs(s1[0] - s0[0]) >= Math.abs(s1[1] - s0[1]);
+            int px = alongX ? 0 : 1, pz = alongX ? 1 : 0;
+            java.util.Set<Long> laid = new java.util.HashSet<>();
+            // (a step on to it from the banks: the first and last dry steps get the deck's width too)
+            for (int k = Math.max(0, a - 1); k <= Math.min(n - 1, b + 1); k++) {
+                int[] c = route.get(k);
+                boolean bank = k < a || k > b;
+                int h = bank ? Math.min(top, Math.max(y[k], c[2])) : top;
+                for (int w = -1; w <= 1; w++) {
+                    int x = c[0] + px * w, z = c[1] + pz * w;
+                    if (inPlot(v, x, z, 0, null)) continue;
+                    BlockPos p = new BlockPos(x, h, z);
+                    if (bank && w != 0 && level.getBlockState(p).getFluidState().isEmpty() && level.getBlockState(p.below()).getFluidState().isEmpty()) continue;
+                    level.setBlock(p, deck, FLAGS);
+                    for (int up = 1; up <= 2; up++) if (!level.getBlockState(p.above(up)).isAir()) level.setBlock(p.above(up), Blocks.AIR.defaultBlockState(), FLAGS);
+                    laid.add(Blueprint.key(x, z));
+                    way.add(Blueprint.key(x, z));
+                }
+            }
+            for (int k = a; k <= b; k++) {
+                int[] c = route.get(k);
+                for (int w : new int[]{-2, 2}) {
+                    int x = c[0] + px * w, z = c[1] + pz * w;
+                    if (laid.contains(Blueprint.key(x, z)) || inPlot(v, x, z, 0, null)) continue;
+                    BlockPos p = new BlockPos(x, top, z);
+                    BlockState at = level.getBlockState(p);
+                    if (!at.canBeReplaced()) continue;
+                    level.setBlock(p, deck, FLAGS);
+                    if (level.getBlockState(p.above()).canBeReplaced()) level.setBlock(p.above(), rail, FLAGS | Block.UPDATE_NEIGHBORS);
+                }
+            }
+            i = b;
         }
     }
 
