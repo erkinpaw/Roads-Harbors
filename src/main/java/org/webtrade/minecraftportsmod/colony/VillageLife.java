@@ -1798,7 +1798,7 @@ public final class VillageLife {
                 case CLOTH -> v.has(BuildingType.WEAVER);
                 case GLASS -> v.has(BuildingType.GLASSWORKS);
                 // (iron: dug by the miners now and then, or smelted; a village under the plains may find none)
-                case IRON -> production(v, Res.IRON) > 0 || v.has(BuildingType.SMELTER);
+                case IRON -> production(v, Res.IRON) > 0;
                 default -> true;
             };
             if (!makes) return r;

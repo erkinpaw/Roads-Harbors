@@ -33,7 +33,7 @@ public final class Land {
     public record Shares(double forest, double rock, double meadow, double mountain, double water) {
         /** Wood a woodcutter brings, against the usual. */
         public double wood() {
-            return clamp(0.35 + 1.0 * forest + 0.15 * meadow, 0.35, 1.3);
+            return clamp(0.55 + 0.8 * forest + 0.2 * meadow, 0.55, 1.3);
         }
 
         /** Stone a miner breaks (there is stone under any land; in the rock it comes easier). */
@@ -43,7 +43,7 @@ public final class Land {
 
         /** Iron and coal a miner finds: in the rock, not under the plains. */
         public double ore() {
-            return clamp(0.15 + 1.4 * rock, 0.15, 1.4);
+            return clamp(0.3 + 1.3 * rock, 0.3, 1.4);
         }
 
         /** What the fields bear. */

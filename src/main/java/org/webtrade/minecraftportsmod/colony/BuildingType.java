@@ -23,7 +23,7 @@ public enum BuildingType {
     /** A paved square round the fire, with benches and lamps. */
     SQUARE(Branch.CENTER, null, CAMPFIRE, 3, 0, null, 0x9A9A9A, Items.STONE_BRICKS, 1, false, Map.of(Res.STONE, 50, Res.WOOD, 20)),
     /** The square with a well in the middle. */
-    WELL(Branch.CENTER, null, SQUARE, 3, 0, null, 0x6080B0, Items.WATER_BUCKET, 1, false, Map.of(Res.STONE, 70, Res.WOOD, 10, Res.IRON, 5)),
+    WELL(Branch.CENTER, null, SQUARE, 3, 0, null, 0x6080B0, Items.WATER_BUCKET, 1, false, Map.of(Res.STONE, 70, Res.WOOD, 10, Res.IRON, 3)),
 
     // ---- homes
     /** A wool tent with two sleeping places. What people live in before there are houses. */
@@ -45,7 +45,7 @@ public enum BuildingType {
     STOREHOUSE(Branch.STORE, null, null, 3, 0, null, 0x7A5A3A, Items.BARREL, 3, true, Map.of(Res.WOOD, 20, Res.STONE, 4)),
     /** A closed storehouse with walls: holds twice as much. */
     STOREHOUSE_2(Branch.STORE, STOREHOUSE, null, 3, 0, null, 0x6A4A2A, Items.CHEST, 3, false,
-            Map.of(Res.WOOD, 40, Res.PLANKS, 30, Res.STONE, 40, Res.IRON, 5)),
+            Map.of(Res.WOOD, 40, Res.PLANKS, 30, Res.STONE, 40, Res.IRON, 2)),
 
     // ---- the trades' own houses (away from the middle, by what they work); their levels are their tools
     /** The smithy: the smith makes the tools of every trade; without it people work with their bare hands. The ore branch starts here. */
