@@ -558,7 +558,7 @@ public final class VillageLife {
 
     /** What the village would keep of a resource if the store were big enough. */
     static int wanted(Village v, Res r) {
-        int needed = 0;
+        int needed = v.wishes.getOrDefault(r, 0);
         for (Building b : v.projects()) needed += b.missing(r);
         // (the research in hand: the store keeps back what it will cost)
         if (v.research != null) needed += Tree.unlockCost(v, v.research).getOrDefault(r, 0);
@@ -1577,6 +1577,9 @@ public final class VillageLife {
             }
         }
         if (camp) return;
+        // a big village keeps one closed storehouse, room to spare or not (the better store of a grown village)
+        if (v.population() >= 20 && v.count(BuildingType.STOREHOUSE_2, false) == 0 && Tree.open(v, BuildingType.STOREHOUSE_2)
+                && spare(v, Tree.price(v, BuildingType.STOREHOUSE_2)) && start(level, v, BuildingType.STOREHOUSE_2, today)) return;
         // the middle's next step, once there are people enough and the store can pay for it
         if (Tree.centerReady(v) && Tree.affordable(v, Tree.centerNext(v).cost()) && startCenter(v, today)) return;
         // a first field, so that there can be farmers
@@ -1676,7 +1679,7 @@ public final class VillageLife {
     private static boolean spare(Village v, java.util.Map<Res, Integer> cost) {
         for (var e : cost.entrySet()) {
             // (planks and sticks are made to be used: no reserve of them is kept back)
-            int keep = e.getKey() == Res.PLANKS || e.getKey() == Res.STICKS || e.getKey().optional() ? 0 : target(v, e.getKey()) / 2;
+            int keep = e.getKey() == Res.PLANKS || e.getKey() == Res.STICKS || e.getKey().optional() ? 0 : target(v, e.getKey()) / 4;
             if (v.stock(e.getKey()) - e.getValue() < keep) return false;
         }
         return true;
@@ -1717,6 +1720,7 @@ public final class VillageLife {
      * is left to the players (or to trade).
      */
     static void autoUnlock(Village v, long today) {
+        wishes(v);
         // the research in hand: opened once the store has all it costs (the building sites have had theirs first)
         if (v.research != null) {
             if (Tree.unlocked(v, v.research) || Tree.node(v, v.research) != Tree.Node.READY) {
@@ -1804,6 +1808,25 @@ public final class VillageLife {
             if (!makes) return r;
         }
         return null;
+    }
+
+    /**
+     * The goods the village cannot make that it would need for the next nodes of its homes, stores and speciality
+     * (ready to open) and for raising its buildings: wanted, so that its merchant buys them (see {@link #wanted}).
+     */
+    static void wishes(Village v) {
+        v.wishes.clear();
+        for (BuildingType t : BuildingType.values()) {
+            if (!t.isNode() || Tree.unlocked(v, t) || Tree.node(v, t) != Tree.Node.READY) continue;
+            if (t.branch != BuildingType.Branch.HOME && t.branch != BuildingType.Branch.STORE && t.branch != v.focus) continue;
+            wish(v, Tree.unlockCost(v, t));
+        }
+        for (Building b : v.buildings) if (Tree.canRaise(v, b)) wish(v, Tree.levelCost(b.type, b.level + 1));
+    }
+
+    private static void wish(Village v, java.util.Map<Res, Integer> cost) {
+        Res r = lacking(v, cost);
+        if (r != null) v.wishes.merge(r, cost.get(r), Math::max);
     }
 
     /** Does a node lead to a workshop that makes one of these goods (it, or one after it in its branch)? */
