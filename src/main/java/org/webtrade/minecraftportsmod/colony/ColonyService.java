@@ -89,7 +89,9 @@ public final class ColonyService {
         int orders = work != null && !Orders.recipes(work).isEmpty() ? work.id : -1;
         ServerPlayNetworking.send(player, new ColonyPayloads.PersonView(v.id, d.id, v.name, v.level.ordinal(), d.name,
                 d.job == null ? -1 : d.job.ordinal(), d.child(data.day), d.elder, e.activity(), homeText, data.day - d.joined, orders, questState(player, v, d),
-                d.elder && Plots.of(v, player.getUUID()) == null ? Plots.price(v, player.getUUID()) : -1));
+                d.elder && Plots.of(v, player.getUUID()) == null ? Plots.price(v, player.getUUID()) : -1,
+                Helping.hired(v, player.getUUID()) == null ? -1 : Helping.hired(v, player.getUUID()).ordinal(), Helping.brought(v, player.getUUID()),
+                Helping.hired(v, player.getUUID()) == null ? 0 : Helping.quota(v, Helping.hired(v, player.getUUID()))));
     }
 
     /** A person's task as this player sees it: 0 none, 1 one to take, 2 taken by them, 3 taken by someone else. */
@@ -104,13 +106,14 @@ public final class ColonyService {
     static Component questText(VillageData data, Village v, Quests.Quest q) {
         String k = "minecraftportsmod.quest." + q.kind.id();
         return switch (q.kind) {
-            case BRING -> Component.translatable(k, q.res().displayName());
+            case BRING -> Component.translatable(k, q.res().displayName(), q.count);
             case SITE -> {
                 Building b = v.building(q.building());
-                yield Component.translatable(k, q.res().displayName(), b == null ? Component.literal("?") : b.type.displayName());
+                yield Component.translatable(k, q.res().displayName(), b == null ? Component.literal("?") : b.type.displayName(), q.count);
             }
-            case ITEM -> Component.translatable(k + "." + q.what.replace("#", "").replace("minecraft:", ""));
-            case HUNT -> Component.translatable(k);
+            case ITEM -> Component.translatable(k + "." + q.what.replace("#", "").replace("minecraft:", ""))
+                    .append(q.count > 1 ? " ×" + q.count : "");
+            case HUNT -> Component.translatable(k, q.count);
             case LETTER -> Component.translatable(k);
         };
     }
@@ -450,6 +453,26 @@ public final class ColonyService {
                 player.level().playSound(null, player.blockPosition(), finished ? SoundEvents.PLAYER_LEVELUP
                         : r == Quests.Result.OK ? SoundEvents.VILLAGER_YES : SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 0.6F, 1.0F);
                 if (d != null) sendQuest(player, v, d);
+            }
+            case ColonyPayloads.VillageAction.DEPOSIT -> {
+                var got = Helping.deposit(player, data, v);
+                if (got.isEmpty()) {
+                    player.sendSystemMessage(Component.translatable("minecraftportsmod.colony.nothing_to_give").withStyle(ChatFormatting.GRAY), true);
+                    player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 0.6F, 1.0F);
+                } else {
+                    Job j = Helping.hired(v, player.getUUID());
+                    Component msg = Component.translatable("minecraftportsmod.colony.thanks", VillageText.amounts(got));
+                    if (j != null) msg = Component.empty().append(msg).append(Component.literal("  " + Helping.brought(v, player.getUUID()) + " / "
+                            + Helping.quota(v, j)));
+                    player.sendSystemMessage(msg.copy().withStyle(ChatFormatting.GREEN), true);
+                    player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 0.6F, 1.0F);
+                }
+            }
+            case ColonyPayloads.VillageAction.HIRE -> {
+                Job j = Helping.hire(player, data, v);
+                player.sendSystemMessage((j == null ? Component.translatable("minecraftportsmod.work.left", v.name)
+                        : Component.translatable("minecraftportsmod.work.hired", j.displayName(), Helping.quota(v, j))).withStyle(ChatFormatting.GOLD), true);
+                player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 0.6F, 1.0F);
             }
             case ColonyPayloads.VillageAction.PLOT_BUY -> {
                 boolean ok = Plots.buy(player, data, v);

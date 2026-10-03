@@ -950,9 +950,9 @@
   "minecraftportsmod.act.smelting": "Плавит руду",
   "minecraftportsmod.act.glassblowing": "Выдувает стекло",
   "minecraftportsmod.act.pigs": "Кормит свиней",
-  "minecraftportsmod.quest.bring": "Не хватает: %s. Принеси",
-  "minecraftportsmod.quest.site": "%s на стройку: %s",
-  "minecraftportsmod.quest.hunt": "По ночам у деревни бродят чудища: перебей их",
+  "minecraftportsmod.quest.bring": "Не хватает: %s. Принеси %s",
+  "minecraftportsmod.quest.site": "%1$s на стройку (%2$s): %3$s",
+  "minecraftportsmod.quest.hunt": "По ночам у деревни бродят чудища: перебей %s",
   "minecraftportsmod.quest.letter": "Отнеси наше письмо в деревню, о которой мы не слыхали, и принеси ответ",
   "minecraftportsmod.quest.item.bone_meal": "Костная мука для полей",
   "minecraftportsmod.quest.item.saplings": "Саженцы для рощи",
@@ -1053,5 +1053,14 @@
   "minecraftportsmod.plot.no_money": "Нужно изумрудов: %s",
   "minecraftportsmod.quest.full": "У вас уже %s заданий",
   "minecraftportsmod.quest.not_yet": "Ещё не сделано",
-  "minecraftportsmod.quest.nothing": "У вас нет того, что просят"
+  "minecraftportsmod.quest.nothing": "У вас нет того, что просят",
+  "minecraftportsmod.person.deposit": "На склад",
+  "minecraftportsmod.person.hire": "Наняться",
+  "minecraftportsmod.person.quit": "Уйти с работы",
+  "minecraftportsmod.work.hired": "Нанялся: %s. Норма на день: %s",
+  "minecraftportsmod.work.left": "Вы больше не работаете на %s",
+  "minecraftportsmod.work.done": "%s: дневная норма выполнена (%s / %s), плата получена",
+  "minecraftportsmod.work.short": "%s: дневная норма не выполнена (%s / %s)",
+  "minecraftportsmod.vlog.deposit": "%s принёс на склад: %s",
+  "minecraftportsmod.vlog.hired": "%s нанялся: %s"
 }

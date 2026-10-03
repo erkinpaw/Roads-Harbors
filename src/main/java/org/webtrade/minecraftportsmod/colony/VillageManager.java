@@ -41,6 +41,12 @@ public final class VillageManager {
 
     public static void init() {
         ServerTickEvents.END_SERVER_TICK.register(org.webtrade.minecraftportsmod.Perf.timed("Villages", VillageManager::tick));
+        // crouching at a building site, using its blocks: building by hand
+        net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register((player, world, hand, hit) -> {
+            if (hand != net.minecraft.world.InteractionHand.MAIN_HAND || !(player instanceof net.minecraft.server.level.ServerPlayer sp)
+                    || !(world instanceof ServerLevel sl)) return net.minecraft.world.InteractionResult.PASS;
+            return Helping.build(sp, sl, hit.getBlockPos()) ? net.minecraft.world.InteractionResult.SUCCESS : net.minecraft.world.InteractionResult.PASS;
+        });
         // a boundary stone: only its owner takes it up
         net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, be) ->
                 !state.is(org.webtrade.minecraftportsmod.registry.ModContent.PLOT_MARKER) || !(player instanceof net.minecraft.server.level.ServerPlayer sp)
@@ -68,6 +74,7 @@ public final class VillageManager {
             Roadworks.reset();
             Land.reset();
             Plots.clear();
+            Helping.clear();
         });
     }
 
@@ -79,6 +86,7 @@ public final class VillageManager {
         if (data.all().isEmpty()) return;
         ServerLevel level = srv.overworld();
         Plots.tick(srv);
+        Helping.tick(srv);
         if (data.dayLength == VillageData.DEFAULT_DAY_LENGTH) {
             // a village day is a Minecraft day: it starts at sunrise (and when the time is set back)
             long tod = Math.floorMod(level.getOverworldClockTime(), 24000L);
@@ -169,6 +177,24 @@ public final class VillageManager {
         var old = data.trails.get(Trails.key(v.id, o.id));
         if (old != null && old.none()) data.trails.remove(Trails.key(v.id, o.id));
         Trails.plan(srv.overworld(), data, v, o);
+    }
+
+    /** A building site of this type with all its materials there, going up now (tests). Returns it, or null if no room. */
+    public static Building siteNow(ServerLevel level, Village v, BuildingType type) {
+        long today = VillageData.get(level.getServer()).day;
+        if (!VillageLife.start(level, v, type, today)) return null;
+        Building b = null;
+        for (Building x : v.buildings) if (x.type == type && x.state == Building.State.PLANNED) b = x;
+        if (b == null) return null;
+        for (Res r : Res.values()) {
+            int n = b.missing(r);
+            if (n > 0) {
+                v.add(r, n);
+                VillageLife.deliver(v, b, r, n);
+            }
+        }
+        VillageData.get(level.getServer()).changed();
+        return b;
     }
 
     /** Sets how the village builds from now on (tests, commands). */

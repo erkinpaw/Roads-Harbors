@@ -84,6 +84,7 @@ public final class VillageLife {
         grow(data, v, today, hungry);
         rehouse(v, today);
         levelUp(level, v, today);
+        Helping.day(level.getServer(), data, v);
         Quests.day(data, v);
         plan(level, v, today);
         data.changed();
@@ -415,6 +416,8 @@ public final class VillageLife {
         if (homes > 0) m += Math.round(12F * comfort / (homes * 3F));
         if (v.stock(Res.FOOD) >= foodNeed(v, 0) * 3) m += 10;
         if (v.count(BuildingType.STOREHOUSE, true) > 0) m += 5;
+        // (a player living among them)
+        if (Helping.residents(v) > 0) m += 5;
         m = Math.max(0, Math.min(100, m));
         v.mood = (v.mood * 2 + m) / 3;
     }
@@ -1483,7 +1486,8 @@ public final class VillageLife {
 
     /** The village's title follows its size; a bigger one is news. */
     private static void levelUp(ServerLevel level, Village v, long today) {
-        Village.Level now = Village.Level.of(v.population());
+        // (the players who live in the village count among its people)
+        Village.Level now = Village.Level.of(v.population() + Helping.residents(v));
         if (now.ordinal() <= v.level.ordinal()) {
             v.level = now;
             return;

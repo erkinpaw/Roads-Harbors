@@ -43,11 +43,13 @@ public final class Plots {
     /** Tasks done for a village after which it gives a stone. */
     static final int GIFT_AT = 5;
 
-    public record Plot(UUID owner, String ownerName, BlockPos marker) {
+    /** @param home a bed and a door stand on it: the player lives in the village */
+    public record Plot(UUID owner, String ownerName, BlockPos marker, boolean home) {
         static final Codec<Plot> CODEC = RecordCodecBuilder.create(i -> i.group(
                 UUIDUtil.CODEC.fieldOf("owner").forGetter(Plot::owner),
                 Codec.STRING.optionalFieldOf("owner_name", "").forGetter(Plot::ownerName),
-                BlockPos.CODEC.fieldOf("marker").forGetter(Plot::marker)
+                BlockPos.CODEC.fieldOf("marker").forGetter(Plot::marker),
+                Codec.BOOL.optionalFieldOf("home", false).forGetter(Plot::home)
         ).apply(i, Plot::new));
 
         public boolean contains(int x, int z, int margin) {
@@ -160,7 +162,7 @@ public final class Plots {
             }
         }
         if (wet > (2 * HALF + 1) * (2 * HALF + 1) / 5) return Component.translatable("minecraftportsmod.plot.wet");
-        Plot plot = new Plot(p.getUUID(), p.getName().getString(), pos.immutable());
+        Plot plot = new Plot(p.getUUID(), p.getName().getString(), pos.immutable(), false);
         v.tasks.plots.add(plot);
         corners(level, plot, true);
         show(p, plot, 200);
@@ -221,6 +223,12 @@ public final class Plots {
                         door |= s.is(BlockTags.DOORS);
                     }
                 }
+            }
+            if (bed != plot.home || bed && door != plot.home) {
+                // (a home on it, or none any more: the village counts the player among its people, or not)
+                int i = v.tasks.plots.indexOf(plot);
+                if (i >= 0) v.tasks.plots.set(i, new Plot(plot.owner, plot.ownerName, plot.marker, bed && door));
+                VillageData.get(level.getServer()).changed();
             }
             if (bed && door) {
                 Achievements.home(p);

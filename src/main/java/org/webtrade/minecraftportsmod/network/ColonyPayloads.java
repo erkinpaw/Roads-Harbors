@@ -313,7 +313,8 @@ public final class ColonyPayloads {
 
     /** @param quest the person's task: 0 none, 1 one to take, 2 taken by this player, 3 taken by someone else */
     public record PersonView(int village, int person, String villageName, int level, String name, int job, boolean child, boolean elder,
-                             Component activity, Component home, long days, int orders, int quest, int plotPrice) implements CustomPacketPayload {
+                             Component activity, Component home, long days, int orders, int quest, int plotPrice,
+                             int hired, int brought, int quota) implements CustomPacketPayload {
         public static final Type<PersonView> TYPE = new Type<>(Minecraftportsmod.id("person_view"));
         public static final StreamCodec<RegistryFriendlyByteBuf, PersonView> CODEC = StreamCodec.of((buf, v) -> {
             buf.writeVarInt(v.village);
@@ -330,9 +331,12 @@ public final class ColonyPayloads {
             buf.writeVarInt(v.orders + 1);
             buf.writeVarInt(v.quest);
             buf.writeVarInt(v.plotPrice + 1);
+            buf.writeVarInt(v.hired + 1);
+            buf.writeVarInt(v.brought);
+            buf.writeVarInt(v.quota);
         }, buf -> new PersonView(buf.readVarInt(), buf.readVarInt(), buf.readUtf(64), buf.readVarInt(), buf.readUtf(64),
                 buf.readVarInt() - 1, buf.readBoolean(), buf.readBoolean(), comp(buf), comp(buf), buf.readVarLong(), buf.readVarInt() - 1,
-                buf.readVarInt(), buf.readVarInt() - 1));
+                buf.readVarInt(), buf.readVarInt() - 1, buf.readVarInt() - 1, buf.readVarInt(), buf.readVarInt()));
 
         @Override
         public Type<? extends CustomPacketPayload> type() {
@@ -686,7 +690,8 @@ public final class ColonyPayloads {
                 /** a = building id (-1: the research): a step of the queue up, down, out of it */ QUEUE_UP = 16, QUEUE_DOWN = 17, QUEUE_CANCEL = 18,
                 /** a = sub-branch ordinal: what the village is known for, within its speciality */ SUB = 19,
                 /** a = person: their task; a = quest id: take it, hand in what is asked, give it up */ QUEST = 20, QUEST_TAKE = 21, QUEST_HAND = 22, QUEST_DROP = 23,
-                /** a = person (the head of the village): buy a boundary stone */ PLOT_BUY = 24;
+                /** a = person (the head of the village): buy a boundary stone */ PLOT_BUY = 24,
+                /** a = person: take what one carries to the store; hire on at a trade (or leave it) */ DEPOSIT = 25, HIRE = 26;
         public static final Type<VillageAction> TYPE = new Type<>(Minecraftportsmod.id("village_action"));
         public static final StreamCodec<FriendlyByteBuf, VillageAction> CODEC = StreamCodec.of((buf, p) -> {
             buf.writeVarInt(p.village);

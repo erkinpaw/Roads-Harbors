@@ -28,7 +28,7 @@ public class PersonScreen extends UiScreen {
 
     @Override
     protected void layout() {
-        int w = Math.min(width - 24, 420), h = Math.min(height - 24, 180);
+        int w = Math.min(width - 24, 420), h = Math.min(height - 24, 202);
         x0 = (width - w) / 2;
         y0 = (height - h) / 2;
         x1 = x0 + w;
@@ -53,6 +53,18 @@ public class PersonScreen extends UiScreen {
                 send(ColonyPayloads.VillageAction.ORDERS, view.orders());
             });
         }
+        labels.add(Component.translatable("minecraftportsmod.person.deposit"));
+        actions.add(() -> {
+            Minecraft.getInstance().gui.setScreen(null);
+            send(ColonyPayloads.VillageAction.DEPOSIT, view.person());
+        });
+        if (view.elder()) {
+            labels.add(Component.translatable(view.hired() >= 0 ? "minecraftportsmod.person.quit" : "minecraftportsmod.person.hire"));
+            actions.add(() -> {
+                Minecraft.getInstance().gui.setScreen(null);
+                send(ColonyPayloads.VillageAction.HIRE, view.person());
+            });
+        }
         if (view.plotPrice() >= 0) {
             labels.add(Component.translatable("minecraftportsmod.person.plot", view.plotPrice()));
             actions.add(() -> {
@@ -60,12 +72,14 @@ public class PersonScreen extends UiScreen {
                 send(ColonyPayloads.VillageAction.PLOT_BUY, view.person());
             });
         }
-        int n = Math.max(1, labels.size());
-        int bw = Math.min(160, (w - 16 - 5 * (n - 1)) / n), by = y1 - 26;
-        int bx = x1 - 8 - n * bw - 5 * (n - 1);
+        // (in rows of three)
+        int per = Math.min(3, Math.max(1, labels.size())), rows = (labels.size() + 2) / 3;
+        int bw = Math.min(160, (w - 16 - 5 * (per - 1)) / per);
         for (int i = 0; i < labels.size(); i++) {
             Runnable act = actions.get(i);
-            addRenderableWidget(UiButton.make(labels.get(i), b -> act.run()).bounds(bx + i * (bw + 5), by, bw, 18).build());
+            int row = i / 3, col = i % 3, inRow = Math.min(3, labels.size() - row * 3);
+            int bx = x1 - 8 - inRow * bw - 5 * (inRow - 1) + col * (bw + 5), by = y1 - 26 - (rows - 1 - row) * 22;
+            addRenderableWidget(UiButton.make(labels.get(i), b -> act.run()).bounds(bx, by, bw, 18).build());
         }
     }
 
@@ -100,6 +114,13 @@ public class PersonScreen extends UiScreen {
         g.text(font, Component.translatable("minecraftportsmod.person.home").append(view.home()), x, y, ChartStyle.TEXT, false);
         y += 12;
         g.text(font, Component.translatable("minecraftportsmod.person.days", view.days()), x, y, ChartStyle.TEXT_MUTED, false);
+        if (view.hired() >= 0) {
+            y += 14;
+            Job mine = Job.values()[view.hired()];
+            g.item(new ItemStack(mine.tool()), x, y - 4);
+            g.text(font, Component.empty().append(mine.displayName()).append("  " + view.brought() + " / " + view.quota()), x + 20, y,
+                    view.brought() >= view.quota() ? ChartStyle.GOOD : ChartStyle.TEXT, false);
+        }
         widgets(g, mouseX, mouseY, partialTick);
     }
 }
