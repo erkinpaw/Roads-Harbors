@@ -53,6 +53,11 @@ public class VesselRenderer extends EntityRenderer<VesselEntity, VesselRenderSta
     private static ShipModel.Spec sloopSpec;
     private static ShipModel.Spec brigSpec;
 
+    /** The brig's model file (for the warships, drawn bigger). */
+    public static ShipModel.Spec brigSpec() {
+        return brigSpec;
+    }
+
     public static void registerLayers() {
         sloopSpec = ShipModel.Spec.load("sloop");
         brigSpec = ShipModel.Spec.load("brig");

@@ -39,6 +39,12 @@ public final class ModNetworking {
         PayloadTypeRegistry.serverboundPlay().register(WorldMapPayloads.ShotRequest.TYPE, WorldMapPayloads.ShotRequest.CODEC);
         PayloadTypeRegistry.clientboundPlay().registerLarge(WorldMapPayloads.ShotData.TYPE, WorldMapPayloads.ShotData.CODEC, 2 * 1024 * 1024);
 
+        PayloadTypeRegistry.serverboundPlay().register(CombatPayloads.ShipOrder.TYPE, CombatPayloads.ShipOrder.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(CombatPayloads.ShipOrder.TYPE, (payload, ctx) -> {
+            if (ctx.player().getVehicle() instanceof org.webtrade.minecraftportsmod.combat.WarshipEntity ship) {
+                ship.order(ctx.player(), payload.sails(), payload.rudder(), payload.fire(), payload.elevation());
+            }
+        });
         ServerPlayNetworking.registerGlobalReceiver(ChartPayloads.RequestChart.TYPE, (payload, ctx) -> {
             if (payload.refresh()) ChartService.refresh(ctx.player());
             else ChartService.openFromKey(ctx.player());
