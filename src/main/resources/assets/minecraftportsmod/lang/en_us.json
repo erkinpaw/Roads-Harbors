@@ -950,9 +950,9 @@
   "minecraftportsmod.act.smelting": "Smelting ore",
   "minecraftportsmod.act.glassblowing": "Blowing glass",
   "minecraftportsmod.act.pigs": "Feeding the pigs",
-  "minecraftportsmod.quest.bring": "We are short of %s: bring some",
-  "minecraftportsmod.quest.site": "%s for the building site: %s",
-  "minecraftportsmod.quest.hunt": "Monsters prowl round the village at night: kill them",
+  "minecraftportsmod.quest.bring": "We are short of %s: bring %s",
+  "minecraftportsmod.quest.site": "%1$s for the building site (%2$s): %3$s",
+  "minecraftportsmod.quest.hunt": "Monsters prowl round the village at night: kill %s",
   "minecraftportsmod.quest.letter": "Carry our letter to a village we have never heard of, and bring the answer back",
   "minecraftportsmod.quest.item.bone_meal": "Bone meal for the fields",
   "minecraftportsmod.quest.item.saplings": "Saplings for the grove",
@@ -1053,5 +1053,14 @@
   "minecraftportsmod.plot.no_money": "You need %s emeralds",
   "minecraftportsmod.quest.full": "You already have %s tasks",
   "minecraftportsmod.quest.not_yet": "Not done yet",
-  "minecraftportsmod.quest.nothing": "You have nothing of what is asked"
+  "minecraftportsmod.quest.nothing": "You have nothing of what is asked",
+  "minecraftportsmod.person.deposit": "To the store",
+  "minecraftportsmod.person.hire": "Hire on",
+  "minecraftportsmod.person.quit": "Quit work",
+  "minecraftportsmod.work.hired": "Hired: %s. A day's work: %s",
+  "minecraftportsmod.work.left": "You no longer work for %s",
+  "minecraftportsmod.work.done": "%s: a day's work done (%s / %s), paid",
+  "minecraftportsmod.work.short": "%s: the day's work not done (%s / %s)",
+  "minecraftportsmod.vlog.deposit": "%s brought to the store: %s",
+  "minecraftportsmod.vlog.hired": "%s hired on as %s"
 }

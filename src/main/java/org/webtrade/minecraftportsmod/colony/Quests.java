@@ -174,8 +174,11 @@ public final class Quests {
                     return m;
                 }),
                 Plots.Plot.CODEC.listOf().optionalFieldOf("plots", List.of()).forGetter(b -> b.plots),
-                UUIDUtil.CODEC.listOf().optionalFieldOf("gifted", List.of()).forGetter(b -> new ArrayList<>(b.gifted))
-        ).apply(i, (quests, next, thanks, boosts, plots, gifted) -> {
+                UUIDUtil.CODEC.listOf().optionalFieldOf("gifted", List.of()).forGetter(b -> new ArrayList<>(b.gifted)),
+                Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("hired", Map.of()).forGetter(b -> keys(b.hired)),
+                Codec.unboundedMap(Codec.STRING, Codec.INT).optionalFieldOf("brought", Map.of()).forGetter(b -> keys(b.brought)),
+                Codec.unboundedMap(Codec.STRING, Codec.DOUBLE).optionalFieldOf("given", Map.of()).forGetter(b -> keys(b.given))
+        ).apply(i, (quests, next, thanks, boosts, plots, gifted, hired, brought, given) -> {
             Board b = new Board();
             b.quests.addAll(quests);
             b.next = next;
@@ -191,6 +194,9 @@ public final class Quests {
             });
             b.plots.addAll(plots);
             b.gifted.addAll(gifted);
+            uuids(hired, b.hired);
+            uuids(brought, b.brought);
+            uuids(given, b.given);
             return b;
         }));
 
@@ -203,6 +209,26 @@ public final class Quests {
         /** The players' plots in the village (see {@link Plots}), and those it gave a boundary stone to. */
         final List<Plots.Plot> plots = new ArrayList<>();
         final java.util.Set<UUID> gifted = new java.util.HashSet<>();
+        /** Players hired at a trade (its id), what they brought of its goods today; the worth of all they brought to the store; buildings they helped finish. */
+        final Map<UUID, String> hired = new HashMap<>();
+        final Map<UUID, Integer> brought = new HashMap<>();
+        final Map<UUID, Double> given = new HashMap<>();
+        final Map<UUID, Integer> helped = new HashMap<>();
+
+        private static <T> Map<String, T> keys(Map<UUID, T> m) {
+            Map<String, T> out = new HashMap<>();
+            m.forEach((u, x) -> out.put(u.toString(), x));
+            return out;
+        }
+
+        private static <T> void uuids(Map<String, T> in, Map<UUID, T> out) {
+            in.forEach((k, x) -> {
+                try {
+                    out.put(UUID.fromString(k), x);
+                } catch (IllegalArgumentException ignored) {
+                }
+            });
+        }
 
         public List<Plots.Plot> plots() {
             return plots;

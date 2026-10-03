@@ -91,6 +91,11 @@ public class QuestScreen extends UiScreen {
         Quests.Kind kind = Quests.Kind.values()[view.kind()];
         int x = px0 + 8, y = py0 + 8;
         Ui.slot(g, x, y, 28, view.icon());
+        // how many are asked for, on the slot as on a stack
+        if (kind != Quests.Kind.LETTER) {
+            String n = String.valueOf(view.count());
+            g.text(font, n, x + 27 - font.width(n), y + 19, ChartStyle.TEXT_LIGHT, true);
+        }
         int tx = x + 36, tw = px1 - tx - 8;
         y += Ui.wrap(g, font, view.what(), tx, y + 2, tw, ChartStyle.TEXT) + 6;
         y = Math.max(y, py0 + 44);
@@ -98,9 +103,9 @@ public class QuestScreen extends UiScreen {
         float frac = view.count() == 0 ? 0 : Math.min(1F, view.done() / (float) view.count());
         Ui.bar(g, x, y, px1 - 8, y + 10, frac, ChartStyle.GOOD);
         String prog = view.done() + " / " + view.count();
-        g.text(font, prog, (x + px1 - 8 - font.width(prog)) / 2, y + 1, ChartStyle.TEXT, false);
+        g.text(font, prog, (x + px1 - 8 - font.width(prog)) / 2, y + 1, ChartStyle.TEXT_LIGHT, true);
         y += 16;
-        if (kind != Quests.Kind.HUNT && kind != Quests.Kind.LETTER && view.state() == 1) {
+        if (kind != Quests.Kind.HUNT && kind != Quests.Kind.LETTER && view.state() != 2) {
             g.item(new ItemStack(Items.BUNDLE), x, y);
             g.text(font, String.valueOf(view.carried()), x + 20, y + 5, view.carried() > 0 ? ChartStyle.GOOD : ChartStyle.TEXT_MUTED, false);
         }
