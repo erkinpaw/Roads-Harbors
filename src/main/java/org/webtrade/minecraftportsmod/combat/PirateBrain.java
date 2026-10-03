@@ -77,7 +77,7 @@ final class PirateBrain {
         int side = rel > 0 ? 1 : -1;
         float offBeam = Math.abs(Math.abs(rel) - 90);
         if (d < FIGHT_FAR + 8 && offBeam < 18 && ship.reload(side) == 0 && ship.getRandom().nextInt(6) == 0) {
-            float aim = WarshipEntity.elevationFor(d) + (ship.getRandom().nextFloat() - 0.5F) * 3F;
+            float aim = WarshipEntity.elevationFor(d) + (ship.getRandom().nextFloat() - 0.5F) * 5F;
             ship.fire(side, Math.max(0, aim));
         }
     }

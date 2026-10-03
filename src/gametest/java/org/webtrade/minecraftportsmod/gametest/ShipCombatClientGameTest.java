@@ -87,10 +87,11 @@ public class ShipCombatClientGameTest implements FabricClientGameTest {
                 if (own(s) == null) throw new AssertionError("the player is not aboard");
             });
             context.takeScreenshot("seafight_a_aboard");
+            context.runOnClient(mc -> org.webtrade.minecraftportsmod.client.CombatClient.fight(true, 1));
             // the fight: the player's ship under sail, firing its broadside at the pirate whenever the guns bear
             boolean[] done = {false};
             float[] ownHull = {0}, pirateHull = {0};
-            for (int t = 0; t < 20 * 40 && !done[0]; t += 10) {
+            for (int t = 0; t < 20 * 150 && !done[0]; t += 10) {
                 context.waitTicks(10);
                 final int tt = t;
                 server.runOnServer(s -> {
@@ -111,14 +112,31 @@ public class ShipCombatClientGameTest implements FabricClientGameTest {
                     if (d > 32) want = bearing;
                     float delta = net.minecraft.util.Mth.wrapDegrees(want - ship.getYRot());
                     int side = rel > 0 ? 1 : -1;
-                    boolean bears = Math.abs(Math.abs(rel) - 90) < 20 && d < 40;
+                    boolean bears = Math.abs(Math.abs(rel) - 90) < 30 && d < 40;
                     ship.order(p, ship.sails() < 2 ? 1 : 0, Math.abs(delta) < 5 ? 0 : delta > 0 ? 1 : -1, bears ? side : 0,
                             WarshipEntity.elevationFor(d));
                     ownHull[0] = ship.hull();
                     pirateHull[0] = pirate.hull();
                     if (tt % 200 == 0) log("t {}s: distance {} own hull {} pirate hull {} pirate sails {}", tt / 20, Math.round(d), ship.hull(), pirate.hull(), pirate.sails());
                 });
-                if (t == 20 * 20 || t == 20 * 45 || t == 20 * 80) context.takeScreenshot("seafight_b_fight_" + t / 20);
+                if (t == 20 * 8 || t == 20 * 20 || t == 20 * 45 || t == 20 * 80) {
+                    // the camera turned to the pirate (on the client: a teleport would put the player ashore), its side chosen
+                    context.runOnClient(mc -> {
+                        var ship = org.webtrade.minecraftportsmod.client.CombatClient.helm(mc);
+                        if (ship == null) return;
+                        WarshipEntity pirate = null;
+                        for (var e : mc.level.entitiesForRendering()) if (e instanceof WarshipEntity w && w.isPirate()) pirate = w;
+                        if (pirate == null) return;
+                        var to = pirate.position().subtract(ship.position());
+                        float bearing = (float) Math.toDegrees(Math.atan2(-to.x, to.z));
+                        mc.player.setYRot(bearing);
+                        mc.player.setXRot(12);
+                        float rel = net.minecraft.util.Mth.wrapDegrees(bearing - ship.getYRot());
+                        org.webtrade.minecraftportsmod.client.CombatClient.fight(true, rel > 0 ? 1 : -1);
+                    });
+                    context.waitTicks(10);
+                    context.takeScreenshot("seafight_b_fight_" + t / 20);
+                }
             }
             log("after the fight: own hull {}, pirate hull {}", ownHull[0], pirateHull[0]);
             context.takeScreenshot("seafight_c_end");

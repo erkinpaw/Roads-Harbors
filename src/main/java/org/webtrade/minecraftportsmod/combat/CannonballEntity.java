@@ -27,7 +27,7 @@ public class CannonballEntity extends Entity {
     /** Gravity and air drag, per tick. */
     static final double GRAVITY = 0.03, DRAG = 0.995;
     /** What a ball does to a hull it holes, and to a body it strikes. */
-    static final float HULL_DAMAGE = 7, BODY_DAMAGE = 8;
+    static final float HULL_DAMAGE = 4, BODY_DAMAGE = 8;
 
     /** The ship that fired it (an entity id: its hits don't count against her). */
     int ship = -1;
@@ -64,7 +64,6 @@ public class CannonballEntity extends Entity {
         Vec3 to = from.add(v);
         if (level() instanceof ServerLevel level) {
             if (tickCount > 200 || hit(level, from, to)) {
-                org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("[guns] ball ends at {} after {} ticks", BlockPos.containing(from).toShortString(), tickCount);
                 discard();
                 return;
             }
