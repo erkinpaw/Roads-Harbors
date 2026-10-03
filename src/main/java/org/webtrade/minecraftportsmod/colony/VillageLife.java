@@ -575,7 +575,7 @@ public final class VillageLife {
 
     /** What the village would keep of a resource if the store were big enough. */
     static int wanted(Village v, Res r) {
-        int needed = 0;
+        int needed = v.wishes.getOrDefault(r, 0);
         for (Building b : v.projects()) needed += b.missing(r);
         // (the research in hand: the store keeps back what it will cost)
         if (v.research != null) needed += Tree.unlockCost(v, v.research).getOrDefault(r, 0);
@@ -1594,6 +1594,9 @@ public final class VillageLife {
             }
         }
         if (camp) return;
+        // a big village keeps one closed storehouse, room to spare or not (the better store of a grown village)
+        if (v.population() >= 20 && v.count(BuildingType.STOREHOUSE_2, false) == 0 && v.unlocked(BuildingType.STOREHOUSE_2)
+                && Tree.affordable(v, Tree.price(v, BuildingType.STOREHOUSE_2)) && rebuildStore(level, v, today)) return;
         // the middle's next step, once there are people enough and the store can pay for it
         if (Tree.centerReady(v) && Tree.affordable(v, Tree.centerNext(v).cost()) && startCenter(v, today)) return;
         // a first field, so that there can be farmers
@@ -1636,6 +1639,9 @@ public final class VillageLife {
             // (the trades' houses have beds too: they count)
             if (b.state != Building.State.DEMOLISHING && b.type != BuildingType.HUT && b.type != BuildingType.TENT) betterBeds += b.type.beds;
         }
+        // a home grown to the top rebuilt, where it stands, into the next kind of house (a hut into a house, a house
+        // into a stone one or one of two storeys...): the village's homes keep getting better while it can spare it
+        if (!homeQueued && upgradeHome(level, v, today)) return;
         if (!homeQueued && v.count(BuildingType.HUT, true) > 0) {
             for (BuildingType t : HOMES) {
                 if (t == BuildingType.HUT || !Tree.open(v, t) || !spare(v, Tree.price(v, t))) continue;
@@ -1670,6 +1676,63 @@ public final class VillageLife {
         return false;
     }
 
+    /** A storehouse grown to the top rebuilt, where it stands, into a closed one (the room it gives only grows). */
+    private static boolean rebuildStore(ServerLevel level, Village v, long today) {
+        for (Building old : v.buildings) {
+            if (old.type != BuildingType.STOREHOUSE || !old.standing() || old.keep || old.upgrading() || old.state != Building.State.BUILT
+                    || old.level < old.type.maxLevel) continue;
+            Blueprint.Frame f = PlotFinder.inPlace(level, v, BuildingType.STOREHOUSE_2, old);
+            if (f == null) continue;
+            Building b = new Building(v.nextBuilding++, BuildingType.STOREHOUSE_2, f.origin(), f.front(), RND.nextLong()).look(look(v));
+            b.replaces = old.id;
+            add(v, b, today);
+            return true;
+        }
+        return false;
+    }
+
+    /** How good a kind of home is: a hut 0, a house 1, a stone house or one of two storeys 2, a tall stone one 3. */
+    static int homeRank(BuildingType t) {
+        return switch (t) {
+            case HUT -> 0;
+            case HOUSE -> 1;
+            case STONE_HOUSE, HOUSE_TALL -> 2;
+            case STONE_HOUSE_TALL -> 3;
+            default -> -1;
+        };
+    }
+
+    /**
+     * One home at its top level (the nearest the middle of the lowest kind first) rebuilt in place into a home of the
+     * next kind that is open and the village can spare the price of (of two such kinds, one or the other by the
+     * house). Its people sleep elsewhere meanwhile, so only while there are beds to spare.
+     */
+    private static boolean upgradeHome(ServerLevel level, Village v, long today) {
+        List<Building> homes = new ArrayList<>();
+        for (Building b : v.buildings) {
+            if (homeRank(b.type) < 0 || homeRank(b.type) >= 3 || !b.standing() || b.keep || b.upgrading() || b.state != Building.State.BUILT) continue;
+            if (b.level < b.type.maxLevel) continue;
+            homes.add(b);
+        }
+        homes.sort(Comparator.comparingInt((Building b) -> homeRank(b.type)).thenComparingDouble(b -> b.origin.distSqr(v.center)));
+        for (Building old : homes) {
+            if (v.freeBeds() < old.type.beds) return false;
+            List<BuildingType> next = new ArrayList<>();
+            for (BuildingType t : HOMES) {
+                if (homeRank(t) == homeRank(old.type) + 1 && Tree.open(v, t) && spare(v, Tree.price(v, t))) next.add(t);
+            }
+            if (next.isEmpty()) continue;
+            BuildingType t = next.get(Math.floorMod(old.id, next.size()));
+            Blueprint.Frame f = PlotFinder.inPlace(level, v, t, old);
+            if (f == null) continue;
+            Building b = new Building(v.nextBuilding++, t, f.origin(), f.front(), RND.nextLong()).look(look(v));
+            b.replaces = old.id;
+            add(v, b, today);
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Pulls down one building of this kind that nobody would miss: empty, or its people can move elsewhere; never one
      * the players asked to keep.
@@ -1693,7 +1756,7 @@ public final class VillageLife {
     private static boolean spare(Village v, java.util.Map<Res, Integer> cost) {
         for (var e : cost.entrySet()) {
             // (planks and sticks are made to be used: no reserve of them is kept back)
-            int keep = e.getKey() == Res.PLANKS || e.getKey() == Res.STICKS || e.getKey().optional() ? 0 : target(v, e.getKey()) / 2;
+            int keep = e.getKey() == Res.PLANKS || e.getKey() == Res.STICKS || e.getKey() == Res.COAL || e.getKey().optional() ? 0 : target(v, e.getKey()) / 4;
             if (v.stock(e.getKey()) - e.getValue() < keep) return false;
         }
         return true;
@@ -1719,6 +1782,10 @@ public final class VillageLife {
                 for (BuildingType k : b.type.children()) if (!v.unlocked(k)) nextShut = true;
                 if (nextShut) score = 50;
             }
+            // a home whose next kind is open: grown to the top, it is rebuilt into one (see upgradeHome)
+            if (homeRank(b.type) >= 0 && homeRank(b.type) < 3) {
+                for (BuildingType k : b.type.children()) if (v.unlocked(k)) score = Math.max(score, 45);
+            }
             score -= 5 * b.level;
             if (score > bestScore) {
                 bestScore = score;
@@ -1734,9 +1801,15 @@ public final class VillageLife {
      * is left to the players (or to trade).
      */
     static void autoUnlock(Village v, long today) {
+        wishes(v);
         // the research in hand: opened once the store has all it costs (the building sites have had theirs first)
         if (v.research != null) {
             if (Tree.unlocked(v, v.research) || Tree.node(v, v.research) != Tree.Node.READY) {
+                v.research = null;
+            } else if (lacking(v, Tree.unlockCost(v, v.research)) != null) {
+                // (it asks for what the village cannot make and has not got: saving up for it would hold everything
+                // else back for good; put off, and what would make it is looked to first)
+                v.declined.put("research:" + v.research.id(), today);
                 v.research = null;
             } else if (Tree.affordable(v, Tree.unlockCost(v, v.research))) {
                 BuildingType t = v.research;
@@ -1747,8 +1820,17 @@ public final class VillageLife {
         }
         BuildingType best = null;
         int bestScore = Integer.MIN_VALUE;
+        // what the nodes the village wants are waiting for: the goods no workshop of it makes yet
+        java.util.EnumSet<Res> wanted = java.util.EnumSet.noneOf(Res.class);
+        for (BuildingType t : BuildingType.values()) {
+            if (!t.isNode() || Tree.unlocked(v, t) || Tree.node(v, t) == Tree.Node.HIDDEN) continue;
+            if (t.branch != BuildingType.Branch.HOME && t.branch != BuildingType.Branch.STORE && t.branch != v.focus) continue;
+            Res r = lacking(v, Tree.unlockCost(v, t));
+            if (r != null) wanted.add(r);
+        }
         for (BuildingType t : BuildingType.values()) {
             if (!t.isNode() || Tree.node(v, t) != Tree.Node.READY || declined(v, "research:" + t.id(), today)) continue;
+            if (lacking(v, Tree.unlockCost(v, t)) != null) continue;
             // (the runs and the locksmith's only when the village is ready to keep them: else it would save up for good)
             if (t.isPen() && !husbandry(v, t) || t == BuildingType.LOCKSMITH && !locksmith(v) || t == BuildingType.WEAVER && !weaver(v)
                     || t == BuildingType.SMELTER && !smelter(v) || t == BuildingType.GLASSWORKS && !glassworks(v)) continue;
@@ -1764,8 +1846,11 @@ public final class VillageLife {
                     || t == BuildingType.LOCKSMITH && locksmith(v)
                     || t == BuildingType.WEAVER && weaver(v) || t == BuildingType.SMELTER && smelter(v) || t == BuildingType.GLASSWORKS && glassworks(v)
                     || t == BuildingType.CARTOGRAPHER && v.adults() >= 5;
-            if (!mine) continue;
-            int score = (t.branch == BuildingType.Branch.HOME && v.freeBeds() <= 1 ? 50 : 0) + (t.branch == v.focus ? 30 : 0) - t.depth() * 5;
+            // (the way to what the wanted nodes ask for: the sawmill and the joiner's for joinery, and so on)
+            boolean leads = leadsTo(t, wanted);
+            if (!mine && !leads) continue;
+            int score = (t.branch == BuildingType.Branch.HOME && v.freeBeds() <= 1 ? 50 : 0) + (t.branch == v.focus ? 30 : 0) - t.depth() * 5
+                    + (leads ? 45 : 0);
             // (the stall and the map table open the way to the other villages: early, once there are people for them)
             if (t == BuildingType.MARKET) score += 35;
             if (t == BuildingType.CARTOGRAPHER && v.known.isEmpty()) score += 40;
@@ -1778,6 +1863,74 @@ public final class VillageLife {
         // (a step of the queue: what it costs is kept back, and bought for, from now on)
         v.research = best;
         v.log(today, Component.translatable("minecraftportsmod.vlog.research_planned", best.displayName()).withStyle(ChatFormatting.GRAY));
+    }
+
+    /**
+     * A good the price asks for that the village has too little of and no way to make yet (null: none): joinery
+     * with no joiner's, furniture with no joiner's raised a level, metalware with no locksmith, wool and hides with
+     * no farmyard, cloth with no weaver, glass with no glassworks, iron with no miner finding any. (Logs, stone,
+     * food, wheat, planks, sticks, coal and tools it can always make.)
+     */
+    static Res lacking(Village v, java.util.Map<Res, Integer> cost) {
+        for (var e : cost.entrySet()) {
+            Res r = e.getKey();
+            if (v.stock(r) >= e.getValue()) continue;
+            boolean makes = switch (r) {
+                case JOINERY -> v.has(BuildingType.CARPENTER) && v.workers(Job.JOINER) > 0;
+                case FURNITURE -> carpenterLevel(v) >= 2 && v.workers(Job.JOINER) > 0;
+                case METALWARE -> v.has(BuildingType.LOCKSMITH) && v.workers(Job.LOCKSMITH) > 0;
+                case WOOL, LEATHER -> v.has(BuildingType.FARMYARD);
+                case CLOTH -> v.has(BuildingType.WEAVER);
+                case GLASS -> v.has(BuildingType.GLASSWORKS);
+                // (iron: dug by the miners now and then, or smelted; a village under the plains may find none)
+                case IRON -> production(v, Res.IRON) > 0;
+                default -> true;
+            };
+            if (!makes) return r;
+        }
+        return null;
+    }
+
+    /**
+     * The goods the village cannot make that it would need for the next nodes of its homes, stores and speciality
+     * (ready to open) and for raising its buildings: wanted, so that its merchant buys them (see {@link #wanted}).
+     */
+    static void wishes(Village v) {
+        v.wishes.clear();
+        for (BuildingType t : BuildingType.values()) {
+            if (!t.isNode() || Tree.unlocked(v, t) || Tree.node(v, t) != Tree.Node.READY) continue;
+            if (t.branch != BuildingType.Branch.HOME && t.branch != BuildingType.Branch.STORE && t.branch != v.focus) continue;
+            wish(v, Tree.unlockCost(v, t));
+        }
+        for (Building b : v.buildings) if (Tree.canRaise(v, b)) wish(v, Tree.levelCost(b.type, b.level + 1));
+    }
+
+    private static void wish(Village v, java.util.Map<Res, Integer> cost) {
+        Res r = lacking(v, cost);
+        if (r != null) v.wishes.merge(r, cost.get(r), Math::max);
+    }
+
+    /** Does a node lead to a workshop that makes one of these goods (it, or one after it in its branch)? */
+    static boolean leadsTo(BuildingType t, java.util.Set<Res> goods) {
+        if (goods.isEmpty()) return false;
+        for (BuildingType k = maker(goods); k != null; k = k.parent) if (k == t) return true;
+        return false;
+    }
+
+    /** The workshop that makes the first of these goods. */
+    private static BuildingType maker(java.util.Set<Res> goods) {
+        for (Res r : goods) {
+            BuildingType m = switch (r) {
+                case JOINERY, FURNITURE -> BuildingType.CARPENTER;
+                case METALWARE -> BuildingType.LOCKSMITH;
+                case WOOL, LEATHER -> BuildingType.FARMYARD;
+                case CLOTH -> BuildingType.WEAVER;
+                case GLASS -> BuildingType.GLASSWORKS;
+                default -> null;
+            };
+            if (m != null) return m;
+        }
+        return null;
     }
 
     /**
@@ -1817,15 +1970,19 @@ public final class VillageLife {
     /** A new home: the best kind of house open to the village that it can best pay for. */
     private static boolean home(ServerLevel level, Village v, long today) {
         BuildingType pick = null;
-        int bestBeds = 0, bestShort = Integer.MAX_VALUE;
+        int bestRank = -1, bestShort = Integer.MAX_VALUE;
+        // the best kind open (of two as good, one or the other in turn: a village of tall wooden houses and stone ones)
+        int turn = v.nextBuilding;
         for (BuildingType t : HOMES) {
             if (!Tree.open(v, t)) continue;
             int shortfall = 0;
             // (what it costs this village: the tenth hut dear enough that a house is the better buy)
             java.util.Map<Res, Integer> price = Tree.price(v, t);
             for (Res r : Res.values()) shortfall += Math.max(0, price.getOrDefault(r, 0) - v.stock(r));
-            if (t.beds > bestBeds || t.beds == bestBeds && shortfall < bestShort) {
-                bestBeds = t.beds;
+            int rank = homeRank(t);
+            boolean tie = rank == bestRank && (turn++ % 2 == 0);
+            if (rank > bestRank || tie) {
+                bestRank = rank;
                 bestShort = shortfall;
                 pick = t;
             }
