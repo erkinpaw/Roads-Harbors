@@ -68,6 +68,8 @@ public final class Tidy {
     }
 
     private static boolean inPlot(Village v, int x, int z) {
+        // (the miners' pit is meant to be a hole)
+        if (Mine.inPit(v, x, z, 1)) return true;
         for (Building b : v.buildings) {
             int h = b.type.half;
             if (Math.abs(x - b.origin.getX()) <= h && Math.abs(z - b.origin.getZ()) <= h) return true;

@@ -640,7 +640,11 @@ final class WorkGoal extends Goal {
      * then worked: at a wall of it, chipping away.
      */
     private void mine(ServerLevel level, Village v, Building house) {
-        List<Mine.Step> plan = plans.computeIfAbsent(v.id * 100000L + house.id, k -> Mine.plan(level, v, house));
+        // (a plan for each level of the house: the pit is widened and deepened; what is dug already is skipped)
+        List<Mine.Step> plan = plans.computeIfAbsent(v.id * 1000000L + house.id * 10L + house.level, k -> {
+            VillageManager.mineReset(v);
+            return Mine.plan(level, v, house);
+        });
         switch (phase) {
             case FIND -> {
                 // skip what is already open (caves, what others dug)
@@ -666,7 +670,14 @@ final class WorkGoal extends Goal {
                     timer = 0;
                     return;
                 }
-                step = plan.get(i);
+                // (each miner at his own block of the layer, not all at one)
+                int slot = 0;
+                for (Dweller d : v.dwellers) {
+                    if (d.id == r.colonyDweller()) break;
+                    if (d.job == Job.MINER) slot++;
+                }
+                int j = Math.min(plan.size() - 1, i + slot * 2);
+                step = Mine.diggable(level, plan.get(j).dig()) ? plan.get(j) : plan.get(i);
                 target = step.dig();
                 stand = step.stand();
                 phase = Phase.GO;
@@ -699,8 +710,8 @@ final class WorkGoal extends Goal {
                     if (chip(level, v, target, 50)) phase = carried >= LOAD_STONE + 2 ? Phase.DELIVER : Phase.FIND;
                     return;
                 }
+                // (dug already, by another: the next; how far the pit is dug is counted by what is open, see FIND)
                 if (!Mine.diggable(level, target)) {
-                    VillageManager.mineStep(level, v);
                     phase = Phase.FIND;
                     return;
                 }
@@ -723,7 +734,6 @@ final class WorkGoal extends Goal {
                     findOre(level, v, target, st);
                 }
                 if (step.torchWall() != null) Mine.torch(level, target, step.torchWall());
-                VillageManager.mineStep(level, v);
                 phase = carried >= LOAD_STONE + 2 ? Phase.DELIVER : Phase.FIND;
             }
             default -> phase = Phase.FIND;
