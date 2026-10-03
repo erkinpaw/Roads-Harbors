@@ -300,6 +300,12 @@ public final class Village {
     BuildingType.Sub sub;
     /** The node of the tree the village is saving up to open (null: none in hand). */
     BuildingType research;
+    /**
+     * Goods the village cannot make that the nodes and levels it wants ask for (worked out each day, not saved): kept
+     * as a want, so that its merchant buys them from the villages that make them.
+     */
+    final EnumMap<Res, Integer> wishes = new EnumMap<>(Res.class);
+
     /** Steps the players took out of the queue, and the day: not put back by the village for a few days. */
     final Map<String, Long> declined = new HashMap<>();
 
