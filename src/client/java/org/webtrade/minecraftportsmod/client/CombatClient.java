@@ -14,9 +14,11 @@ import org.webtrade.minecraftportsmod.combat.WarshipEntity;
 import org.webtrade.minecraftportsmod.network.CombatPayloads;
 
 /**
- * At the helm of a warship. Sailing: W/S set and take in the sails, A/D the rudder. The fighting mode (R, again to
- * leave it): A/D choose the broadside, port or starboard, the space bar fires it, the camera's height sets how far
- * the shot goes; the flight of the shot from the chosen side is drawn as a line of dots, wherever its guns are loaded.
+ * At the helm of a warship. W sets one more sail (three presses: all of them), S takes one in, A/D the rudder; the
+ * mouse turns the camera freely round her. The fighting mode (R, again to leave it): X switches the broadside, the
+ * space bar fires it, the camera's height sets how far the shot goes; on going into the fight (or switching sides)
+ * the camera swings round behind her to the far side, looking out over the chosen broadside. The flight of the shot
+ * from the chosen side is drawn as a line of dots, wherever its guns are loaded.
  * The camera goes out behind and above her (third person) while one is aboard, and comes back after. The ship's hull,
  * sails and each side's guns (loaded, or how far through reloading) are shown at the bottom of the screen; an enemy's
  * hull over her masts' foot.
@@ -36,6 +38,15 @@ public final class CombatClient {
     private static boolean fighting;
     private static int aimSide = 1;
 
+    /** Ticks the camera still swings round to the chosen broadside; how far off the bow it looks then (degrees). */
+    private static int swing;
+    private static final int SWING_TICKS = 30;
+    private static final float LOOK_OUT = 62F;
+
+    /** The other broadside. Default: X. */
+    public static final net.minecraft.client.KeyMapping SIDE = new net.minecraft.client.KeyMapping("key.minecraftportsmod.broadside",
+            org.lwjgl.glfw.GLFW.GLFW_KEY_X, org.webtrade.minecraftportsmod.client.chart.MinecraftportsmodKeys.CATEGORY);
+
     /** Into and out of the fighting mode. Default: R. */
     public static final net.minecraft.client.KeyMapping FIGHT = new net.minecraft.client.KeyMapping("key.minecraftportsmod.fight",
             org.lwjgl.glfw.GLFW.GLFW_KEY_R, org.webtrade.minecraftportsmod.client.chart.MinecraftportsmodKeys.CATEGORY);
@@ -52,6 +63,7 @@ public final class CombatClient {
     public static void fight(boolean on, int side) {
         fighting = on;
         aimSide = side;
+        if (on) swing = SWING_TICKS;
     }
 
     /** How far behind the ship the camera stands while one is at her helm (blocks). */
@@ -64,6 +76,7 @@ public final class CombatClient {
 
     public static void init() {
         net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.registerKeyMapping(FIGHT);
+        net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.registerKeyMapping(SIDE);
         ClientTickEvents.START_CLIENT_TICK.register(CombatClient::tick);
         HudElementRegistry.addLast(Minecraftportsmod.id("warship"), (g, delta) -> hud(Minecraft.getInstance(), g));
     }
@@ -83,25 +96,44 @@ public final class CombatClient {
         if (at == null || mc.gui.screen() != null || !ClientPlayNetworking.canSend(CombatPayloads.ShipOrder.TYPE)) {
             while (FIGHT.consumeClick()) {
             }
+            while (SIDE.consumeClick()) {
+            }
             return;
         }
-        while (FIGHT.consumeClick()) fighting = !fighting;
-        int sails = 0, fire = 0, rudder = 0;
-        while (mc.options.keyUp.consumeClick()) sails = 1;
-        while (mc.options.keyDown.consumeClick()) sails = -1;
+        // R: into the fight and out of it; X: the other broadside; space: fire it
+        while (FIGHT.consumeClick()) {
+            fighting = !fighting;
+            if (fighting) swing = SWING_TICKS;
+        }
+        while (SIDE.consumeClick()) {
+            aimSide = -aimSide;
+            if (fighting) swing = SWING_TICKS;
+        }
+        int sails = 0, fire = 0;
+        // W sets one more sail (three presses: all of them), S takes one in
+        while (mc.options.keyUp.consumeClick()) sails++;
+        while (mc.options.keyDown.consumeClick()) sails--;
+        int rudder = (mc.options.keyRight.isDown() ? 1 : 0) - (mc.options.keyLeft.isDown() ? 1 : 0);
+        while (mc.options.keyLeft.consumeClick()) {
+        }
+        while (mc.options.keyRight.consumeClick()) {
+        }
         float elevation = elevation(mc);
         if (fighting) {
-            // A/D choose the broadside, the space bar fires it (the ship holds her course meanwhile)
-            while (mc.options.keyLeft.consumeClick()) aimSide = -1;
-            while (mc.options.keyRight.consumeClick()) aimSide = 1;
             while (mc.options.keyJump.consumeClick()) fire = aimSide;
-        } else {
-            rudder = (mc.options.keyRight.isDown() ? 1 : 0) - (mc.options.keyLeft.isDown() ? 1 : 0);
-            while (mc.options.keyLeft.consumeClick()) {
-            }
-            while (mc.options.keyRight.consumeClick()) {
+            // the camera swings round behind her, over the far side, to look out over the chosen broadside
+            if (swing > 0) {
+                swing--;
+                float want = at.getYRot() + aimSide * LOOK_OUT;
+                float delta = Mth.wrapDegrees(want - mc.player.getYRot());
+                mc.player.setYRot(mc.player.getYRot() + Mth.clamp(delta, -9F, 9F));
+                float pitch = mc.player.getXRot();
+                mc.player.setXRot(pitch + Mth.clamp(18F - pitch, -3F, 3F));
+                if (Math.abs(delta) < 1F) swing = 0;
             }
         }
+        for (; sails > 1; sails--) ClientPlayNetworking.send(new CombatPayloads.ShipOrder(1, rudder, 0, elevation));
+        for (; sails < -1; sails++) ClientPlayNetworking.send(new CombatPayloads.ShipOrder(-1, rudder, 0, elevation));
         if (sails != 0 || fire != 0 || rudder != lastRudder || --resend <= 0) {
             ClientPlayNetworking.send(new CombatPayloads.ShipOrder(sails, rudder, fire, elevation));
             lastRudder = rudder;
@@ -153,8 +185,8 @@ public final class CombatClient {
         if (ship != null) {
             int x = w / 2 - 91, y = h - 62;
             bar(g, x, y, 182, ship.hull() / ship.maxHull(), 0xFFB03020);
-            // the sails: four pips
-            for (int i = 0; i < 3; i++) g.fill(x + i * 12, y - 10, x + i * 12 + 10, y - 5, i < ship.sails() ? 0xFFF0E8D0 : 0x60FFFFFF);
+            // the sails: one for each that can be set, white when set
+            for (int i = 0; i < 3; i++) glyph(g, SAIL, x + i * 17, y - 13, i < ship.sails() ? 0xFFF4EEDC : 0x55FFFFFF, 0xFF5A3A22);
             // the guns of each side, port on the left of the bar and starboard on the right: loaded (green), or how far
             // through reloading; the side chosen in the fighting mode framed
             for (int side : new int[]{-1, 1}) {
@@ -163,9 +195,8 @@ public final class CombatClient {
                 if (fighting && side == aimSide) g.fill(bx - 2, by - 2, bx + 48, by + 12, 0xFFF0C040);
                 g.fill(bx, by, bx + 46, by + 10, 0xC0000000);
                 g.fill(bx + 1, by + 1, bx + 1 + Math.round(44 * r), by + 9, r >= 1 ? 0xFF40C040 : 0xFFC08030);
-                // the guns themselves: a pip each
-                int guns = Math.min(7, ship.cls().guns());
-                for (int k = 0; k < guns; k++) g.fill(bx + 3 + k * 6, by + 3, bx + 7 + k * 6, by + 7, r >= 1 ? 0xFF103010 : 0x80000000);
+                // a gun over the bar, looking out to its side
+                glyph(g, side < 0 ? GUN_PORT : GUN_STARBOARD, bx + 16, by - 9, r >= 1 ? 0xFF2A2A2E : 0x90505050, 0xFF6A4628);
             }
             if (fighting) {
                 // the fighting mode: the hull bar framed in red
@@ -176,10 +207,27 @@ public final class CombatClient {
         // the enemies about: a hull bar over each one in sight
         for (var e : mc.level.entitiesForRendering()) {
             if (!(e instanceof WarshipEntity s) || !s.isPirate() || s.sinking() > 0 || s.distanceTo(mc.player) > 160) continue;
-            Vec3 top = s.position().add(0, s.cls().castle() + 7, 0);
+            // (over her mastheads)
+            Vec3 top = s.position().add(0, s.cls().lift + 19, 0);
             var proj = project(mc, top);
             if (proj == null) continue;
             bar(g, (int) proj.x - 30, (int) proj.y, 60, s.hull() / s.maxHull(), 0xFF202020);
+        }
+    }
+
+    /** Little pictures for the hud: a square sail on its yard; a gun on its carriage, muzzle to port or starboard. */
+    private static final String[] SAIL = {"#######", ".ooooo.", ".ooooo.", ".ooooo.", "..ooo.."};
+    private static final String[] GUN_STARBOARD = {"..ooooo", "ooooooo", ".##.##."};
+    private static final String[] GUN_PORT = {"ooooo..", "ooooooo", ".##.##."};
+
+    /** Draws a picture, two gui pixels to each of its own: 'o' in the main colour, '#' in the second. */
+    private static void glyph(GuiGraphicsExtractor g, String[] rows, int x, int y, int main, int second) {
+        for (int j = 0; j < rows.length; j++) {
+            for (int i = 0; i < rows[j].length(); i++) {
+                char c = rows[j].charAt(i);
+                if (c == '.') continue;
+                g.fill(x + i * 2, y + j * 2, x + i * 2 + 2, y + j * 2 + 2, c == 'o' ? main : second);
+            }
         }
     }
 

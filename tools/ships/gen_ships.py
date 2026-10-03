@@ -178,13 +178,11 @@ def build_sloop():
     peak = (mz - 60 * math.cos(0.4), -140 - 60 * math.sin(0.4))
     poly = [(mz - 4, -34), (mz - 72, -34), (peak[0], peak[1] + 4), (mz - 4, -138)]
     sail = root.child("sail_main", pivot=(0, -32, 0), anim="fore_aft")
-    for y0, hh, z0, z1 in bands(poly, 8):
-        sail.box("sail", -1, y0 + 32, z0, 2, hh, z1 - z0)
+    fore_and_aft(sail, poly, 8, 32, 6)
     # jib: triangle from the bowsprit to the crosstrees
     jib_poly = [(tip[2] - 8, tip[1] - 6), (mz + 16, -118), (mz + 26, -16)]
     jib = root.child("sail_jib", pivot=(0, -16, 0), anim="fore_aft")
-    for y0, hh, z0, z1 in bands(jib_poly, 8):
-        jib.box("sail", -1, y0 + 16, z0, 2, hh, z1 - z0)
+    fore_and_aft(jib, jib_poly, 8, 16, 4)
 
     # standing rigging
     top = (0, -166, mz)
@@ -201,15 +199,40 @@ def build_sloop():
 # ---------------------------------------------------------------------------- brig
 
 def square_sail(root, name, x_top, x_bot, y_top, height, z):
-    """A square sail hanging from its yard at (y_top, z); slightly wider at the foot; furls up."""
+    """A square sail hanging from its yard at (y_top, z), slightly wider at the foot, full of wind: its belly bulges
+    forward, most in the middle and low down, the head (at the yard) and the leeches (the sides) straight; furls up."""
     p = root.child(name, pivot=(0, y_top, z), anim="square")
-    rows = max(1, height // 10)
+    rows = max(1, height // 8)
+    belly = max(3.0, height * 0.24)
     for i in range(rows):
         t = (i + 0.5) / rows
         half = x_top + (x_bot - x_top) * t
-        p.box("sail_square", -half, i * height / rows, -1, half * 2, math.ceil(height / rows), 2,
-              emblem=name.endswith("course"), mid=y_top + height / 2)
+        cols = max(3, int(round(half * 2 / 12)))
+        y0, hh = i * height / rows, math.ceil(height / rows)
+        for k in range(cols):
+            x0 = -half + k * half * 2 / cols
+            x1 = -half + (k + 1) * half * 2 / cols
+            u = ((x0 + x1) / 2) / half
+            dz = round(belly * (1 - u * u) * math.sin(math.pi * min(1.0, t * 1.15)))
+            p.box("sail_square", x0, y0, -1 + dz, max(1, x1 - x0), hh, 2,
+                  emblem=name.endswith("course"), mid=y_top + height / 2, half=half)
     return p
+
+
+def fore_and_aft(part, poly, step, y_shift, belly=5.0):
+    """A fore-and-aft sail (a gaff sail, a jib, a lateen) in bands, full of wind: bellied out to one side (to leeward),
+    most in the middle, straight along its edges."""
+    belly *= 2.0
+    bs = bands(poly, step)
+    for n, (y0, hh, z0, z1) in enumerate(bs):
+        t = (n + 0.5) / len(bs)
+        cols = max(1, int(round((z1 - z0) / 12)))
+        for k in range(cols):
+            a0 = z0 + k * (z1 - z0) / cols
+            a1 = z0 + (k + 1) * (z1 - z0) / cols
+            u = ((a0 + a1) / 2 - (z0 + z1) / 2) / max(1.0, (z1 - z0) / 2)
+            dx = round(belly * (1 - u * u) * math.sin(math.pi * t))
+            part.box("sail", -1 + dx, y0 + y_shift, a0, 2, hh, max(1, a1 - a0))
 
 
 def build_brig():
@@ -286,8 +309,7 @@ def build_brig():
     bowsprit.box("spar", -2, -2, bs_len - 6, 4, 4, 40)                    # jib boom
     tip = (0, -16 - (bs_len + 34) * math.sin(bs_rot), bow_end - 8 + (bs_len + 34) * math.cos(bs_rot))
     jib = root.child("sail_jib", pivot=(0, -20, 0), anim="fore_aft")
-    for y0, hh, z0, z1 in bands([(tip[2] - 10, tip[1] - 4), (masts["fore"] + 14, -196), (masts["fore"] + 30, -24)], 10):
-        jib.box("sail", -1, y0 + 20, z0, 2, hh, z1 - z0)
+    fore_and_aft(jib, [(tip[2] - 10, tip[1] - 4), (masts["fore"] + 14, -196), (masts["fore"] + 30, -24)], 10, 20, 6)
     rope(root, "forestay", tip, (0, -250, masts["fore"]))
     rope(root, "stay_main", (0, -130, masts["fore"]), (0, -250, masts["main"]))
     rope(root, "stay_lower", (0, -24, masts["fore"] + 30), (0, -128, masts["main"]))
@@ -303,8 +325,7 @@ def build_brig():
 def lateen(root, name, mz, y_top, y_bot, z_fore, z_aft):
     """A fore-and-aft (lateen) sail on the mizzen: a tall triangle abaft the mast."""
     p = root.child(name, pivot=(0, y_bot, 0), anim="fore_aft")
-    for y0, hh, z0, z1 in bands([(z_fore, y_bot), (z_aft, y_bot), (mz - 2, y_top)], 10):
-        p.box("sail", -1, y0 - y_bot, z0, 2, hh, z1 - z0)
+    fore_and_aft(p, [(z_fore, y_bot), (z_aft, y_bot), (mz - 2, y_top)], 10, -y_bot, 6)
     return p
 
 
@@ -468,8 +489,7 @@ def build_line():
     bowsprit.box("spar", -2, -2, bs_len - 6, 4, 4, 50)
     tip = (0, -16 - (bs_len + 44) * math.sin(bs_rot), bow_end - 8 + (bs_len + 44) * math.cos(bs_rot))
     jib = root.child("sail_jib", pivot=(0, -20, 0), anim="fore_aft")
-    for y0, hh, z0, z1 in bands([(tip[2] - 10, tip[1] - 4), (masts["fore"] + 14, -196), (masts["fore"] + 30, -24)], 10):
-        jib.box("sail", -1, y0 + 20, z0, 2, hh, z1 - z0)
+    fore_and_aft(jib, [(tip[2] - 10, tip[1] - 4), (masts["fore"] + 14, -196), (masts["fore"] + 30, -24)], 10, 20, 6)
     rope(root, "forestay", tip, (0, -250, masts["fore"]))
     rope(root, "stay_main", (0, -130, masts["fore"]), (0, -250, masts["main"]))
     rope(root, "stay_mizzen", (0, -130, masts["main"]), (0, -204, masts["mizzen"]))
@@ -595,9 +615,9 @@ def paint_pixel(mat, face, ax, ay, az, box, pal):
     if mat in ("sail", "sail_square"):
         base = pal.sail
         c = shade(base, (rnd("c", ax, ay, az) - 0.5) * 6)
-        if mat == "sail_square" and box.w > 4:
+        if mat == "sail_square":
             # the cloth full of wind: lighter in the belly, shaded towards the leeches and the foot
-            k = abs(ax) / max(1.0, box.w / 2)
+            k = min(1.0, abs(ax) / max(1.0, box.deco.get("half", box.w / 2)))
             c = shade(c, -18 * k * k - (6 if (ay - box.y) > box.h * 0.6 else 0))
         seam_coord = az if mat == "sail" else ax
         if seam_coord % 12 == 0:
@@ -607,7 +627,7 @@ def paint_pixel(mat, face, ax, ay, az, box, pal):
         if mat == "sail" and pal is SLOOP and ay % 60 in range(26, 31):
             c = shade(pal.stripe, (rnd("st", seam_coord) - 0.5) * 8)
         if mat == "sail_square":
-            if abs(ax) >= abs(box.x) - 1:
+            if abs(ax) >= box.deco.get("half", abs(box.x)) - 1:
                 c = shade(base, -30)                                 # bolt rope along the leeches
             if pal in (BRIG, GALLEON) and box.deco.get("emblem"):
                 mid = box.deco.get("mid", 0)
