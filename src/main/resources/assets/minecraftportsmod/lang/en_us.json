@@ -960,5 +960,6 @@
   "item.minecraftportsmod.galleon_spawn_egg": "Galleon Spawn Egg",
   "item.minecraftportsmod.ship_of_the_line_spawn_egg": "Ship of the Line Spawn Egg",
   "entity.minecraftportsmod.galleon": "Galleon",
-  "entity.minecraftportsmod.ship_of_the_line": "Ship of the Line"
+  "entity.minecraftportsmod.ship_of_the_line": "Ship of the Line",
+  "key.minecraftportsmod.broadside": "Switch broadside (warship)"
 }

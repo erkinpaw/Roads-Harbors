@@ -960,5 +960,6 @@
   "item.minecraftportsmod.galleon_spawn_egg": "Яйцо призыва галеона",
   "item.minecraftportsmod.ship_of_the_line_spawn_egg": "Яйцо призыва линейного корабля",
   "entity.minecraftportsmod.galleon": "Галеон",
-  "entity.minecraftportsmod.ship_of_the_line": "Линейный корабль"
+  "entity.minecraftportsmod.ship_of_the_line": "Линейный корабль",
+  "key.minecraftportsmod.broadside": "Сменить борт (корабль)"
 }

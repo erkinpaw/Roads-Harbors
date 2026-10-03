@@ -126,7 +126,7 @@ public class WarshipEntity extends Boat {
         return speed;
     }
 
-    void setSails(int s) {
+    public void setSails(int s) {
         entityData.set(DATA_SAILS, Mth.clamp(s, 0, cls.speeds.length - 1));
     }
 
@@ -292,6 +292,11 @@ public class WarshipEntity extends Boat {
         move.accept(passenger, seat.x - attach.x, seat.y - attach.y, seat.z - attach.z);
     }
 
+    /** The captain looks all round him: no boat's limit on how far his head turns. */
+    @Override
+    public void onPassengerTurned(Entity passenger) {
+    }
+
     @Override
     public boolean isPushable() {
         return false;
@@ -336,8 +341,7 @@ public class WarshipEntity extends Boat {
             }
             if (brain != null) brain.tick(level);
             else if (captain() == null) {
-                // nobody at the helm: she lies to, sails furled
-                if (sails() > 0) setSails(0);
+                // nobody at the helm: she lies to (her sails as they were, backed: no way on her)
                 rudder = 0;
             }
             sail();
@@ -350,7 +354,7 @@ public class WarshipEntity extends Boat {
 
     /** Way on her and her turning, by the sails and the rudder: she turns only while she moves, the faster the more. */
     private void sail() {
-        double want = cls.speeds[sails()];
+        double want = brain == null && captain() == null ? 0 : cls.speeds[sails()];
         speed += Mth.clamp(want - speed, -0.006, 0.004);
         float turn = (float) (rudder * (0.35 + speed * 7.0) * cls.turn);
         setYRot(getYRot() + turn);

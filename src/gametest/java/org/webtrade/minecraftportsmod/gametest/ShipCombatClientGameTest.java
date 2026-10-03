@@ -94,7 +94,12 @@ public class ShipCombatClientGameTest implements FabricClientGameTest {
                 }
             });
             context.takeScreenshot("seafight_a_aboard");
+            context.runOnClient(mc -> org.webtrade.minecraftportsmod.client.CombatClient.fight(true, -1));
+            context.waitTicks(40);
+            context.takeScreenshot("seafight_a2_port_side");
             context.runOnClient(mc -> org.webtrade.minecraftportsmod.client.CombatClient.fight(true, 1));
+            context.waitTicks(40);
+            context.takeScreenshot("seafight_a3_starboard_side");
             // the fight: the player's ship under sail, firing its broadside at the pirate whenever the guns bear
             boolean[] done = {false};
             float[] ownHull = {0}, pirateHull = {0};
@@ -174,6 +179,7 @@ public class ShipCombatClientGameTest implements FabricClientGameTest {
                     WarshipEntity w = (WarshipEntity) type.create(level, EntitySpawnReason.SPAWN_ITEM_USE);
                     w.snapTo(sea[0] + 0.5 + i * 16, level.getSeaLevel() - 0.4, sea[1] + 0.5, 0, 0);
                     if (i == 3) w.makePirate();
+                    w.setSails(3);
                     level.addFreshEntity(w);
                     log("{}: hull {}, guns a side {}", w.cls(), w.hull(), w.cls().guns());
                     i++;
