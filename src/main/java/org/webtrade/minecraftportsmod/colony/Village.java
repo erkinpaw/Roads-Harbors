@@ -402,6 +402,11 @@ public final class Village {
         return emeralds;
     }
 
+    /** The node of the tree the village is saving up to open, or null. */
+    public BuildingType research() {
+        return research;
+    }
+
     public BuildingType priority() {
         return priority;
     }

@@ -27,7 +27,7 @@ import java.util.Set;
  */
 public class NetworkRunClientGameTest implements FabricClientGameTest {
 
-    private static final String[] SEEDS = {"4242", "4242:notrade"};
+    private static final String[] SEEDS = {"4242:d120"};
     private static final int DAYS = 100;
     /** The days of the world being run now: 100, or as its spec says ("seed:d500"). */
     private static int days = DAYS;
@@ -55,7 +55,7 @@ public class NetworkRunClientGameTest implements FabricClientGameTest {
                 boolean o = v.unlocked(t), g = org.webtrade.minecraftportsmod.colony.Tree.grown(v, t);
                 if (o) open++;
                 if (g) grown++;
-                boolean mine = t.branch == v.focus || !t.branch.trade();
+                boolean mine = t.branch == v.focus() || !t.branch.trade();
                 if (mine) {
                     ownAll++;
                     if (g) ownGrown++;
@@ -371,7 +371,9 @@ public class NetworkRunClientGameTest implements FabricClientGameTest {
                 StringBuilder st = new StringBuilder();
                 for (var r : org.webtrade.minecraftportsmod.colony.Res.values()) if (v.stock(r) > 0) st.append(r.name().toLowerCase()).append(' ').append(v.stock(r)).append(' ');
                 StringBuilder bs = new StringBuilder();
-                for (Building b : v.buildings()) bs.append(b.type.name().toLowerCase()).append(b.state() == Building.State.BUILT ? "" : "*").append(' ');
+                for (Building b : v.buildings()) bs.append(b.type.name().toLowerCase()).append(b.level()).append(b.state() == Building.State.BUILT ? "" : "*").append(' ');
+                bs.append("| research ").append(v.research()).append(" open");
+                for (var t : org.webtrade.minecraftportsmod.colony.BuildingType.values()) if (t.isNode() && !t.free && v.unlocked(t)) bs.append(' ').append(t.id());
                 java.util.Map<String, Integer> jobs = new java.util.TreeMap<>();
                 for (var d : v.dwellers()) jobs.merge(d.job() == null ? "child" : d.job().id() + (d.away() ? "(away)" : ""), 1, Integer::sum);
                 st.append("| jobs ").append(jobs).append(" mood ").append(v.mood()).append(" tools L")

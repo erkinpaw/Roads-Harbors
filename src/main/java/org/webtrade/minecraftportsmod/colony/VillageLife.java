@@ -1721,6 +1721,11 @@ public final class VillageLife {
         if (v.research != null) {
             if (Tree.unlocked(v, v.research) || Tree.node(v, v.research) != Tree.Node.READY) {
                 v.research = null;
+            } else if (lacking(v, Tree.unlockCost(v, v.research)) != null) {
+                // (it asks for what the village cannot make and has not got: saving up for it would hold everything
+                // else back for good; put off, and what would make it is looked to first)
+                v.declined.put("research:" + v.research.id(), today);
+                v.research = null;
             } else if (Tree.affordable(v, Tree.unlockCost(v, v.research))) {
                 BuildingType t = v.research;
                 v.research = null;
@@ -1730,8 +1735,17 @@ public final class VillageLife {
         }
         BuildingType best = null;
         int bestScore = Integer.MIN_VALUE;
+        // what the nodes the village wants are waiting for: the goods no workshop of it makes yet
+        java.util.EnumSet<Res> wanted = java.util.EnumSet.noneOf(Res.class);
+        for (BuildingType t : BuildingType.values()) {
+            if (!t.isNode() || Tree.unlocked(v, t) || Tree.node(v, t) == Tree.Node.HIDDEN) continue;
+            if (t.branch != BuildingType.Branch.HOME && t.branch != BuildingType.Branch.STORE && t.branch != v.focus) continue;
+            Res r = lacking(v, Tree.unlockCost(v, t));
+            if (r != null) wanted.add(r);
+        }
         for (BuildingType t : BuildingType.values()) {
             if (!t.isNode() || Tree.node(v, t) != Tree.Node.READY || declined(v, "research:" + t.id(), today)) continue;
+            if (lacking(v, Tree.unlockCost(v, t)) != null) continue;
             // (the runs and the locksmith's only when the village is ready to keep them: else it would save up for good)
             if (t.isPen() && !husbandry(v, t) || t == BuildingType.LOCKSMITH && !locksmith(v) || t == BuildingType.WEAVER && !weaver(v)
                     || t == BuildingType.SMELTER && !smelter(v) || t == BuildingType.GLASSWORKS && !glassworks(v)) continue;
@@ -1747,8 +1761,11 @@ public final class VillageLife {
                     || t == BuildingType.LOCKSMITH && locksmith(v)
                     || t == BuildingType.WEAVER && weaver(v) || t == BuildingType.SMELTER && smelter(v) || t == BuildingType.GLASSWORKS && glassworks(v)
                     || t == BuildingType.CARTOGRAPHER && v.adults() >= 5;
-            if (!mine) continue;
-            int score = (t.branch == BuildingType.Branch.HOME && v.freeBeds() <= 1 ? 50 : 0) + (t.branch == v.focus ? 30 : 0) - t.depth() * 5;
+            // (the way to what the wanted nodes ask for: the sawmill and the joiner's for joinery, and so on)
+            boolean leads = leadsTo(t, wanted);
+            if (!mine && !leads) continue;
+            int score = (t.branch == BuildingType.Branch.HOME && v.freeBeds() <= 1 ? 50 : 0) + (t.branch == v.focus ? 30 : 0) - t.depth() * 5
+                    + (leads ? 45 : 0);
             // (the stall and the map table open the way to the other villages: early, once there are people for them)
             if (t == BuildingType.MARKET) score += 35;
             if (t == BuildingType.CARTOGRAPHER && v.known.isEmpty()) score += 40;
@@ -1761,6 +1778,55 @@ public final class VillageLife {
         // (a step of the queue: what it costs is kept back, and bought for, from now on)
         v.research = best;
         v.log(today, Component.translatable("minecraftportsmod.vlog.research_planned", best.displayName()).withStyle(ChatFormatting.GRAY));
+    }
+
+    /**
+     * A good the price asks for that the village has too little of and no way to make yet (null: none): joinery
+     * with no joiner's, furniture with no joiner's raised a level, metalware with no locksmith, wool and hides with
+     * no farmyard, cloth with no weaver, glass with no glassworks, iron with no miner finding any. (Logs, stone,
+     * food, wheat, planks, sticks, coal and tools it can always make.)
+     */
+    static Res lacking(Village v, java.util.Map<Res, Integer> cost) {
+        for (var e : cost.entrySet()) {
+            Res r = e.getKey();
+            if (v.stock(r) >= e.getValue()) continue;
+            boolean makes = switch (r) {
+                case JOINERY -> v.has(BuildingType.CARPENTER) && v.workers(Job.JOINER) > 0;
+                case FURNITURE -> carpenterLevel(v) >= 2 && v.workers(Job.JOINER) > 0;
+                case METALWARE -> v.has(BuildingType.LOCKSMITH) && v.workers(Job.LOCKSMITH) > 0;
+                case WOOL, LEATHER -> v.has(BuildingType.FARMYARD);
+                case CLOTH -> v.has(BuildingType.WEAVER);
+                case GLASS -> v.has(BuildingType.GLASSWORKS);
+                // (iron: dug by the miners now and then, or smelted; a village under the plains may find none)
+                case IRON -> production(v, Res.IRON) > 0 || v.has(BuildingType.SMELTER);
+                default -> true;
+            };
+            if (!makes) return r;
+        }
+        return null;
+    }
+
+    /** Does a node lead to a workshop that makes one of these goods (it, or one after it in its branch)? */
+    static boolean leadsTo(BuildingType t, java.util.Set<Res> goods) {
+        if (goods.isEmpty()) return false;
+        for (BuildingType k = maker(goods); k != null; k = k.parent) if (k == t) return true;
+        return false;
+    }
+
+    /** The workshop that makes the first of these goods. */
+    private static BuildingType maker(java.util.Set<Res> goods) {
+        for (Res r : goods) {
+            BuildingType m = switch (r) {
+                case JOINERY, FURNITURE -> BuildingType.CARPENTER;
+                case METALWARE -> BuildingType.LOCKSMITH;
+                case WOOL, LEATHER -> BuildingType.FARMYARD;
+                case CLOTH -> BuildingType.WEAVER;
+                case GLASS -> BuildingType.GLASSWORKS;
+                default -> null;
+            };
+            if (m != null) return m;
+        }
+        return null;
     }
 
     /**
