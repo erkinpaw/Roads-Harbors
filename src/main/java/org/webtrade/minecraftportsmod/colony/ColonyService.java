@@ -75,6 +75,7 @@ public final class ColonyService {
         // a letter from a village that has never heard of this one: read out here, an answer written
         if (Quests.deliver(player, player.level().getServer(), data, v)) return;
         Achievements.talked(player);
+        Quests.meet(data, v, d);
         Building home = v.building(d.home);
         Component homeText = home == null ? Component.translatable("minecraftportsmod.colony.homeless")
                 : Component.empty().append(home.type.displayName()).append(" #" + home.id);
@@ -442,12 +443,19 @@ public final class ColonyService {
                     }
                 };
                 boolean finished = !v.tasks.quests().contains(q) && a.kind() == ColonyPayloads.VillageAction.QUEST_HAND;
+                if (r == Quests.Result.FULL) player.sendSystemMessage(Component.translatable("minecraftportsmod.quest.full", Quests.MAX_TAKEN)
+                        .withStyle(ChatFormatting.RED), true);
+                if (r == Quests.Result.NOTHING) player.sendSystemMessage(Component.translatable(q.kind == Quests.Kind.HUNT
+                        ? "minecraftportsmod.quest.not_yet" : "minecraftportsmod.quest.nothing").withStyle(ChatFormatting.RED), true);
                 player.level().playSound(null, player.blockPosition(), finished ? SoundEvents.PLAYER_LEVELUP
                         : r == Quests.Result.OK ? SoundEvents.VILLAGER_YES : SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 0.6F, 1.0F);
                 if (d != null) sendQuest(player, v, d);
             }
             case ColonyPayloads.VillageAction.PLOT_BUY -> {
                 boolean ok = Plots.buy(player, data, v);
+                if (!ok) player.sendSystemMessage(Component.translatable(Plots.of(v, player.getUUID()) != null ? "minecraftportsmod.plot.have_one"
+                        : "minecraftportsmod.plot.no_money", Plots.of(v, player.getUUID()) != null ? v.name : String.valueOf(Plots.price(v, player.getUUID())))
+                        .withStyle(ChatFormatting.RED), true);
                 player.level().playSound(null, player.blockPosition(), ok ? SoundEvents.VILLAGER_YES : SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 0.6F, 1.0F);
                 if (ok) player.closeContainer();
             }

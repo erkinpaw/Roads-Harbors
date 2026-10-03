@@ -317,7 +317,24 @@ public final class Quests {
         List<Dweller> free = new ArrayList<>();
         for (Dweller d : v.dwellers) if (!d.away && !d.arriving && of(v, d.id) == null) free.add(d);
         if (free.isEmpty()) return null;
-        Dweller d = free.get(VillageLife.RND.nextInt(free.size()));
+        return offer(data, v, free.get(VillageLife.RND.nextInt(free.size())), today);
+    }
+
+    /**
+     * A player comes up to someone with nothing to ask: they think of something the village needs now (if there is
+     * room for one more task, and anything to ask for). Returns the task, or null.
+     */
+    public static Quest meet(VillageData data, Village v, Dweller d) {
+        if (d.away || of(v, d.id) != null || v.tasks.quests.size() >= room(v) + 2) return null;
+        Quest q = offer(data, v, d, data.day);
+        if (q != null) {
+            v.tasks.quests.add(q);
+            data.changed();
+        }
+        return q;
+    }
+
+    static Quest offer(VillageData data, Village v, Dweller d, long today) {
         Board b = v.tasks;
         Quest q = null;
         int roll = VillageLife.RND.nextInt(100);
@@ -336,6 +353,9 @@ public final class Quests {
         }
         if (q == null && d.job != null && roll < 60) q = bring(v, d);
         if (q == null && d.job != null) q = item(v, d);
+        // (nothing of their own trade to ask for: what the village is short of, a hunt now and then)
+        if (q == null && d.job != null && !d.elder) q = bring(v, d);
+        if (q == null && d.elder) q = bring(v, d);
         if (q == null) return null;
         Quest out = new Quest(b.next++, q.giver, q.kind, q.what, q.count);
         out.building = q.building;

@@ -33,35 +33,44 @@ public class PersonScreen extends UiScreen {
         y0 = (height - h) / 2;
         x1 = x0 + w;
         y1 = y0 + h;
-        int buttons = view.plotPrice() >= 0 ? 4 : 3;
-        int bw = (w - 16 - 5 * (buttons - 1)) / buttons, by = y1 - 26;
-        Button about = addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.person.about"),
-                b -> Minecraft.getInstance().gui.setScreen(new VillageScreen(this, view.village()))).bounds(x0 + 8, by, bw, 18).build());
-        about.active = view.elder();
-        if (!view.elder()) about.setTooltip(Tooltip.create(Component.translatable("minecraftportsmod.person.about_elder")));
-        Component label = Component.translatable("minecraftportsmod.person.tasks");
-        if (view.quest() == 1) label = Component.literal("! ").withStyle(net.minecraft.ChatFormatting.YELLOW).append(label);
-        Button tasks = addRenderableWidget(UiButton.make(label, b -> net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
-                new ColonyPayloads.VillageAction(view.village(), ColonyPayloads.VillageAction.QUEST, view.person(), 0)))
-                .bounds(x0 + 13 + bw, by, bw, 18).build());
-        tasks.active = view.quest() != 0;
-        Button trade = addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.person.trade"), b -> {
-            Minecraft.getInstance().gui.setScreen(null);
-            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(),
-                    ColonyPayloads.VillageAction.ORDERS, view.orders(), 0));
-        }).bounds(x0 + 18 + 2 * bw, by, bw, 18).build());
-        trade.active = view.orders() >= 0;
-        if (view.plotPrice() >= 0) {
-            Button plot = addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.person.plot", view.plotPrice()), b -> {
-                Minecraft.getInstance().gui.setScreen(null);
-                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(),
-                        ColonyPayloads.VillageAction.PLOT_BUY, view.person(), 0));
-            }).bounds(x0 + 23 + 3 * bw, by, bw, 18).build());
-            var mc = Minecraft.getInstance();
-            int em = mc.player == null ? 0 : mc.player.getInventory().countItem(net.minecraft.world.item.Items.EMERALD);
-            plot.active = em >= view.plotPrice();
+        // only what can be done with this person: no greyed-out buttons
+        java.util.List<Component> labels = new java.util.ArrayList<>();
+        java.util.List<Runnable> actions = new java.util.ArrayList<>();
+        if (view.elder()) {
+            labels.add(Component.translatable("minecraftportsmod.person.about"));
+            actions.add(() -> Minecraft.getInstance().gui.setScreen(new VillageScreen(this, view.village())));
         }
-        if (view.orders() < 0) trade.setTooltip(Tooltip.create(Component.translatable("minecraftportsmod.person.no_trade")));
+        if (view.quest() != 0) {
+            Component label = Component.translatable("minecraftportsmod.person.tasks");
+            if (view.quest() == 1) label = Component.literal("! ").withStyle(net.minecraft.ChatFormatting.YELLOW).append(label);
+            labels.add(label);
+            actions.add(() -> send(ColonyPayloads.VillageAction.QUEST, view.person()));
+        }
+        if (view.orders() >= 0) {
+            labels.add(Component.translatable("minecraftportsmod.person.trade"));
+            actions.add(() -> {
+                Minecraft.getInstance().gui.setScreen(null);
+                send(ColonyPayloads.VillageAction.ORDERS, view.orders());
+            });
+        }
+        if (view.plotPrice() >= 0) {
+            labels.add(Component.translatable("minecraftportsmod.person.plot", view.plotPrice()));
+            actions.add(() -> {
+                Minecraft.getInstance().gui.setScreen(null);
+                send(ColonyPayloads.VillageAction.PLOT_BUY, view.person());
+            });
+        }
+        int n = Math.max(1, labels.size());
+        int bw = Math.min(160, (w - 16 - 5 * (n - 1)) / n), by = y1 - 26;
+        int bx = x1 - 8 - n * bw - 5 * (n - 1);
+        for (int i = 0; i < labels.size(); i++) {
+            Runnable act = actions.get(i);
+            addRenderableWidget(UiButton.make(labels.get(i), b -> act.run()).bounds(bx + i * (bw + 5), by, bw, 18).build());
+        }
+    }
+
+    private void send(int kind, int a) {
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(), kind, a, 0));
     }
 
     @Override

@@ -52,21 +52,16 @@ public class QuestScreen extends UiScreen {
         Quests.Kind kind = Quests.Kind.values()[view.kind()];
         switch (view.state()) {
             case 0 -> {
-                UiButton take = addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.quest.take"),
+                addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.quest.take"),
                         b -> send(ColonyPayloads.VillageAction.QUEST_TAKE)).bounds(x1 - 8 - bw, by, bw, 18).build());
-                take.active = view.taken() < Quests.MAX_TAKEN;
             }
             case 1 -> {
                 addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.quest.drop"),
                         b -> send(ColonyPayloads.VillageAction.QUEST_DROP)).bounds(x0 + 8, by, bw, 18).build());
-                UiButton hand = addRenderableWidget(UiButton.make(Component.translatable(
+                addRenderableWidget(UiButton.make(Component.translatable(
                                 kind == Quests.Kind.HUNT || kind == Quests.Kind.LETTER ? "minecraftportsmod.quest.report" : "minecraftportsmod.quest.hand"),
                         b -> send(ColonyPayloads.VillageAction.QUEST_HAND)).bounds(x1 - 8 - bw, by, bw, 18).build());
-                hand.active = switch (kind) {
-                    case HUNT -> view.done() >= view.count();
-                    case LETTER -> view.done() >= view.count() && view.carried() > 0;
-                    default -> view.carried() > 0;
-                };
+
             }
             default -> {
             }
