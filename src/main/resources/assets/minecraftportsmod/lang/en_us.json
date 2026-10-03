@@ -950,11 +950,15 @@
   "minecraftportsmod.act.smelting": "Smelting ore",
   "minecraftportsmod.act.glassblowing": "Blowing glass",
   "minecraftportsmod.act.pigs": "Feeding the pigs",
-  "item.minecraftportsmod.warship_spawn_egg": "Warship Spawn Egg",
-  "entity.minecraftportsmod.warship": "Warship",
+  "item.minecraftportsmod.warship_spawn_egg": "Brig Spawn Egg",
+  "entity.minecraftportsmod.warship": "Brig",
   "entity.minecraftportsmod.cannonball": "Cannonball",
   "minecraftportsmod.pirates.sighted": "Sail on the horizon! Pirates!",
   "minecraftportsmod.pirates.sunk": "The pirate ship goes down!",
   "minecraftportsmod.pirates.lost": "The ship is sinking!",
-  "key.minecraftportsmod.fight": "Fighting mode (warship)"
+  "key.minecraftportsmod.fight": "Fighting mode (warship)",
+  "item.minecraftportsmod.galleon_spawn_egg": "Galleon Spawn Egg",
+  "item.minecraftportsmod.ship_of_the_line_spawn_egg": "Ship of the Line Spawn Egg",
+  "entity.minecraftportsmod.galleon": "Galleon",
+  "entity.minecraftportsmod.ship_of_the_line": "Ship of the Line"
 }

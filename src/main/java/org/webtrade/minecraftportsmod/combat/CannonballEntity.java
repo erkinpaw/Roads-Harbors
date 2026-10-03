@@ -81,7 +81,7 @@ public class CannonballEntity extends Entity {
         for (int i = 1; i <= steps; i++) {
             Vec3 p = from.lerp(to, i / (double) steps);
             // a ship
-            for (WarshipEntity s : level.getEntitiesOfClass(WarshipEntity.class, new AABB(p, p).inflate(WarshipEntity.HALF_LENGTH + 1))) {
+            for (WarshipEntity s : level.getEntitiesOfClass(WarshipEntity.class, new AABB(p, p).inflate(12))) {
                 if (s.getId() == ship || s.sinking() > 0 || !s.hits(p)) continue;
                 s.struck(level, p, HULL_DAMAGE, level.getEntity(ship));
                 return true;
