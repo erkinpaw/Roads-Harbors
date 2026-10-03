@@ -1049,5 +1049,9 @@
   "minecraftportsmod.plot.whose": "Участок игрока %s, деревня %s",
   "minecraftportsmod.plot.yours": "Ваш участок в деревне %s",
   "minecraftportsmod.plot.home": "Ваш дом в деревне %s",
-  "minecraftportsmod.vlog.plot": "%s получил участок в деревне"
+  "minecraftportsmod.vlog.plot": "%s получил участок в деревне",
+  "minecraftportsmod.plot.no_money": "Нужно изумрудов: %s",
+  "minecraftportsmod.quest.full": "У вас уже %s заданий",
+  "minecraftportsmod.quest.not_yet": "Ещё не сделано",
+  "minecraftportsmod.quest.nothing": "У вас нет того, что просят"
 }

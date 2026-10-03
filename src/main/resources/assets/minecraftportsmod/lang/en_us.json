@@ -1049,5 +1049,9 @@
   "minecraftportsmod.plot.whose": "%s's plot in %s",
   "minecraftportsmod.plot.yours": "Your plot in %s",
   "minecraftportsmod.plot.home": "Your home in %s",
-  "minecraftportsmod.vlog.plot": "%s took a plot in the village"
+  "minecraftportsmod.vlog.plot": "%s took a plot in the village",
+  "minecraftportsmod.plot.no_money": "You need %s emeralds",
+  "minecraftportsmod.quest.full": "You already have %s tasks",
+  "minecraftportsmod.quest.not_yet": "Not done yet",
+  "minecraftportsmod.quest.nothing": "You have nothing of what is asked"
 }
