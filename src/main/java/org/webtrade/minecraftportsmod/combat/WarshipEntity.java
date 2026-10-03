@@ -35,28 +35,11 @@ import net.minecraft.world.phys.Vec3;
  */
 public class WarshipEntity extends Boat {
 
-    /** How much the ship takes before she sinks. */
-    public static final float MAX_HULL = 100;
-    /** Ticks a side's guns take to reload. */
-    public static final int RELOAD = 70;
-    /** Guns on each side. */
-    public static final int GUNS = 4;
-    /** How much bigger than a fleet brig a warship is drawn. */
-    public static final float MODEL_SCALE = 1.8F;
-    /**
-     * Half the hull's beam and length (blocks), and how far forward of the origin the middle of the hull is (her bow
-     * is longer than her stern): where shot hits her, and where her guns stand.
-     */
-    public static final double HALF_BEAM = 2.3, HALF_LENGTH = 6.8, MIDDLE = 1.0;
-    /** The main deck's and the quarterdeck's height over the entity's origin. */
-    public static final double DECK = 0.6, QUARTERDECK = 2.25;
-    /** Speed (blocks per tick) at each set of sails: none, reefed, half, full. */
-    private static final double[] SPEED = {0, 0.1, 0.2, 0.32};
-    /** How long a sinking takes (ticks). */
-    private static final int SINK_TIME = 140;
     /** A cannonball leaves the gun this fast (blocks per tick). */
     public static final double SHOT_SPEED = 2.0;
 
+    /** How long a sinking takes (ticks). */
+    private static final int SINK_TIME = 140;
     private static final EntityDataAccessor<Float> DATA_HULL = SynchedEntityData.defineId(WarshipEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Integer> DATA_SAILS = SynchedEntityData.defineId(WarshipEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> DATA_PIRATE = SynchedEntityData.defineId(WarshipEntity.class, EntityDataSerializers.BOOLEAN);
@@ -75,16 +58,27 @@ public class WarshipEntity extends Boat {
     /** A pirate's brain (null for a captain's ship). */
     private PirateBrain brain;
 
+    private final ShipClass cls;
+
     public WarshipEntity(EntityType<? extends Boat> type, Level level) {
         super(type, level, () -> Items.OAK_BOAT);
+        cls = org.webtrade.minecraftportsmod.registry.ModContent.shipClass(type);
+        entityData.set(DATA_HULL, cls.hull);
     }
+
+    /** What kind of warship she is (by her entity type: a brig, a galleon, a ship of the line). */
+    public ShipClass cls() {
+        return cls;
+    }
+
+
 
     // ------------------------------------------------------------------ state
 
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
-        builder.define(DATA_HULL, MAX_HULL);
+        builder.define(DATA_HULL, 100F);
         builder.define(DATA_SAILS, 0);
         builder.define(DATA_PIRATE, false);
         builder.define(DATA_SINK, 0);
@@ -104,9 +98,18 @@ public class WarshipEntity extends Boat {
         return entityData.get(DATA_PIRATE);
     }
 
+    /** A pirate's ship: sailed by the server; worse kept than a navy's (less hull to her). */
     public void makePirate() {
+        if (!isPirate()) entityData.set(DATA_HULL, Math.min(hull(), cls.hull * PIRATE_HULL));
         entityData.set(DATA_PIRATE, true);
         brain = new PirateBrain(this);
+    }
+
+    /** A pirate's hull against a navy ship's of her class. */
+    static final float PIRATE_HULL = 0.8F;
+
+    public float maxHull() {
+        return isPirate() ? cls.hull * PIRATE_HULL : cls.hull;
     }
 
     /** Ticks into her sinking (0: afloat). */
@@ -124,7 +127,7 @@ public class WarshipEntity extends Boat {
     }
 
     void setSails(int s) {
-        entityData.set(DATA_SAILS, Mth.clamp(s, 0, SPEED.length - 1));
+        entityData.set(DATA_SAILS, Mth.clamp(s, 0, cls.speeds.length - 1));
     }
 
     void setRudder(int r) {
@@ -166,8 +169,8 @@ public class WarshipEntity extends Boat {
     /** Is a point inside her hull (her sides, her length, from the waterline to the top of her bulwarks)? */
     public boolean hits(Vec3 p) {
         Vec3 d = p.subtract(position());
-        double side = d.dot(starboard()), along = d.dot(forward()) - MIDDLE;
-        return Math.abs(side) <= HALF_BEAM && Math.abs(along) <= HALF_LENGTH && d.y >= -1.2 && d.y <= QUARTERDECK + 1.2;
+        double side = d.dot(starboard()), along = d.dot(forward()) - cls.middle;
+        return Math.abs(side) <= cls.halfBeam && Math.abs(along) <= cls.halfLength && d.y >= -1.2 && d.y <= cls.castle() + 1.2;
     }
 
     // ------------------------------------------------------------------ guns
@@ -175,12 +178,15 @@ public class WarshipEntity extends Boat {
     /** A broadside to one side ({@code -1} port, {@code 1} starboard), the guns raised by {@code elevation} degrees. */
     public void fire(int side, float elevation) {
         if (sinking() > 0 || reload(side) > 0) return;
-        entityData.set(side < 0 ? DATA_RELOAD_LEFT : DATA_RELOAD_RIGHT, RELOAD);
-        for (int g = 0; g < GUNS; g++) firing.add(new int[]{side, g, g * 3 + random.nextInt(2), Math.round(elevation * 100)});
+        entityData.set(side < 0 ? DATA_RELOAD_LEFT : DATA_RELOAD_RIGHT, cls.reload);
+        // (the guns go off down the side one after another, the rows together)
+        int n = cls.guns();
+        for (int g = 0; g < n; g++) firing.add(new int[]{side, g, (g % 7) * 3 + random.nextInt(2) + 1, Math.round(elevation * 100)});
     }
 
     private void fireGun(ServerLevel level, int side, int gun, float elevation) {
-        Vec3 muzzle = at(side * (HALF_BEAM + 0.4), gunAlong(gun), DECK + 0.7);
+        double[] spot = cls.gun(gun);
+        Vec3 muzzle = at(side * cls.muzzle(), spot[0], spot[1]);
         Vec3 out = starboard().scale(side);
         double e = Math.toRadians(elevation + (random.nextFloat() - 0.5F) * 1.6F);
         double yaw = (random.nextFloat() - 0.5F) * 0.05;
@@ -195,11 +201,6 @@ public class WarshipEntity extends Boat {
         level.sendParticles(ParticleTypes.CLOUD, muzzle.x + out.x, muzzle.y, muzzle.z + out.z, 6, 0.4, 0.2, 0.4, 0.02);
         level.playSound(null, muzzle.x, muzzle.y, muzzle.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.NEUTRAL, 1.6F,
                 0.75F + random.nextFloat() * 0.15F);
-    }
-
-    /** Where a gun stands along the hull (blocks forward of the origin). */
-    public static double gunAlong(int gun) {
-        return MIDDLE - HALF_LENGTH * 0.55 + gun * (HALF_LENGTH * 1.1 / (GUNS - 1));
     }
 
     /** Elevation (degrees) that drops a ball {@code range} blocks out, at sea level. */
@@ -278,7 +279,7 @@ public class WarshipEntity extends Boat {
     protected Vec3 getPassengerAttachmentPoint(Entity passenger, net.minecraft.world.entity.EntityDimensions dimensions, float scale) {
         // the captain at the wheel on the quarterdeck, the others along the deck
         int i = Math.max(0, getPassengers().indexOf(passenger));
-        double[][] seats = {{0, -4.3, QUARTERDECK}, {1.1, 0.5, DECK}, {-1.1, 0.5, DECK}, {0, 3.5, DECK}};
+        double[][] seats = {{0, cls.wheel(), cls.castle()}, {1.1, 0.5, cls.deck()}, {-1.1, 0.5, cls.deck()}, {0, 3.5, cls.deck()}};
         double[] s = seats[Math.min(i, seats.length - 1)];
         return new Vec3(s[0], s[2], s[1]).yRot(-getYRot() * Mth.DEG_TO_RAD);
     }
@@ -341,7 +342,7 @@ public class WarshipEntity extends Boat {
             }
             sail();
             guns(level);
-            if (++sinceHit > 600 && hull() < MAX_HULL && tickCount % 20 == 0) entityData.set(DATA_HULL, Math.min(MAX_HULL, hull() + 1));
+            if (++sinceHit > 600 && hull() < maxHull() && tickCount % 20 == 0) entityData.set(DATA_HULL, Math.min(maxHull(), hull() + 1));
         }
         super.tick();
         setPaddleState(false, false);
@@ -349,9 +350,9 @@ public class WarshipEntity extends Boat {
 
     /** Way on her and her turning, by the sails and the rudder: she turns only while she moves, the faster the more. */
     private void sail() {
-        double want = SPEED[sails()];
+        double want = cls.speeds[sails()];
         speed += Mth.clamp(want - speed, -0.006, 0.004);
-        float turn = (float) (rudder * (0.35 + speed * 7.0));
+        float turn = (float) (rudder * (0.35 + speed * 7.0) * cls.turn);
         setYRot(getYRot() + turn);
         Vec3 v = getDeltaMovement();
         Vec3 f = forward();
@@ -381,7 +382,7 @@ public class WarshipEntity extends Boat {
         speed = 0;
         setPos(getX(), getY() - 0.035, getZ());
         if (t % 4 == 0) {
-            Vec3 p = at((random.nextDouble() - 0.5) * 2 * HALF_BEAM, MIDDLE + (random.nextDouble() - 0.5) * 2 * HALF_LENGTH, 0.4);
+            Vec3 p = at((random.nextDouble() - 0.5) * 2 * cls.halfBeam, cls.middle + (random.nextDouble() - 0.5) * 2 * cls.halfLength, 0.4);
             level.sendParticles(ParticleTypes.BUBBLE_COLUMN_UP, p.x, p.y, p.z, 6, 0.6, 0.2, 0.6, 0.1);
             level.sendParticles(ParticleTypes.SPLASH, p.x, p.y + 0.6, p.z, 10, 0.8, 0.1, 0.8, 0.1);
         }
@@ -400,7 +401,7 @@ public class WarshipEntity extends Boat {
     @Override
     protected void readAdditionalSaveData(ValueInput input) {
         super.readAdditionalSaveData(input);
-        entityData.set(DATA_HULL, input.getFloatOr("hull", MAX_HULL));
+        entityData.set(DATA_HULL, input.getFloatOr("hull", cls.hull));
         if (input.getBooleanOr("pirate", false)) makePirate();
     }
 }

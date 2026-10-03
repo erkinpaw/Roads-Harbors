@@ -51,6 +51,8 @@ public class ShipCombatClientGameTest implements FabricClientGameTest {
             // the egg spawns a warship
             server.runOnServer(s -> {
                 if (SpawnEggItem.getType(new ItemStack(ModContent.WARSHIP_SPAWN_EGG)) != ModContent.WARSHIP) throw new AssertionError("the egg does not spawn a warship");
+                if (SpawnEggItem.getType(new ItemStack(ModContent.GALLEON_SPAWN_EGG)) != ModContent.GALLEON) throw new AssertionError("the egg does not spawn a galleon");
+                if (SpawnEggItem.getType(new ItemStack(ModContent.SHIP_OF_THE_LINE_SPAWN_EGG)) != ModContent.SHIP_OF_THE_LINE) throw new AssertionError("the egg does not spawn a ship of the line");
             });
             // the open sea: the nearest deep ocean
             int[] sea = {0, 0, 0};
@@ -81,10 +83,15 @@ public class ShipCombatClientGameTest implements FabricClientGameTest {
                 level.addFreshEntity(pirate);
                 log("ships at {} {}: own #{}, pirate #{}", sea[0], sea[1], ship.getId(), pirate.getId());
             });
-            context.waitTicks(40);
+            context.waitTicks(100);
             sp.getConnection().waitForChunksRender();
             server.runOnServer(s -> {
                 if (own(s) == null) throw new AssertionError("the player is not aboard");
+                // afloat: at the sea's surface, not gone down
+                for (WarshipEntity w : s.overworld().getEntitiesOfClass(WarshipEntity.class, own(s).getBoundingBox().inflate(100))) {
+                    log("{} at y {} (sea level {})", w.cls(), String.format("%.2f", w.getY()), s.overworld().getSeaLevel());
+                    if (w.getY() < s.overworld().getSeaLevel() - 1.5) throw new AssertionError(w.cls() + " sank at y " + w.getY());
+                }
             });
             context.takeScreenshot("seafight_a_aboard");
             context.runOnClient(mc -> org.webtrade.minecraftportsmod.client.CombatClient.fight(true, 1));
@@ -98,6 +105,9 @@ public class ShipCombatClientGameTest implements FabricClientGameTest {
                     WarshipEntity ship = own(s), pirate = pirate(s);
                     if (ship == null || pirate == null || pirate.sinking() > 0 || ship.sinking() > 0) {
                         done[0] = true;
+                        var pl = s.getPlayerList().getPlayers().getFirst();
+                        log("fight over: own {} pirate {} sinking {} {} player vehicle {} at {}", ship, pirate, ship == null ? -1 : ship.sinking(),
+                                pirate == null ? -1 : pirate.sinking(), pl.getVehicle(), pl.blockPosition().toShortString());
                         if (pirate != null) pirateHull[0] = pirate.hull();
                         if (ship != null) ownHull[0] = ship.hull();
                         return;
@@ -142,8 +152,8 @@ public class ShipCombatClientGameTest implements FabricClientGameTest {
             context.takeScreenshot("seafight_c_end");
             context.waitTicks(60);
             context.takeScreenshot("seafight_d_sinking");
-            if (ownHull[0] >= WarshipEntity.MAX_HULL) throw new AssertionError("the pirate never hit the player's ship");
-            if (pirateHull[0] >= WarshipEntity.MAX_HULL) throw new AssertionError("the player's broadsides never hit the pirate");
+            if (ownHull[0] >= 100) throw new AssertionError("the pirate never hit the player's ship");
+            if (pirateHull[0] >= 100) throw new AssertionError("the player's broadsides never hit the pirate");
             // the spawner finds open water for a pirate round the player
             boolean[] spawned = {false};
             server.runOnServer(s -> {
@@ -153,6 +163,43 @@ public class ShipCombatClientGameTest implements FabricClientGameTest {
                 log("spawner: pirate {}", w == null ? "none" : w.blockPosition().toShortString());
             });
             if (!spawned[0]) throw new AssertionError("no pirate could be put to sea round the player");
+            // the three classes side by side (and a pirate galleon), looked at from close by, low over the water: no water on their decks
+            server.runOnServer(s -> {
+                var level = s.overworld();
+                var p = s.getPlayerList().getPlayers().getFirst();
+                p.stopRiding();
+                for (WarshipEntity w : level.getEntitiesOfClass(WarshipEntity.class, p.getBoundingBox().inflate(300))) w.discard();
+                int i = 0;
+                for (var type : new net.minecraft.world.entity.EntityType<?>[]{ModContent.WARSHIP, ModContent.GALLEON, ModContent.SHIP_OF_THE_LINE, ModContent.GALLEON}) {
+                    WarshipEntity w = (WarshipEntity) type.create(level, EntitySpawnReason.SPAWN_ITEM_USE);
+                    w.snapTo(sea[0] + 0.5 + i * 16, level.getSeaLevel() - 0.4, sea[1] + 0.5, 0, 0);
+                    if (i == 3) w.makePirate();
+                    level.addFreshEntity(w);
+                    log("{}: hull {}, guns a side {}", w.cls(), w.hull(), w.cls().guns());
+                    i++;
+                }
+            });
+            server.runCommand("gamemode spectator @a");
+            context.waitTicks(100);
+            server.runOnServer(s -> {
+                for (WarshipEntity w : s.overworld().getEntitiesOfClass(WarshipEntity.class, s.getPlayerList().getPlayers().getFirst().getBoundingBox().inflate(120))) {
+                    log("{} afloat at y {}", w.cls(), String.format("%.2f", w.getY()));
+                    if (w.getY() < s.overworld().getSeaLevel() - 1.5) throw new AssertionError(w.cls() + " sank at y " + w.getY());
+                }
+            });
+            for (int k = 0; k < 4; k++) {
+                final int kk = k;
+                server.runOnServer(s -> s.getPlayerList().getPlayers().getFirst().teleportTo(s.overworld(), sea[0] + 8.5 + kk * 16,
+                        s.overworld().getSeaLevel() + 4, sea[1] - 14.5, java.util.Set.of(), -30, 12, false));
+                context.waitTicks(40);
+                sp.getConnection().waitForChunksRender();
+                context.takeScreenshot("seafight_e_class_" + kk);
+            }
+            server.runOnServer(s -> s.getPlayerList().getPlayers().getFirst().teleportTo(s.overworld(), sea[0] + 24.5,
+                    s.overworld().getSeaLevel() + 26, sea[1] - 40.5, java.util.Set.of(), 0, 25, false));
+            context.waitTicks(40);
+            sp.getConnection().waitForChunksRender();
+            context.takeScreenshot("seafight_f_fleet");
         } finally {
             Pirates.enabled = true;
         }

@@ -127,8 +127,10 @@ public final class CombatClient {
     private static void aim(Minecraft mc, WarshipEntity ship, int side, float elevation) {
         Vec3 out = ship.starboard().scale(side);
         double e = Math.toRadians(elevation);
-        for (int g = 0; g < WarshipEntity.GUNS; g += WarshipEntity.GUNS - 1) {
-            Vec3 p = ship.at(side * (WarshipEntity.HALF_BEAM + 0.4), WarshipEntity.gunAlong(g), WarshipEntity.DECK + 0.7);
+        int n = ship.cls().guns();
+        for (int g : new int[]{0, Math.min(n, 7) - 1}) {
+            double[] spot = ship.cls().gun(g);
+            Vec3 p = ship.at(side * ship.cls().muzzle(), spot[0], spot[1]);
             Vec3 v = out.scale(Math.cos(e) * WarshipEntity.SHOT_SPEED).add(0, Math.sin(e) * WarshipEntity.SHOT_SPEED, 0);
             for (int t = 0; t < 120; t++) {
                 p = p.add(v);
@@ -150,19 +152,20 @@ public final class CombatClient {
         int w = mc.getWindow().getGuiScaledWidth(), h = mc.getWindow().getGuiScaledHeight();
         if (ship != null) {
             int x = w / 2 - 91, y = h - 62;
-            bar(g, x, y, 182, ship.hull() / WarshipEntity.MAX_HULL, 0xFFB03020);
+            bar(g, x, y, 182, ship.hull() / ship.maxHull(), 0xFFB03020);
             // the sails: four pips
             for (int i = 0; i < 3; i++) g.fill(x + i * 12, y - 10, x + i * 12 + 10, y - 5, i < ship.sails() ? 0xFFF0E8D0 : 0x60FFFFFF);
             // the guns of each side, port on the left of the bar and starboard on the right: loaded (green), or how far
             // through reloading; the side chosen in the fighting mode framed
             for (int side : new int[]{-1, 1}) {
-                float r = 1F - ship.reload(side) / (float) WarshipEntity.RELOAD;
+                float r = 1F - ship.reload(side) / (float) ship.cls().reload;
                 int bx = side < 0 ? x - 52 : x + 182 + 6, by = y - 2;
                 if (fighting && side == aimSide) g.fill(bx - 2, by - 2, bx + 48, by + 12, 0xFFF0C040);
                 g.fill(bx, by, bx + 46, by + 10, 0xC0000000);
                 g.fill(bx + 1, by + 1, bx + 1 + Math.round(44 * r), by + 9, r >= 1 ? 0xFF40C040 : 0xFFC08030);
                 // the guns themselves: a pip each
-                for (int k = 0; k < WarshipEntity.GUNS; k++) g.fill(bx + 4 + k * 11, by + 3, bx + 10 + k * 11, by + 7, r >= 1 ? 0xFF103010 : 0x80000000);
+                int guns = Math.min(7, ship.cls().guns());
+                for (int k = 0; k < guns; k++) g.fill(bx + 3 + k * 6, by + 3, bx + 7 + k * 6, by + 7, r >= 1 ? 0xFF103010 : 0x80000000);
             }
             if (fighting) {
                 // the fighting mode: the hull bar framed in red
@@ -173,10 +176,10 @@ public final class CombatClient {
         // the enemies about: a hull bar over each one in sight
         for (var e : mc.level.entitiesForRendering()) {
             if (!(e instanceof WarshipEntity s) || !s.isPirate() || s.sinking() > 0 || s.distanceTo(mc.player) > 160) continue;
-            Vec3 top = s.position().add(0, 9, 0);
+            Vec3 top = s.position().add(0, s.cls().castle() + 7, 0);
             var proj = project(mc, top);
             if (proj == null) continue;
-            bar(g, (int) proj.x - 30, (int) proj.y, 60, s.hull() / WarshipEntity.MAX_HULL, 0xFF202020);
+            bar(g, (int) proj.x - 30, (int) proj.y, 60, s.hull() / s.maxHull(), 0xFF202020);
         }
     }
 

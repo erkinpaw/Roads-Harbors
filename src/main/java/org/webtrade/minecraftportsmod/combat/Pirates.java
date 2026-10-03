@@ -53,7 +53,10 @@ public final class Pirates {
             double a = rnd.nextDouble() * Math.PI * 2, d = FROM + rnd.nextDouble() * (TO - FROM);
             int px = (int) Math.floor(x + Math.cos(a) * d), pz = (int) Math.floor(z + Math.sin(a) * d);
             if (!openWater(level, px, pz)) continue;
-            WarshipEntity ship = ModContent.WARSHIP.create(level, EntitySpawnReason.EVENT);
+            // most are brigs; now and then a galleon; rarely a ship of the line
+            float r = rnd.nextFloat();
+            ShipClass cls = r < 0.6F ? ShipClass.BRIG : r < 0.9F ? ShipClass.GALLEON : ShipClass.LINE;
+            WarshipEntity ship = ModContent.warshipType(cls).create(level, EntitySpawnReason.EVENT);
             if (ship == null) return null;
             int y = level.getSeaLevel();
             // facing the point (where her prey is)

@@ -88,15 +88,17 @@ def bands(poly, step):
     return out
 
 
-def hull(root, half_beam, half_len, height, wall, bow_fracs, sheer, stripe_mat):
-    """Flat bottom, straight sides with a wale, a stepped bow that narrows and rises, a transom stern."""
+def hull(root, half_beam, half_len, height, wall, bow_fracs, sheer, stripe_mat, ports=None, rows=None, wl=12):
+    """Flat bottom, straight sides with a wale, a stepped bow that narrows and rises, a transom stern.
+    ports: the gun ports' middles along the side (z), rows: their (top, bottom) y, wl: the waterline's y."""
     h = root.child("hull")
+    side = dict(side=True, ports=ports or [], rows=rows or [], wl=wl)
     bottom = height - 4                 # sides run from y=-2 (gunwale) to 'bottom'; keel below that
     L = half_len * 2
     inner = half_beam - wall
     h.box("keel", -inner, bottom, -half_len, inner * 2, 4, L)
-    h.box("hull", -half_beam, -2, -half_len, wall, bottom + 2, L, side=True)
-    h.box("hull", half_beam - wall, -2, -half_len, wall, bottom + 2, L, side=True)
+    h.box("hull", -half_beam, -2, -half_len, wall, bottom + 2, L, **side)
+    h.box("hull", half_beam - wall, -2, -half_len, wall, bottom + 2, L, **side)
     h.box("deck", -inner, 2, -half_len, inner * 2, 2, L)
     # wale (a protruding painted band) and bulwark with rail posts and a cap rail
     h.box(stripe_mat, -half_beam - 1, 2, -half_len, 1, 4, L)
@@ -117,14 +119,14 @@ def hull(root, half_beam, half_len, height, wall, bow_fracs, sheer, stripe_mat):
         top = -2 - rise
         bot = bottom - i * 2
         length = 5
-        h.box("hull", -hb, top, z, hb * 2, bot - top, length, side=True)
+        h.box("hull", -hb, top, z, hb * 2, bot - top, length, side=True, wl=wl)
         h.box("deck", -hb + wall, top + 4, z, max(1, hb * 2 - wall * 2), 2, length)
         h.box("cap", -hb - 1, top - 8, z, hb * 2 + 2, 2, length)
         h.box("dark", -hb, top - 6, z, hb * 2, 6, length)
         z += length
     h.box("dark", -2, -4 - sheer, z, 4, bottom + sheer - 4, 4)     # stem post
     # stern: transom a little higher than the sides
-    h.box("hull", -half_beam, -10, -half_len - 6, half_beam * 2, bottom + 10, 6, side=True)
+    h.box("hull", -half_beam, -10, -half_len - 6, half_beam * 2, bottom + 10, 6, side=True, wl=wl)
     h.box("cap", -half_beam - 1, -16, -half_len - 6, half_beam * 2 + 2, 2, 6)
     return h, z
 
@@ -202,7 +204,8 @@ def square_sail(root, name, x_top, x_bot, y_top, height, z):
 def build_brig():
     root = Part("root")
     hb, hl, height = 40, 96, 26
-    _, bow_end = hull(root, hb, hl, height, 5, [0.92, 0.82, 0.7, 0.56, 0.42, 0.28, 0.14], 10, "wale_black")
+    _, bow_end = hull(root, hb, hl, height, 5, [0.92, 0.82, 0.7, 0.56, 0.42, 0.28, 0.14], 10, "wale_black",
+                      ports=[-50, -18, 14, 46], rows=[(-2, 9)])
     h = root.children[0]
     # quarterdeck / stern castle with a cabin
     h.box("hull", -hb, -26, -hl - 6, hb * 2, 24, 34, side=True, castle=True)
@@ -284,6 +287,187 @@ def build_brig():
     return root
 
 
+# ---------------------------------------------------------------------------- galleon
+
+def lateen(root, name, mz, y_top, y_bot, z_fore, z_aft):
+    """A fore-and-aft (lateen) sail on the mizzen: a tall triangle abaft the mast."""
+    p = root.child(name, pivot=(0, y_bot, 0), anim="fore_aft")
+    for y0, hh, z0, z1 in bands([(z_fore, y_bot), (z_aft, y_bot), (mz - 2, y_top)], 10):
+        p.box("sail", -1, y0 - y_bot, z0, 2, hh, z1 - z0)
+    return p
+
+
+def square_rig(root, rig, name, mz, hb, levels, s=1.0):
+    """A mast with its tops and yards and square sails: levels of (yard y, half width at the head, at the foot, depth)."""
+    top_y = levels[-1][0] - 14
+    rig.box("mast", -4, -130, mz - 4, 8, 132, 8)
+    rig.box("dark", -16, -134, mz - 13, 32, 4, 26)
+    rig.box("mast", -3, top_y, mz - 3, 6, -130 - top_y + 4, 6)
+    rig.box("dark", -10, -208, mz - 5, 20, 3, 10)
+    names = ["course", "top", "topgallant"]
+    for i, (y, h_top, h_bot, depth) in enumerate(levels):
+        rig.box("spar", -h_bot * s, y - 2, mz + 3, h_bot * 2 * s, 4, 4)
+        square_sail(root, f"sail_{name}_{names[i]}", h_top * s, h_bot * s, y + 2, depth, mz + 5)
+    for side in (-1, 1):
+        for i, dz in enumerate((-18, -6, 6, 18)):
+            rope(root, f"shroud_{name}_{side}_{i}", (side * (hb - 2), -16, mz + dz), (side * 15, -132, mz))
+        for i, dz in enumerate((-8, 8)):
+            rope(root, f"topshroud_{name}_{side}_{i}", (side * 15, -134, mz + dz), (side * 5, -204, mz))
+    pennant = root.child(f"flag_{name}", pivot=(0, top_y - 4, mz), anim="flag")
+    pennant.box("pennant", -1, 0, -40, 2, 6, 40)
+
+
+def castle(h, hb, z0, z1, y_floor, y_top, wall=5):
+    """A raised castle (quarterdeck, poop, forecastle): sides, a deck on top and a rail with posts."""
+    h.box("hull", -hb, y_top, z0, hb * 2, y_floor - y_top, z1 - z0, side=True, castle=True)
+    h.box("deck", -hb + wall, y_top - 2, z0, hb * 2 - wall * 2, 2, z1 - z0)
+    h.box("cap", -hb - 1, y_top - 14, z0, 6, 2, z1 - z0)
+    h.box("cap", hb - 5, y_top - 14, z0, 6, 2, z1 - z0)
+    for z in range(z0 + 2, z1 - 1, 8):
+        h.box("dark", -hb, y_top - 12, z, 2, 10, 2)
+        h.box("dark", hb - 2, y_top - 12, z, 2, 10, 2)
+
+
+def build_galleon():
+    root = Part("root")
+    hb, hl, height = 46, 116, 30
+    ports = [-64, -32, 0, 32, 64]
+    _, bow_end = hull(root, hb, hl, height, 5, [0.94, 0.86, 0.76, 0.64, 0.5, 0.36, 0.22], 14, "wale_red",
+                      ports=ports, rows=[(-2, 9)], wl=14)
+    h = root.children[0]
+    # the stern: two tiers of castle, the upper one shorter, galleries of windows and gilding at the transom
+    castle(h, hb, -hl - 6, -hl + 46, -2, -26)
+    castle(h, hb - 4, -hl - 6, -hl + 18, -26, -48)
+    h.box("cap", -hb + 3, -62, -hl - 6, hb * 2 - 6, 2, 5)
+    for x in range(-hb + 8, hb - 8, 12):
+        h.box("glass", x, -22, -hl - 7, 8, 10, 1)
+        h.box("glass", x, -44, -hl - 7, 8, 10, 1)
+    h.box("gold", -hb + 2, -12, -hl - 8, hb * 2 - 4, 3, 2)
+    h.box("gold", -hb + 2, -34, -hl - 8, hb * 2 - 4, 3, 2)
+    h.box("gold", -6, -60, -hl - 9, 12, 12, 3)                             # the arms on the transom
+    for side in (-1, 1):
+        h.box("lantern", side * 32 - 4, -74, -hl - 10, 8, 10, 8)
+        h.box("dark", side * 32 - 1, -64, -hl - 8, 2, 4, 4)
+        h.box("glass", side * (hb + 0.5) - (1 if side > 0 else 0), -42, -hl + 2, 1, 8, 10)
+    h.box("dark", -8, -24, -hl + 45, 16, 22, 2)
+    h.box("door", -6, -22, -hl + 46, 12, 20, 1)
+    # the forecastle at the bow
+    castle(h, hb - 2, hl - 34, hl, -2, -20)
+    h.box("dark", -2, 0, -hl - 14, 4, height + 4, 8)                       # rudder
+    for side in (-1, 1):
+        for z in ports:
+            h.box("iron", (hb if side > 0 else -hb - 10), -1, z - 3, 10, 6, 6)
+        h.box("iron", side * (hb + 1) - 1, -6, hl - 12, 3, 26, 3)
+        h.box("iron", side * (hb + 1) - 2, 18, hl - 18, 5, 3, 15)
+        h.box("dark", side * (hb + 1) - 2, -8, hl - 20, 5, 3, 19)
+    h.box("gold", -4, -16, bow_end + 2, 8, 16, 8)                           # figurehead
+    h.box("capstan", -7, -14, 10, 14, 16, 14)
+    h.box("hatch", -16, 1, -30, 32, 1, 34)
+    h.box("hatch", -12, 1, 40, 24, 1, 22)
+    h.box("barrel", 26, -12, 16, 10, 14, 10)
+    h.box("barrel", 26, -12, 28, 10, 14, 10)
+    h.box("crate", -38, -12, 18, 14, 14, 14)
+    wheel = root.child("wheel", pivot=(0, -66, -hl + 30))
+    wheel.box("dark", -2, 0, -1, 4, 16, 2)
+    wheel.box("wheel", -10, -10, -2, 20, 20, 2)
+
+    rig = root.child("rig")
+    masts = {"fore": 60, "main": -4, "mizzen": -66}
+    square_rig(root, rig, "fore", masts["fore"], hb, [(-124, 60, 66, 76), (-198, 44, 56, 58)], 0.92)
+    square_rig(root, rig, "main", masts["main"], hb, [(-124, 64, 70, 80), (-198, 48, 60, 60), (-244, 32, 44, 40)])
+    mz = masts["mizzen"]
+    rig.box("mast", -3, -190, mz - 3, 6, 160, 6)
+    rig.box("dark", -12, -130, mz - 10, 24, 4, 20)
+    lat = root.child("lateen_yard", pivot=(0, -60, mz + 30), rot=(-0.55, 0, 0))
+    lat.box("spar", -2, -2, -110, 4, 4, 110)
+    lateen(root, "sail_mizzen", mz, -176, -66, mz + 24, mz - 72)
+    for side in (-1, 1):
+        for i, dz in enumerate((-10, 6)):
+            rope(root, f"shroud_mizzen_{side}_{i}", (side * (hb - 6), -40, mz + dz), (side * 10, -130, mz))
+    rope(root, "stay_mizzen", (0, -130, masts["main"]), (0, -186, mz))
+    pennant = root.child("flag_mizzen", pivot=(0, -194, mz), anim="flag")
+    pennant.box("pennant", -1, 0, -40, 2, 6, 40)
+
+    bs_len, bs_rot = 80, 0.3
+    bowsprit = root.child("bowsprit", pivot=(0, -18, bow_end - 8), rot=(bs_rot, 0, 0))
+    bowsprit.box("spar", -3, -3, 0, 6, 6, bs_len)
+    tip = (0, -18 - bs_len * math.sin(bs_rot), bow_end - 8 + bs_len * math.cos(bs_rot))
+    spritsail = root.child("sail_sprit", pivot=(0, tip[1] + 6, tip[2] - 20), anim="square")
+    for i in range(3):
+        spritsail.box("sail_square", -26 + i * 2, i * 10, -1, 52 - i * 4, 10, 2, emblem=False, mid=tip[1] + 20)
+    rope(root, "forestay", tip, (0, -196, masts["fore"]))
+    rope(root, "stay_main", (0, -130, masts["fore"]), (0, -242, masts["main"]))
+    root.child("flagstaff").box("dark", -1, -106, -hl - 8, 2, 46, 2)
+    ensign = root.child("flag_ensign", pivot=(0, -106, -hl - 8), anim="flag")
+    ensign.box("flag", -1, 0, -40, 2, 26, 40)
+    return root
+
+
+# ---------------------------------------------------------------------------- ship of the line
+
+def build_line():
+    root = Part("root")
+    hb, hl, height = 52, 150, 46
+    ports = [-112, -80, -48, -16, 16, 48, 80]
+    rows = [(-2, 8), (14, 24)]
+    _, bow_end = hull(root, hb, hl, height, 6, [0.95, 0.88, 0.78, 0.66, 0.52, 0.38, 0.24], 12, "wale_black",
+                      ports=ports, rows=rows, wl=32)
+    h = root.children[0]
+    castle(h, hb, -hl - 6, -hl + 60, -2, -24, 6)
+    for x in range(-hb + 8, hb - 8, 11):
+        h.box("glass", x, -20, -hl - 7, 7, 10, 1)
+        h.box("glass", x, -2, -hl - 7, 7, 10, 1)
+    h.box("gold", -hb + 2, -10, -hl - 8, hb * 2 - 4, 3, 2)
+    h.box("gold", -hb + 2, 10, -hl - 8, hb * 2 - 4, 3, 2)
+    h.box("gold", -8, -40, -hl - 9, 16, 14, 3)
+    for side in (-1, 1):
+        h.box("lantern", side * 36 - 4, -48, -hl - 10, 8, 10, 8)
+        h.box("dark", side * 36 - 1, -38, -hl - 8, 2, 4, 4)
+    h.box("dark", -8, -22, -hl + 59, 16, 22, 2)
+    h.box("door", -6, -20, -hl + 60, 12, 20, 1)
+    castle(h, hb - 2, hl - 40, hl, -2, -18, 6)
+    h.box("dark", -2, 0, -hl - 14, 4, height + 4, 8)                       # rudder
+    for side in (-1, 1):
+        for y0, y1 in rows:
+            for z in ports:
+                h.box("iron", (hb if side > 0 else -hb - 10), y0 + 1, z - 3, 10, 6, 6)
+        h.box("iron", side * (hb + 1) - 1, -6, hl - 14, 3, 30, 3)
+        h.box("iron", side * (hb + 1) - 2, 22, hl - 20, 5, 3, 15)
+        h.box("dark", side * (hb + 1) - 2, -8, hl - 22, 5, 3, 19)
+    h.box("gold", -5, -14, bow_end + 2, 10, 18, 10)                          # figurehead
+    h.box("capstan", -8, -14, 4, 16, 16, 16)
+    for z in (-60, -14, 40, 90):
+        h.box("hatch", -16, 1, z, 32, 1, 24)
+    h.box("barrel", 30, -12, 60, 10, 14, 10)
+    h.box("barrel", 30, -12, 72, 10, 14, 10)
+    h.box("crate", -42, -12, 62, 14, 14, 14)
+    wheel = root.child("wheel", pivot=(0, -42, -hl + 46))
+    wheel.box("dark", -2, 0, -1, 4, 16, 2)
+    wheel.box("wheel", -10, -10, -2, 20, 20, 2)
+
+    rig = root.child("rig")
+    masts = {"fore": 86, "main": 4, "mizzen": -80}
+    full = [(-124, 66, 72, 80), (-198, 50, 62, 60), (-244, 34, 46, 40)]
+    square_rig(root, rig, "fore", masts["fore"], hb, full, 0.94)
+    square_rig(root, rig, "main", masts["main"], hb, full, 1.04)
+    square_rig(root, rig, "mizzen", masts["mizzen"], hb, [(-124, 50, 56, 70), (-198, 38, 46, 56)], 0.86)
+    bs_len, bs_rot = 90, 0.28
+    bowsprit = root.child("bowsprit", pivot=(0, -16, bow_end - 8), rot=(bs_rot, 0, 0))
+    bowsprit.box("spar", -3, -3, 0, 6, 6, bs_len)
+    bowsprit.box("spar", -2, -2, bs_len - 6, 4, 4, 50)
+    tip = (0, -16 - (bs_len + 44) * math.sin(bs_rot), bow_end - 8 + (bs_len + 44) * math.cos(bs_rot))
+    jib = root.child("sail_jib", pivot=(0, -20, 0), anim="fore_aft")
+    for y0, hh, z0, z1 in bands([(tip[2] - 10, tip[1] - 4), (masts["fore"] + 14, -196), (masts["fore"] + 30, -24)], 10):
+        jib.box("sail", -1, y0 + 20, z0, 2, hh, z1 - z0)
+    rope(root, "forestay", tip, (0, -250, masts["fore"]))
+    rope(root, "stay_main", (0, -130, masts["fore"]), (0, -250, masts["main"]))
+    rope(root, "stay_mizzen", (0, -130, masts["main"]), (0, -204, masts["mizzen"]))
+    root.child("flagstaff").box("dark", -1, -80, -hl - 8, 2, 46, 2)
+    ensign = root.child("flag_ensign", pivot=(0, -80, -hl - 8), anim="flag")
+    ensign.box("flag", -1, 0, -44, 2, 28, 44)
+    return root
+
+
 # ============================================================================ painting
 
 def rnd(*k):
@@ -316,6 +500,15 @@ BRIG = Palette(hull=hexc("#6a3a24"), dark=hexc("#33211a"), deck=hexc("#b58a58"),
                stripe=hexc("#9c2f24"), flag1=hexc("#9c2f24"), flag2=hexc("#e2b94e"), mast=hexc("#7a5532"))
 
 
+GALLEON = Palette(hull=hexc("#7a4426"), dark=hexc("#3a2418"), deck=hexc("#b88c58"), cap=hexc("#5a321e"),
+                  below=hexc("#22201e"), wale=hexc("#8c1f1a"), wale_edge=hexc("#e0b54a"), sail=hexc("#efe4c4"),
+                  stripe=hexc("#b8292c"), flag1=hexc("#b8292c"), flag2=hexc("#e8c040"), mast=hexc("#7a5532"))
+LINE = Palette(hull=hexc("#1e1c1c"), dark=hexc("#2a2420"), deck=hexc("#b48a56"), cap=hexc("#2e2622"),
+               below=hexc("#1a1716"), wale=hexc("#141212"), wale_edge=hexc("#d8b04a"), sail=hexc("#f0e8d2"),
+               stripe=hexc("#2a3f78"), flag1=hexc("#2a3f78"), flag2=hexc("#e8e2d0"), mast=hexc("#7a5532"),
+               band=hexc("#d2a248"))
+
+
 def wood(pal_col, ax, ay, strake=4, along=None, vertical=False):
     """Planks: 'along' is the coordinate running along the plank, 'ay' across (strakes)."""
     a, b = (ay, along) if not vertical else (along, ay)
@@ -343,15 +536,20 @@ def paint_pixel(mat, face, ax, ay, az, box, pal):
         along = az if side_face else ax
         c = wood(pal.hull, along, ay, 4, along=along)
         if box.deco.get("side") and side_face and not box.deco.get("castle"):
-            if ay >= 12:                                             # below the water line
+            wl = box.deco.get("wl", 12)
+            for y0, y1 in box.deco.get("rows", []):
+                if getattr(pal, "band", None) and y0 - 3 <= ay <= y1 + 3:
+                    c = shade(pal.band, (rnd("bd", along // 5, ay) - 0.5) * 10)   # a painted strake along the gun deck
+            if ay >= wl:                                             # below the water line
                 c = mix(shade(pal.below, (rnd("b", along // 6, ay // 4) - 0.5) * 10), c, 0.12)
-            elif ay == 11:
+            elif ay == wl - 1:
                 c = hexc("#e7e2d2")                                  # boot-top line
-            if pal is BRIG and -2 <= ay <= 9:                        # gun ports
-                for gz in (-50, -18, 14, 46):
-                    if gz - 7 <= along <= gz + 6:
-                        edge = along in (gz - 7, gz + 6) or ay in (-2, 9)
-                        return hexc("#2a1a12") if edge else hexc("#120c0a")
+            for y0, y1 in box.deco.get("rows", []):                  # gun ports
+                if y0 <= ay <= y1:
+                    for gz in box.deco.get("ports", []):
+                        if gz - 7 <= along <= gz + 6:
+                            edge = along in (gz - 7, gz + 6) or ay in (y0, y1)
+                            return hexc("#2a1a12") if edge else hexc("#120c0a")
         if box.deco.get("castle") and side_face and ay < -4 and (along // 8) % 3 == 0 and -20 <= ay <= -10:
             return hexc("#2a1a12")
         return c
@@ -366,7 +564,7 @@ def paint_pixel(mat, face, ax, ay, az, box, pal):
         if mat == "cap" and (face in ("down",) or ay == box.y):
             c = shade(c, 18)
         return c
-    if mat in ("wale_blue", "wale_black"):
+    if mat in ("wale_blue", "wale_black", "wale_red"):
         if ay in (box.y, box.y + box.h - 1):
             return pal.wale_edge
         return shade(pal.wale, (rnd("w", az // 5) - 0.5) * 8)
@@ -393,11 +591,11 @@ def paint_pixel(mat, face, ax, ay, az, box, pal):
         if mat == "sail_square":
             if abs(ax) >= abs(box.x) - 1:
                 c = shade(base, -30)                                 # bolt rope along the leeches
-            if pal is BRIG and box.deco.get("emblem"):
+            if pal in (BRIG, GALLEON) and box.deco.get("emblem"):
                 mid = box.deco.get("mid", 0)
                 if abs(ax) <= 4 or abs(ay - mid) <= 3:
                     c = shade(pal.stripe, (rnd("e", ax, ay) - 0.5) * 6)   # red cross on the courses
-            if pal is BRIG and not box.deco.get("emblem") and ay % 40 in range(8, 11):
+            if pal in (BRIG, GALLEON, LINE) and not box.deco.get("emblem") and ay % 40 in range(8, 11):
                 c = shade(pal.stripe, (rnd("e2", ax) - 0.5) * 6)
         return c
     if mat == "rope":
@@ -543,3 +741,5 @@ def export(name, root, pal, width=1024):
 if __name__ == "__main__":
     export("sloop", build_sloop(), SLOOP)
     export("brig", build_brig(), BRIG)
+    export("galleon", build_galleon(), GALLEON)
+    export("ship_of_the_line", build_line(), LINE, width=2048)
