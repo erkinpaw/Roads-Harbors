@@ -145,6 +145,7 @@ public final class Plots {
         if (of(v, p.getUUID()) != null) return Component.translatable("minecraftportsmod.plot.have_one", v.name);
         for (Building b : v.buildings) if (b.overlaps(pos, HALF, 1)) return Component.translatable("minecraftportsmod.plot.building", b.type.displayName());
         for (Plot o : v.tasks.plots) if (o.contains(pos.getX(), pos.getZ(), HALF + 1)) return Component.translatable("minecraftportsmod.plot.taken", o.ownerName);
+        if (Mine.pitClash(v, pos, HALF, 1)) return Component.translatable("minecraftportsmod.plot.building", BuildingType.MINE_HOUSE.displayName());
         if (Math.abs(pos.getX() - v.board.getX()) <= HALF + 1 && Math.abs(pos.getZ() - v.board.getZ()) <= HALF + 1)
             return Component.translatable("minecraftportsmod.plot.too_near");
         int wet = 0;
