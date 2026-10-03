@@ -414,6 +414,10 @@ final class PlotFinder {
             if (b.id == ignore) continue;
             if (b.overlaps(pos, half, GAP)) return true;
         }
+        // (the players' plots)
+        for (Plots.Plot p : v.tasks.plots()) {
+            if (Math.abs(pos.getX() - p.marker().getX()) <= half + Plots.HALF + GAP && Math.abs(pos.getZ() - p.marker().getZ()) <= half + Plots.HALF + GAP) return true;
+        }
         return false;
     }
 

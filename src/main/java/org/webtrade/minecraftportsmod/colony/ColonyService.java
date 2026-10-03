@@ -87,7 +87,8 @@ public final class ColonyService {
         Building work = workplace(v, d.job);
         int orders = work != null && !Orders.recipes(work).isEmpty() ? work.id : -1;
         ServerPlayNetworking.send(player, new ColonyPayloads.PersonView(v.id, d.id, v.name, v.level.ordinal(), d.name,
-                d.job == null ? -1 : d.job.ordinal(), d.child(data.day), d.elder, e.activity(), homeText, data.day - d.joined, orders, questState(player, v, d)));
+                d.job == null ? -1 : d.job.ordinal(), d.child(data.day), d.elder, e.activity(), homeText, data.day - d.joined, orders, questState(player, v, d),
+                d.elder && Plots.of(v, player.getUUID()) == null ? Plots.price(v, player.getUUID()) : -1));
     }
 
     /** A person's task as this player sees it: 0 none, 1 one to take, 2 taken by them, 3 taken by someone else. */
@@ -444,6 +445,11 @@ public final class ColonyService {
                 player.level().playSound(null, player.blockPosition(), finished ? SoundEvents.PLAYER_LEVELUP
                         : r == Quests.Result.OK ? SoundEvents.VILLAGER_YES : SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 0.6F, 1.0F);
                 if (d != null) sendQuest(player, v, d);
+            }
+            case ColonyPayloads.VillageAction.PLOT_BUY -> {
+                boolean ok = Plots.buy(player, data, v);
+                player.level().playSound(null, player.blockPosition(), ok ? SoundEvents.VILLAGER_YES : SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 0.6F, 1.0F);
+                if (ok) player.closeContainer();
             }
             case ColonyPayloads.VillageAction.PIN -> {
                 BuildingType t = a.a() < 0 || a.a() >= BuildingType.values().length ? null : BuildingType.values()[a.a()];

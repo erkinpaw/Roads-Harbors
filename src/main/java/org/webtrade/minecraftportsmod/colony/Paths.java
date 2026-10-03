@@ -44,19 +44,28 @@ final class Paths {
         if (b.type.isCenter()) return true;
         BlockPos door = doorstep(v, b);
         if (!Construction.loaded(level, door)) return false;
+        return layFrom(level, v, door, b.type.id() + " #" + b.id, b);
+    }
+
+    /** A path from a door (a building's, a player's plot's) to the square. */
+    static boolean layFrom(ServerLevel level, Village v, BlockPos door, String what) {
+        return layFrom(level, v, door, what, null);
+    }
+
+    private static boolean layFrom(ServerLevel level, Village v, BlockPos door, String what, Building b) {
         BlockPos goal = squareEdge(level, v, door);
         // a short bridge over a stream rather than a long way round it (people would not walk that); never a long one
         List<int[]> route = route(level, v, door, goal, b, BRIDGE_STEP);
         if (route != null && longestWet(route) > PlotFinder.BRIDGE) route = route(level, v, door, goal, b, -1);
         if (route == null) {
-            org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("[paths] {}: no way from {} #{} at {} to {}", v.name, b.type.id(), b.id,
+            org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("[paths] {}: no way from {} at {} to {}", v.name, what,
                     door.toShortString(), goal.toShortString());
             return false;
         }
         List<int[]> way = straighten(level, v, route);
         int wet = 0;
         for (int[] c : way) if (c[3] == 1) wet++;
-        org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("[paths] {}: {} #{} from {} to {}: {} steps, {} over water", v.name, b.type.id(), b.id,
+        org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("[paths] {}: {} from {} to {}: {} steps, {} over water", v.name, what,
                 door.toShortString(), goal.toShortString(), way.size(), wet);
         carve(level, v, way);
         return true;
@@ -138,6 +147,8 @@ final class Paths {
     }
 
     private static boolean inPlot(Village v, int x, int z, int margin, Building except) {
+        // (a player's plot: round it, never through it)
+        if (Plots.inside(v, x, z, margin)) return true;
         for (Building b : v.buildings) {
             if (b == except || b.state == Building.State.DEMOLISHING && b.finished) continue;
             int h = b.type.half + margin;

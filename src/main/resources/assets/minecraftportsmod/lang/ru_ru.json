@@ -1033,5 +1033,21 @@
   "minecraftportsmod.quest.item.writable_book": "Книга для учёта",
   "minecraftportsmod.quest.item.cookie": "Печенька",
   "minecraftportsmod.quest.item.apple": "Яблоко",
-  "minecraftportsmod.quest.item.sweet_berries": "Сладкие ягоды"
+  "minecraftportsmod.quest.item.sweet_berries": "Сладкие ягоды",
+  "block.minecraftportsmod.plot_marker": "Межевой камень",
+  "minecraftportsmod.person.plot": "Участок: %s",
+  "minecraftportsmod.plot.stone_of": "Межевой камень: %s",
+  "minecraftportsmod.plot.gift": "%s дарит вам межевой камень: поставьте его там, где хотите свой участок",
+  "minecraftportsmod.plot.no_village": "Здесь нет деревни",
+  "minecraftportsmod.plot.too_far": "Слишком далеко от деревни %s",
+  "minecraftportsmod.plot.too_near": "Слишком близко к площади",
+  "minecraftportsmod.plot.have_one": "У вас уже есть участок в деревне %s",
+  "minecraftportsmod.plot.building": "Мешает: %s",
+  "minecraftportsmod.plot.taken": "Это участок игрока %s",
+  "minecraftportsmod.plot.street": "Здесь проходит улица",
+  "minecraftportsmod.plot.wet": "Здесь слишком много воды",
+  "minecraftportsmod.plot.whose": "Участок игрока %s, деревня %s",
+  "minecraftportsmod.plot.yours": "Ваш участок в деревне %s",
+  "minecraftportsmod.plot.home": "Ваш дом в деревне %s",
+  "minecraftportsmod.vlog.plot": "%s получил участок в деревне"
 }

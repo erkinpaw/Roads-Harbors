@@ -1033,5 +1033,21 @@
   "minecraftportsmod.quest.item.writable_book": "A ledger",
   "minecraftportsmod.quest.item.cookie": "A cookie",
   "minecraftportsmod.quest.item.apple": "An apple",
-  "minecraftportsmod.quest.item.sweet_berries": "Sweet berries"
+  "minecraftportsmod.quest.item.sweet_berries": "Sweet berries",
+  "block.minecraftportsmod.plot_marker": "Boundary Stone",
+  "minecraftportsmod.person.plot": "Plot: %s",
+  "minecraftportsmod.plot.stone_of": "Boundary stone of %s",
+  "minecraftportsmod.plot.gift": "%s gives you a boundary stone: set it down where you want your plot",
+  "minecraftportsmod.plot.no_village": "No village here",
+  "minecraftportsmod.plot.too_far": "Too far from %s",
+  "minecraftportsmod.plot.too_near": "Too close to the square",
+  "minecraftportsmod.plot.have_one": "You already have a plot in %s",
+  "minecraftportsmod.plot.building": "In the way: %s",
+  "minecraftportsmod.plot.taken": "This is %s's plot",
+  "minecraftportsmod.plot.street": "A street runs here",
+  "minecraftportsmod.plot.wet": "Too much water here",
+  "minecraftportsmod.plot.whose": "%s's plot in %s",
+  "minecraftportsmod.plot.yours": "Your plot in %s",
+  "minecraftportsmod.plot.home": "Your home in %s",
+  "minecraftportsmod.vlog.plot": "%s took a plot in the village"
 }

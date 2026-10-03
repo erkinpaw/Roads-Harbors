@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "minecraftportsmod:block/plot_marker"
+    }
+  }
+}

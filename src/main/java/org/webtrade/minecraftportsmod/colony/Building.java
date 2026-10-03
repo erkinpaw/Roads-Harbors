@@ -264,7 +264,7 @@ public final class Building {
     }
 
     /** True if the plots of these two overlap, with {@code gap} blocks kept between them. */
-    boolean overlaps(BlockPos center, int half, int gap) {
+    public boolean overlaps(BlockPos center, int half, int gap) {
         int d = type.half + half + gap;
         return Math.abs(center.getX() - origin.getX()) <= d && Math.abs(center.getZ() - origin.getZ()) <= d;
     }

@@ -41,6 +41,10 @@ public final class VillageManager {
 
     public static void init() {
         ServerTickEvents.END_SERVER_TICK.register(org.webtrade.minecraftportsmod.Perf.timed("Villages", VillageManager::tick));
+        // a boundary stone: only its owner takes it up
+        net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, be) ->
+                !state.is(org.webtrade.minecraftportsmod.registry.ModContent.PLOT_MARKER) || !(player instanceof net.minecraft.server.level.ServerPlayer sp)
+                        || !(world instanceof ServerLevel sl) || Plots.mayBreak(sp, sl, pos));
         // a monster killed by a player: the hunts the villages round there asked for
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (entity instanceof net.minecraft.world.entity.monster.Enemy && source.getEntity() instanceof net.minecraft.server.level.ServerPlayer p) {
@@ -63,6 +67,7 @@ public final class VillageManager {
             Caravans.reset();
             Roadworks.reset();
             Land.reset();
+            Plots.clear();
         });
     }
 
@@ -73,6 +78,7 @@ public final class VillageManager {
         VillageData data = VillageData.get(srv);
         if (data.all().isEmpty()) return;
         ServerLevel level = srv.overworld();
+        Plots.tick(srv);
         if (data.dayLength == VillageData.DEFAULT_DAY_LENGTH) {
             // a village day is a Minecraft day: it starts at sunrise (and when the time is set back)
             long tod = Math.floorMod(level.getOverworldClockTime(), 24000L);
@@ -341,6 +347,7 @@ public final class VillageManager {
             }
         }
         outline(level, v);
+        Plots.paths(level, v);
     }
 
     /** Glowing outlines around building plots: gold for a planned one, green while it goes up, red coming down. */
