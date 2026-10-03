@@ -1,0 +1,25 @@
+{
+  "parent": "minecraftportsmod:roads/quest",
+  "display": {
+    "icon": {
+      "id": "minecraft:bricks"
+    },
+    "title": {
+      "translate": "advancements.minecraftportsmod.site.title"
+    },
+    "description": {
+      "translate": "advancements.minecraftportsmod.site.description"
+    },
+    "frame": "task"
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

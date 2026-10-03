@@ -3,6 +3,7 @@ package org.webtrade.minecraftportsmod.network;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -310,8 +311,9 @@ public final class ColonyPayloads {
 
     // ------------------------------------------------------------------ a resident
 
+    /** @param quest the person's task: 0 none, 1 one to take, 2 taken by this player, 3 taken by someone else */
     public record PersonView(int village, int person, String villageName, int level, String name, int job, boolean child, boolean elder,
-                             Component activity, Component home, long days, int orders) implements CustomPacketPayload {
+                             Component activity, Component home, long days, int orders, int quest) implements CustomPacketPayload {
         public static final Type<PersonView> TYPE = new Type<>(Minecraftportsmod.id("person_view"));
         public static final StreamCodec<RegistryFriendlyByteBuf, PersonView> CODEC = StreamCodec.of((buf, v) -> {
             buf.writeVarInt(v.village);
@@ -326,8 +328,54 @@ public final class ColonyPayloads {
             comp(buf, v.home);
             buf.writeVarLong(v.days);
             buf.writeVarInt(v.orders + 1);
+            buf.writeVarInt(v.quest);
         }, buf -> new PersonView(buf.readVarInt(), buf.readVarInt(), buf.readUtf(64), buf.readVarInt(), buf.readUtf(64),
-                buf.readVarInt() - 1, buf.readBoolean(), buf.readBoolean(), comp(buf), comp(buf), buf.readVarLong(), buf.readVarInt() - 1));
+                buf.readVarInt() - 1, buf.readBoolean(), buf.readBoolean(), comp(buf), comp(buf), buf.readVarLong(), buf.readVarInt() - 1,
+                buf.readVarInt()));
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    // ------------------------------------------------------------------ a person's task
+
+    /**
+     * A person's task, as a player sees it.
+     *
+     * @param kind     Quests.Kind ordinal
+     * @param state    0 to take, 1 taken by this player, 2 taken by someone else
+     * @param carried  how much of what is asked the player has on them
+     * @param left     days left (to take it, or to do it)
+     * @param to       LETTER: the village it reached ("" not yet)
+     */
+    public record QuestView(int village, int person, String name, int job, boolean elder, int quest, int kind, ItemStack icon, Component what,
+                            int count, int done, int carried, int reward, int left, int state, String to, int taken, int thanks)
+            implements CustomPacketPayload {
+        public static final Type<QuestView> TYPE = new Type<>(Minecraftportsmod.id("quest_view"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, QuestView> CODEC = StreamCodec.of((buf, v) -> {
+            buf.writeVarInt(v.village);
+            buf.writeVarInt(v.person);
+            buf.writeUtf(v.name, 64);
+            buf.writeVarInt(v.job + 1);
+            buf.writeBoolean(v.elder);
+            buf.writeVarInt(v.quest + 1);
+            buf.writeVarInt(v.kind);
+            ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, v.icon);
+            comp(buf, v.what);
+            buf.writeVarInt(v.count);
+            buf.writeVarInt(v.done);
+            buf.writeVarInt(v.carried);
+            buf.writeVarInt(v.reward);
+            buf.writeVarInt(v.left + 1);
+            buf.writeVarInt(v.state);
+            buf.writeUtf(v.to, 64);
+            buf.writeVarInt(v.taken);
+            buf.writeVarInt(v.thanks);
+        }, buf -> new QuestView(buf.readVarInt(), buf.readVarInt(), buf.readUtf(64), buf.readVarInt() - 1, buf.readBoolean(), buf.readVarInt() - 1,
+                buf.readVarInt(), ItemStack.OPTIONAL_STREAM_CODEC.decode(buf), comp(buf), buf.readVarInt(), buf.readVarInt(), buf.readVarInt(),
+                buf.readVarInt(), buf.readVarInt() - 1, buf.readVarInt(), buf.readUtf(64), buf.readVarInt(), buf.readVarInt()));
 
         @Override
         public Type<? extends CustomPacketPayload> type() {
@@ -635,7 +683,8 @@ public final class ColonyPayloads {
                 /** a = building: take what is ready */ COLLECT = 14,
                 /** a = building, b = recipe index * 1000 + pieces: bought now from the village's stock */ BUY_NOW = 15,
                 /** a = building id (-1: the research): a step of the queue up, down, out of it */ QUEUE_UP = 16, QUEUE_DOWN = 17, QUEUE_CANCEL = 18,
-                /** a = sub-branch ordinal: what the village is known for, within its speciality */ SUB = 19;
+                /** a = sub-branch ordinal: what the village is known for, within its speciality */ SUB = 19,
+                /** a = person: their task; a = quest id: take it, hand in what is asked, give it up */ QUEST = 20, QUEST_TAKE = 21, QUEST_HAND = 22, QUEST_DROP = 23;
         public static final Type<VillageAction> TYPE = new Type<>(Minecraftportsmod.id("village_action"));
         public static final StreamCodec<FriendlyByteBuf, VillageAction> CODEC = StreamCodec.of((buf, p) -> {
             buf.writeVarInt(p.village);

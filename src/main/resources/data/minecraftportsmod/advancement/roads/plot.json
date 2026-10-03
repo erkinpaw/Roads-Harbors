@@ -1,0 +1,25 @@
+{
+  "parent": "minecraftportsmod:roads/root",
+  "display": {
+    "icon": {
+      "id": "minecraft:oak_sign"
+    },
+    "title": {
+      "translate": "advancements.minecraftportsmod.plot.title"
+    },
+    "description": {
+      "translate": "advancements.minecraftportsmod.plot.description"
+    },
+    "frame": "task"
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

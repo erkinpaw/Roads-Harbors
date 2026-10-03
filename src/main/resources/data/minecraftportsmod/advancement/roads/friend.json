@@ -1,0 +1,25 @@
+{
+  "parent": "minecraftportsmod:roads/quests10",
+  "display": {
+    "icon": {
+      "id": "minecraft:golden_apple"
+    },
+    "title": {
+      "translate": "advancements.minecraftportsmod.friend.title"
+    },
+    "description": {
+      "translate": "advancements.minecraftportsmod.friend.description"
+    },
+    "frame": "goal"
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

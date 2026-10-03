@@ -1,0 +1,25 @@
+{
+  "parent": "minecraftportsmod:roads/quest",
+  "display": {
+    "icon": {
+      "id": "minecraft:paper"
+    },
+    "title": {
+      "translate": "advancements.minecraftportsmod.letter.title"
+    },
+    "description": {
+      "translate": "advancements.minecraftportsmod.letter.description"
+    },
+    "frame": "goal"
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

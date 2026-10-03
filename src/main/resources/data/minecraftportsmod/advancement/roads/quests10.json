@@ -1,0 +1,25 @@
+{
+  "parent": "minecraftportsmod:roads/quest",
+  "display": {
+    "icon": {
+      "id": "minecraft:book"
+    },
+    "title": {
+      "translate": "advancements.minecraftportsmod.quests10.title"
+    },
+    "description": {
+      "translate": "advancements.minecraftportsmod.quests10.description"
+    },
+    "frame": "goal"
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

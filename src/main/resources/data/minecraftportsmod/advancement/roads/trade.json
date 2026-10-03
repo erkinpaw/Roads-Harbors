@@ -1,0 +1,25 @@
+{
+  "parent": "minecraftportsmod:roads/root",
+  "display": {
+    "icon": {
+      "id": "minecraft:emerald"
+    },
+    "title": {
+      "translate": "advancements.minecraftportsmod.trade.title"
+    },
+    "description": {
+      "translate": "advancements.minecraftportsmod.trade.description"
+    },
+    "frame": "task"
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

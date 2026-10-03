@@ -1,0 +1,25 @@
+{
+  "parent": "minecraftportsmod:roads/quests10",
+  "display": {
+    "icon": {
+      "id": "minecraft:enchanted_book"
+    },
+    "title": {
+      "translate": "advancements.minecraftportsmod.quests50.title"
+    },
+    "description": {
+      "translate": "advancements.minecraftportsmod.quests50.description"
+    },
+    "frame": "challenge"
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

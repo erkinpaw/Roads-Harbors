@@ -1,0 +1,25 @@
+{
+  "parent": "minecraftportsmod:roads/root",
+  "display": {
+    "icon": {
+      "id": "minecraft:writable_book"
+    },
+    "title": {
+      "translate": "advancements.minecraftportsmod.quest.title"
+    },
+    "description": {
+      "translate": "advancements.minecraftportsmod.quest.description"
+    },
+    "frame": "task"
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}
