@@ -33,6 +33,7 @@ public class Minecraftportsmod implements ModInitializer {
                     .when(net.minecraft.world.level.storage.loot.predicates.LootItemRandomChanceCondition.randomChance(0.05F)));
         });
         ModNetworking.registerCommon();
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(org.webtrade.minecraftportsmod.combat.Pirates::tick);
         NavCacheManager.init();
         RouteManager.init();
         FleetManager.init();

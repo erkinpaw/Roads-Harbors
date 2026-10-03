@@ -4,7 +4,8 @@
   "package": "org.webtrade.minecraftportsmod.mixin.client",
   "compatibilityLevel": "JAVA_25",
   "client": [
-    "FilmTimerMixin"
+    "FilmTimerMixin",
+    "CameraDistanceMixin"
   ],
   "injectors": {
     "defaultRequire": 1

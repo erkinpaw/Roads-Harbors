@@ -949,5 +949,11 @@
   "minecraftportsmod.act.weaving": "Ткёт",
   "minecraftportsmod.act.smelting": "Плавит руду",
   "minecraftportsmod.act.glassblowing": "Выдувает стекло",
-  "minecraftportsmod.act.pigs": "Кормит свиней"
+  "minecraftportsmod.act.pigs": "Кормит свиней",
+  "item.minecraftportsmod.warship_spawn_egg": "Яйцо призыва военного корабля",
+  "entity.minecraftportsmod.warship": "Военный корабль",
+  "entity.minecraftportsmod.cannonball": "Ядро",
+  "minecraftportsmod.pirates.sighted": "Парус на горизонте! Пираты!",
+  "minecraftportsmod.pirates.sunk": "Пиратский корабль пошёл ко дну!",
+  "minecraftportsmod.pirates.lost": "Корабль тонет!"
 }

@@ -949,5 +949,11 @@
   "minecraftportsmod.act.weaving": "Weaving",
   "minecraftportsmod.act.smelting": "Smelting ore",
   "minecraftportsmod.act.glassblowing": "Blowing glass",
-  "minecraftportsmod.act.pigs": "Feeding the pigs"
+  "minecraftportsmod.act.pigs": "Feeding the pigs",
+  "item.minecraftportsmod.warship_spawn_egg": "Warship Spawn Egg",
+  "entity.minecraftportsmod.warship": "Warship",
+  "entity.minecraftportsmod.cannonball": "Cannonball",
+  "minecraftportsmod.pirates.sighted": "Sail on the horizon! Pirates!",
+  "minecraftportsmod.pirates.sunk": "The pirate ship goes down!",
+  "minecraftportsmod.pirates.lost": "The ship is sinking!"
 }

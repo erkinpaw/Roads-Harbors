@@ -67,6 +67,26 @@ public final class ModContent {
                     .eyeHeight(1.62F)
                     .clientTrackingRange(10));
 
+    /** A warship: a big brig with cannons, sailed by hand (or a pirate's, sailed by the server). */
+    public static final EntityType<org.webtrade.minecraftportsmod.combat.WarshipEntity> WARSHIP = entity("warship",
+            EntityType.Builder.<org.webtrade.minecraftportsmod.combat.WarshipEntity>of(org.webtrade.minecraftportsmod.combat.WarshipEntity::new, MobCategory.MISC)
+                    .noLootTable()
+                    .sized(4.0F, 1.2F)
+                    .eyeHeight(1.0F)
+                    .clientTrackingRange(16)
+                    .updateInterval(1));
+
+    public static final EntityType<org.webtrade.minecraftportsmod.combat.CannonballEntity> CANNONBALL = entity("cannonball",
+            EntityType.Builder.<org.webtrade.minecraftportsmod.combat.CannonballEntity>of(org.webtrade.minecraftportsmod.combat.CannonballEntity::new, MobCategory.MISC)
+                    .noLootTable()
+                    .noSave()
+                    .sized(0.4F, 0.4F)
+                    .clientTrackingRange(16)
+                    .updateInterval(2));
+
+    public static final Item WARSHIP_SPAWN_EGG = item("warship_spawn_egg",
+            p -> new net.minecraft.world.item.SpawnEggItem(p.spawnEgg(WARSHIP)));
+
     public static final net.fabricmc.fabric.api.menu.v1.ExtendedMenuType<org.webtrade.minecraftportsmod.vessel.HoldMenu, Integer> HOLD_MENU =
             Registry.register(BuiltInRegistries.MENU, Minecraftportsmod.id("hold"),
                     new net.fabricmc.fabric.api.menu.v1.ExtendedMenuType<>(org.webtrade.minecraftportsmod.vessel.HoldMenu::new,
@@ -81,6 +101,7 @@ public final class ModContent {
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(output -> {
             output.accept(PORT_OFFICE_ITEM);
         });
+        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.SPAWN_EGGS).register(output -> output.accept(WARSHIP_SPAWN_EGG));
     }
 
     private static Block block(String name, Function<BlockBehaviour.Properties, Block> factory, BlockBehaviour.Properties props) {
@@ -92,6 +113,11 @@ public final class ModContent {
         ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, BuiltInRegistries.BLOCK.getKey(block));
         return Registry.register(BuiltInRegistries.ITEM, key,
                 new BlockItem(block, new Item.Properties().setId(key).useBlockDescriptionPrefix()));
+    }
+
+    private static Item item(String name, Function<Item.Properties, Item> factory) {
+        ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, Minecraftportsmod.id(name));
+        return Registry.register(BuiltInRegistries.ITEM, key, factory.apply(new Item.Properties().setId(key)));
     }
 
     private static <T extends net.minecraft.world.entity.Entity> EntityType<T> entity(String name, EntityType.Builder<T> builder) {
