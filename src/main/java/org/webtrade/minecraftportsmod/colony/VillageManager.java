@@ -565,6 +565,11 @@ public final class VillageManager {
         VillageData.get(level.getServer()).changed();
     }
 
+    /** The pit's plan was made anew (the house raised, the world loaded): its steps are gone over again from the first. */
+    static void mineReset(Village v) {
+        v.mineStep = 0;
+    }
+
     public static int mineStepOf(Village v) {
         return v.mineStep;
     }

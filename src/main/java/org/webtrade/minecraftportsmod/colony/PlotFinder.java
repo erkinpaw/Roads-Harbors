@@ -300,10 +300,12 @@ final class PlotFinder {
         return null;
     }
 
-    /** The miners' house's place: the nearest bare rock in reach; else a knoll or a hollow; null: anywhere some way out. */
+    /**
+     * The miners' house's place: by the nearest bare rock in reach (a quarry looks well there); else anywhere some
+     * way out: the pit is dug wherever the house stands.
+     */
     private static BlockPos mineSpot(ServerLevel level, Village v) {
-        BlockPos rock = farRock(level, v);
-        return rock != null ? rock : hillOrHollow(level, v);
+        return farRock(level, v);
     }
 
     /** How far out of the village the miners' house stands at least (rock looked for out to {@link #ROCK_REACH}), and the woodcutters. */
@@ -349,6 +351,13 @@ final class PlotFinder {
      * village may hold (when that is capped), and where people can walk to from the square on dry feet.
      */
     private static boolean fits(ServerLevel level, Village v, BuildingType type, BlockPos pos) {
+        if (type == BuildingType.MINE_HOUSE) {
+            // the pit behind the house: clear of the other plots, dry
+            Direction facing = Direction.getApproximateNearest(v.center.getX() - pos.getX(), 0, v.center.getZ() - pos.getZ());
+            BlockPos pit = Mine.pitCenter(pos, facing);
+            if (clash(v, pit, Mine.radius(3) + 1, -1)) return no("pit");
+            if (Construction.loaded(level, pit) && wet(level, v, pit, Mine.radius(3) + 2)) return no("pit");
+        }
         if (!Territory.allows(v, type, pos.getX(), pos.getZ())) return no("cap");
         if (onPath(level, pos, type.half + 1)) return no("path");
         if (type.branch != BuildingType.Branch.COAST && wet(level, v, pos, type.half + SHORE)) return no("shore");
@@ -418,7 +427,8 @@ final class PlotFinder {
         for (Plots.Plot p : v.tasks.plots()) {
             if (Math.abs(pos.getX() - p.marker().getX()) <= half + Plots.HALF + GAP && Math.abs(pos.getZ() - p.marker().getZ()) <= half + Plots.HALF + GAP) return true;
         }
-        return false;
+        // (the pit of the miners' house)
+        return Mine.pitClash(v, pos, half, GAP);
     }
 
     /**
