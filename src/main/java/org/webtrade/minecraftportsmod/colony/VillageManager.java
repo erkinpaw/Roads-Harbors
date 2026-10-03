@@ -48,6 +48,7 @@ public final class VillageManager {
             Tidy.clear();
             Territory.clear();
             Reach.clear();
+            PlotFinder.clear();
             PATH_RETRY.clear();
             // (worked out on other threads, keyed by the villages' ids: they would be taken for the next world's)
             Trails.reset();

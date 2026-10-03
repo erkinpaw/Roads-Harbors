@@ -73,9 +73,101 @@ final class PlotFinder {
      */
     static Blueprint.Frame find(ServerLevel level, Village v, BuildingType type, int ignore) {
         WHY.clear();
-        Blueprint.Frame f = find(level, v, type, ignore, false);
-        // hilly land (a jungle, a coast of knolls): a steeper plot, cut and heaped level round it, rather than none
-        return f != null ? f : find(level, v, type, ignore, true);
+        try {
+            // grass first, then the beach: a coastal village builds on the strand only when the grass is taken
+            for (boolean sand : new boolean[]{false, true}) {
+                sandOk = sand;
+                Blueprint.Frame f = find(level, v, type, ignore, false);
+                // hilly land (a jungle, a coast of knolls): a steeper plot, cut and heaped level round it, rather than none
+                if (f == null) f = find(level, v, type, ignore, true);
+                // no room round the middle (a coast, a spit of land): the village grows on inland, away from the water
+                if (f == null) f = inland(level, v, type, ignore);
+                if (f != null) return f;
+            }
+            return null;
+        } finally {
+            sandOk = false;
+        }
+    }
+
+    /** Is a plot on sand (the beach) acceptable in the search going on now? */
+    private static boolean sandOk;
+
+    /** How much farther than {@link #MAX_RING} a village grows inland when there is no room nearer. */
+    static final int INLAND = 72;
+
+    /**
+     * A plot beyond the rings round the middle, inland: on the side of the village away from the water (within a
+     * quarter turn either way of it), out to {@link #INLAND} more blocks. Null: none, or no inland side to tell.
+     */
+    private static Blueprint.Frame inland(ServerLevel level, Village v, BuildingType type, int ignore) {
+        if (type == BuildingType.MINE_HOUSE || type.branch == BuildingType.Branch.COAST) return null;
+        Double dir = inlandAngle(level, v);
+        if (dir == null) return null;
+        BlockPos c = v.center;
+        int half = type.half;
+        for (boolean steep : new boolean[]{false, true}) {
+            for (int ring = MAX_RING + 2; ring <= MAX_RING + INLAND; ring += 2) {
+                int steps = Math.max(12, ring);
+                for (int a = 0; a < steps; a++) {
+                    // nearest the inland line first, then out to either side of it
+                    int k = (a + 1) / 2 * (a % 2 == 0 ? 1 : -1);
+                    double ang = dir + k * (Math.PI / 2) / (steps / 2.0);
+                    if (Math.abs(ang - dir) > Math.PI / 2) continue;
+                    int x = c.getX() + (int) Math.round(Math.cos(ang) * ring), z = c.getZ() + (int) Math.round(Math.sin(ang) * ring);
+                    BlockPos pos = new BlockPos(x, c.getY(), z);
+                    if (clash(v, pos, half, ignore)) continue;
+                    Integer floor = floor(level, v, pos, half, steep);
+                    if (floor == null || !fits(level, v, type, pos)) continue;
+                    return new Blueprint.Frame(new BlockPos(x, floor, z), Direction.getApproximateNearest(c.getX() - x, 0, c.getZ() - z));
+                }
+            }
+        }
+        return null;
+    }
+
+    private static final java.util.Map<Integer, Double> INLAND_DIR = new java.util.HashMap<>();
+
+    static void clear() {
+        INLAND_DIR.clear();
+    }
+
+    /**
+     * Which way inland lies from the village (an angle), or null if the land round it is all land or all water: the
+     * dry ground on a circle round the middle, summed up as arrows.
+     */
+    static Double inlandAngle(ServerLevel level, Village v) {
+        Double known = INLAND_DIR.get(v.id);
+        if (known != null) return Double.isNaN(known) ? null : known;
+        double sx = 0, sz = 0;
+        int dry = 0, all = 0;
+        VillageTerrain.Grid grid = null;
+        for (int r : new int[]{32, 56}) {
+            for (int a = 0; a < 32; a++) {
+                double ang = a * Math.PI * 2 / 32;
+                int x = v.center.getX() + (int) Math.round(Math.cos(ang) * r), z = v.center.getZ() + (int) Math.round(Math.sin(ang) * r);
+                Boolean land;
+                if (Construction.loaded(level, new BlockPos(x, 0, z))) {
+                    land = level.getBlockState(new BlockPos(x, floorAt(level, x, z) - 1, z)).getFluidState().isEmpty();
+                } else {
+                    if (grid == null) grid = VillageTerrain.grid(level, v);
+                    if (grid == null) return null;
+                    Integer g = grid.at(x, z);
+                    land = g == null ? null : g >= 0;
+                }
+                if (land == null) continue;
+                all++;
+                if (land) {
+                    dry++;
+                    sx += Math.cos(ang);
+                    sz += Math.sin(ang);
+                }
+            }
+        }
+        // (land all round, or water all round: no side is inland)
+        Double out = all == 0 || dry == all || dry == 0 || Math.hypot(sx, sz) < 2 ? null : Math.atan2(sz, sx);
+        INLAND_DIR.put(v.id, out == null ? Double.NaN : out);
+        return out;
     }
 
     private static Blueprint.Frame find(ServerLevel level, Village v, BuildingType type, int ignore, boolean steep) {
@@ -386,7 +478,7 @@ final class PlotFinder {
                 heights.add(f);
             }
         }
-        if (ground > 0 && sand * 4 > ground) {
+        if (!sandOk && ground > 0 && sand * 4 > ground) {
             no("sand");
             return null;
         }
@@ -398,7 +490,7 @@ final class PlotFinder {
         }
         // (where the land is loaded its sand is seen above; where it is not, a plot low down on a beach is passed
         // over: the beach biome runs in a band along every coast, grass and all, only its low strand is sand)
-        if (ground == 0 && floor <= sea + 2 && beach(level, center, 0)) {
+        if (!sandOk && ground == 0 && floor <= sea + 2 && beach(level, center, 0)) {
             no("beach");
             return null;
         }
