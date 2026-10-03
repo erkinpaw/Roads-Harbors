@@ -33,6 +33,44 @@ public class NetworkRunClientGameTest implements FabricClientGameTest {
     private static int days = DAYS;
     private static final int VILLAGES = 10;
 
+    /**
+     * How far the villages are developed: the nodes of the tree they have open, out of all; the nodes of their own
+     * speciality open and grown to the top level; the villages with all of their speciality grown, and with every
+     * node open and grown. (The first day each village gets there is remembered.)
+     */
+    private static final java.util.Map<Integer, Long> OWN_DONE = new java.util.HashMap<>(), ALL_DONE = new java.util.HashMap<>();
+
+    private static void pace(String seed, VillageData data, int day) {
+        if (day <= 10) {
+            OWN_DONE.clear();
+            ALL_DONE.clear();
+        }
+        int nodes = 0, open = 0, grown = 0, ownAll = 0, ownGrown = 0, villages = 0;
+        for (Village v : data.all()) {
+            villages++;
+            boolean own = true, all = true;
+            for (org.webtrade.minecraftportsmod.colony.BuildingType t : org.webtrade.minecraftportsmod.colony.BuildingType.values()) {
+                if (!t.isNode() || t.free) continue;
+                nodes++;
+                boolean o = v.unlocked(t), g = org.webtrade.minecraftportsmod.colony.Tree.grown(v, t);
+                if (o) open++;
+                if (g) grown++;
+                boolean mine = t.branch == v.focus || !t.branch.trade();
+                if (mine) {
+                    ownAll++;
+                    if (g) ownGrown++;
+                    else own = false;
+                }
+                if (!g) all = false;
+            }
+            if (own) OWN_DONE.putIfAbsent(v.id, (long) day);
+            if (all) ALL_DONE.putIfAbsent(v.id, (long) day);
+        }
+        log(seed, "pace day {}: nodes open {}% grown {}% | own branch + common grown {}% | villages done own {} of {}, all {} | days own {} all {}",
+                day, nodes == 0 ? 0 : open * 100 / nodes, nodes == 0 ? 0 : grown * 100 / nodes, ownAll == 0 ? 0 : ownGrown * 100 / ownAll,
+                OWN_DONE.size(), villages, ALL_DONE.size(), new java.util.TreeMap<>(OWN_DONE).values(), new java.util.TreeMap<>(ALL_DONE).values());
+    }
+
     private static void log(String seed, String fmt, Object... args) {
         Minecraftportsmod.LOGGER.info("[net " + seed + "] " + fmt, args);
     }
@@ -322,6 +360,7 @@ public class NetworkRunClientGameTest implements FabricClientGameTest {
         log(seed, "day {}: villages {}, people {}, buildings {} (storehouses {}), known pairs {} | trails {}, no way {}, pending {}, forks {}, parts of the network {} | "
                         + "trips out {}, sales {}, lost {}, on the road now {}", day, data.all().size(), people, built, stores, known, ready, none, waiting,
                 data.junctions().size(), parts(data), out, sold, lost, data.trips().size());
+        pace(seed, data, day);
         if (day % 50 == 0) {
             for (Village v : data.all()) {
                 int scouts = 0, away = 0;
