@@ -114,7 +114,7 @@ public final class Village {
             Orders.Order.CODEC.listOf().optionalFieldOf("orders", List.of()).forGetter(v -> v.orders),
             Economy.CODEC.optionalFieldOf("economy", Economy.NONE).forGetter(v -> new Economy(v.rewarded, v.mined, v.dig, v.ready, v.traded)),
             Plans.CODEC.optionalFieldOf("plans", Plans.NONE).forGetter(v -> new Plans(List.copyOf(v.order), v.research == null ? "" : v.research.id(),
-                    v.sub == null ? "" : v.sub.id())),
+                    v.sub == null ? "" : v.sub.id(), v.style)),
             Quests.Board.CODEC.optionalFieldOf("tasks").forGetter(v -> java.util.Optional.of(v.tasks))
     ).apply(i, (core, life, dwellers, buildings, log, chart, orders, eco, plans, tasks) -> {
         Village v = new Village(core.id, core.name, core.center, core.front, core.wood, core.board, core.russian);
@@ -153,6 +153,7 @@ public final class Village {
         v.order.addAll(plans.order());
         v.research = BuildingType.byId(plans.research());
         v.sub = BuildingType.Sub.byId(plans.sub());
+        v.style = plans.style();
         v.dwellers.addAll(dwellers);
         v.buildings.addAll(buildings);
         v.log.addAll(log);
@@ -173,12 +174,13 @@ public final class Village {
     }));
 
     /** The village's queue: the order its building sites are worked in (building ids), and the research in hand. */
-    private record Plans(List<Integer> order, String research, String sub) {
-        static final Plans NONE = new Plans(List.of(), "", "");
+    private record Plans(List<Integer> order, String research, String sub, int style) {
+        static final Plans NONE = new Plans(List.of(), "", "", -1);
         static final Codec<Plans> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.INT.listOf().optionalFieldOf("order", List.of()).forGetter(Plans::order),
                 Codec.STRING.optionalFieldOf("research", "").forGetter(Plans::research),
-                Codec.STRING.optionalFieldOf("sub", "").forGetter(Plans::sub)
+                Codec.STRING.optionalFieldOf("sub", "").forGetter(Plans::sub),
+                Codec.INT.optionalFieldOf("style", -1).forGetter(Plans::style)
         ).apply(i, Plans::new));
     }
 
@@ -300,6 +302,13 @@ public final class Village {
     final List<Integer> order = new ArrayList<>();
     /** The sub-branch of its speciality the village is known for (null until it has a speciality). */
     BuildingType.Sub sub;
+    /** How the village builds (see {@link Blueprint#TIMBER}...), -1 until chosen by its land. */
+    int style = -1;
+
+    public int style() {
+        return style;
+    }
+
     /** The node of the tree the village is saving up to open (null: none in hand). */
     BuildingType research;
     /** Steps the players took out of the queue, and the day: not put back by the village for a few days. */

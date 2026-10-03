@@ -71,7 +71,16 @@ public final class Blueprint {
 
     /** The blueprint of a building grown to {@code level}: the building itself, then each level's additions. */
     public static Blueprint of(BuildingType type, Frame frame, String wood, long seed, Crop crop, int level) {
+        return of(type, frame, wood, seed, crop, level, 0);
+    }
+
+    /**
+     * The same, in a look: 0 the plain look of old (the buildings of villages from before there were looks); else
+     * 1 + the village's style ({@link Look}), each building with touches of its own by its seed.
+     */
+    public static Blueprint of(BuildingType type, Frame frame, String wood, long seed, Crop crop, int level, int look) {
         Blueprint b = new Blueprint(type, frame, wood);
+        if (look > 0) b.look = Look.make(b, look - 1, RandomSource.create(seed ^ 0x5DEECE66DL));
         RandomSource rnd = RandomSource.create(seed);
         switch (type) {
             case CAMPFIRE -> b.campfire();
@@ -220,6 +229,20 @@ public final class Blueprint {
      */
     private void cottage(int r, BlockState post, BlockState footing, BlockState wall, BlockState floor, int height, BlockState stairs) {
         BlockState ridge = wood("planks");
+        boolean along = false;
+        if (look != null) {
+            // the village's style: a home's walls, and every building's roof
+            boolean stoneHome = type == BuildingType.STONE_HOUSE || type == BuildingType.STONE_HOUSE_TALL;
+            if (home()) {
+                wall = stoneHome ? look.stoneWall : look.homeWall;
+                footing = look.footing;
+                post = look.post;
+            }
+            stairs = look.roof;
+            ridge = roofBlock(look.roof, ridge);
+            along = look.along;
+        }
+        ridgeAlong = along;
         levelAll(floor, block("grass_block"), r);
         eaves = height;
         // corner posts first, then the walls between them
@@ -233,28 +256,51 @@ public final class Blueprint {
                     if (Math.abs(x) == r && Math.abs(z) == r) continue;
                     if (z == r && x == 0 && y <= 1) continue;   // the doorway
                     if (y % 3 == 1 && (x == 0 || z == 0)) shaped(x, y, z, block("glass_pane"));
-                    else set(x, y, z, y == 0 ? footing : wall);
+                    else if (look != null && look.beams && home() && y > 0 && y % 3 == 2) {
+                        // the timber frame: a beam under the eaves (and under the upper floor)
+                        set(x, y, z, look.post.trySetValue(BlockStateProperties.AXIS, Math.abs(x) == r ? frame.front().getAxis() : frame.right().getAxis()));
+                    } else set(x, y, z, y == 0 ? footing : wall);
                 }
             }
         }
         Direction in = frame.front().getOpposite();
         set(0, 0, r, wood("door").setValue(BlockStateProperties.HORIZONTAL_FACING, in).setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.LOWER));
         set(0, 1, r, wood("door").setValue(BlockStateProperties.HORIZONTAL_FACING, in).setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.UPPER));
-        // gable ends, then the roof
-        for (int x : new int[]{-r, r}) {
-            for (int z = -(r - 1); z <= r - 1; z++) {
-                for (int y = height; y < r + height - Math.abs(z); y++) set(x, y, z, wall);
+        // gable ends, then the roof: the ridge across the front (the gables at the sides) or from front to back
+        for (int g : new int[]{-r, r}) {
+            for (int t = -(r - 1); t <= r - 1; t++) {
+                for (int y = height; y < r + height - Math.abs(t); y++) {
+                    if (along) set(t, y, g, wall);
+                    else set(g, y, t, wall);
+                }
             }
         }
         for (int z = -r - 1; z <= r + 1; z++) {
             for (int x = -r - 1; x <= r + 1; x++) {
-                int y = r + height - Math.abs(z);
-                if (z == 0) {
+                int across = along ? x : z;
+                int y = r + height - Math.abs(across);
+                if (across == 0) {
                     set(x, y, z, ridge);
                 } else {
-                    Direction up = z > 0 ? frame.front().getOpposite() : frame.front();
+                    Direction up = along ? (x > 0 ? frame.right().getOpposite() : frame.right()) : (z > 0 ? frame.front().getOpposite() : frame.front());
                     set(x, y, z, stairs.setValue(BlockStateProperties.HORIZONTAL_FACING, up).setValue(BlockStateProperties.HALF, Half.BOTTOM));
                 }
+            }
+        }
+        if (look != null) {
+            // shutters by the windows of a home's side and back walls
+            if (look.shutters && home()) {
+                for (int y = 1; y < height; y += 3) {
+                    for (int s = -1; s <= 1; s += 2) {
+                        shutter(r + 1, y, s, frame.right());
+                        shutter(-r - 1, y, s, frame.right().getOpposite());
+                        shutter(s, y, -r - 1, frame.front().getOpposite());
+                    }
+                }
+            }
+            // a canopy over the door (where the eaves do not come down over it already)
+            if (look.canopy && along) {
+                for (int x = -1; x <= 1; x++) set(x, 2, r + 1, slab(look.roof));
             }
         }
         workSpot = frame.at(0, 0, r + 2);
@@ -263,6 +309,54 @@ public final class Blueprint {
 
     /** The cottage last laid out: its half-size and the height its walls end at (for the additions). */
     private int size = 2, eaves = 3;
+
+    // ------------------------------------------------------------------ looks
+
+    /** The village styles: by the land round the village. */
+    public static final int TIMBER = 0, CABIN = 1, STONE = 2, PAINTED = 3, STYLES = 4;
+
+    /** The look of a building in a village of a style (null: the plain look of old). */
+    private Look look;
+
+    /**
+     * How a building of a village with a style looks: the walls of its homes (plaster in a timber frame, logs, stone
+     * and brick, painted boards), its roof (of the style's kinds), which way its ridge runs, shutters by the windows,
+     * a canopy over the door. The trades' houses keep their own walls (a smithy of stone, a woodcutter's of logs)
+     * and take the rest.
+     */
+    private record Look(int style, BlockState roof, BlockState homeWall, BlockState stoneWall, BlockState footing, BlockState post,
+                        boolean along, boolean shutters, boolean canopy, boolean beams) {
+        static Look make(Blueprint b, int style, RandomSource rnd) {
+            String w = b.wood;
+            BlockState stripped = BuiltInRegistries.BLOCK.getOptional(Identifier.withDefaultNamespace("stripped_" + w + "_log"))
+                    .map(net.minecraft.world.level.block.Block::defaultBlockState).orElse(b.wood("log"));
+            boolean pick = rnd.nextBoolean();
+            return switch (style) {
+                case TIMBER -> new Look(style, block(pick ? "dark_oak_stairs" : "spruce_stairs"), block(rnd.nextInt(3) == 0 ? "mushroom_stem" : "calcite"),
+                        block(rnd.nextBoolean() ? "stone_bricks" : "cobblestone"), block("cobblestone"), stripped,
+                        rnd.nextBoolean(), rnd.nextInt(3) > 0, rnd.nextInt(3) == 0, true);
+                case CABIN -> new Look(style, pick ? b.wood("stairs") : block("spruce_stairs"), b.wood("log"),
+                        block(rnd.nextBoolean() ? "mossy_cobblestone" : "cobblestone"), block(rnd.nextBoolean() ? "mossy_cobblestone" : "cobblestone"),
+                        stripped, rnd.nextBoolean(), rnd.nextInt(3) == 0, rnd.nextInt(4) == 0, false);
+                case STONE -> new Look(style, block(pick ? "deepslate_tile_stairs" : rnd.nextBoolean() ? "brick_stairs" : "stone_brick_stairs"),
+                        block(rnd.nextBoolean() ? "stone_bricks" : "bricks"), block(rnd.nextBoolean() ? "bricks" : "stone_bricks"), block("stone_bricks"),
+                        b.wood("log"), rnd.nextBoolean(), rnd.nextBoolean(), rnd.nextInt(3) == 0, false);
+                default -> {
+                    String[] boards = {"birch", "spruce", "oak", "jungle", "acacia"};
+                    String[] roofs = {"mangrove", "cherry", "dark_oak", "spruce", "acacia"};
+                    String board = boards[rnd.nextInt(boards.length)];
+                    yield new Look(style, block(roofs[rnd.nextInt(roofs.length)] + "_stairs"), block(board + "_planks"),
+                            block(rnd.nextBoolean() ? "stone_bricks" : "mossy_stone_bricks"), block("stone_bricks"), stripped,
+                            rnd.nextBoolean(), rnd.nextInt(4) > 0, rnd.nextBoolean(), false);
+                }
+            };
+        }
+    }
+
+    /** Is this a home (its walls take the village's style)? */
+    private boolean home() {
+        return type.branch == BuildingType.Branch.HOME && type != BuildingType.TENT;
+    }
 
     /** Two beds along the side walls of a small cottage, a chest between their heads with a lamp on it. */
     private void twoBeds(String a, String b) {
@@ -488,10 +582,39 @@ public final class Blueprint {
         set(-c, 2, c, block("lantern"));
     }
 
+    /** Which way the cottage's ridge runs: front to back (true), or across. */
+    private boolean ridgeAlong;
+
+    /** An open trapdoor flat against the wall, beside a window (facing out). */
+    private void shutter(int x, int y, int z, Direction out) {
+        BlockState t = BuiltInRegistries.BLOCK.getOptional(Identifier.withDefaultNamespace(wood + "_trapdoor"))
+                .map(net.minecraft.world.level.block.Block::defaultBlockState).orElse(block("spruce_trapdoor"));
+        set(x, y, z, t.setValue(BlockStateProperties.HORIZONTAL_FACING, out).setValue(BlockStateProperties.OPEN, true));
+    }
+
+    /** The full block a roof's stairs are cut from (its ridge), else the given one. */
+    private static BlockState roofBlock(BlockState stairs, BlockState fallback) {
+        String id = BuiltInRegistries.BLOCK.getKey(stairs.getBlock()).getPath().replace("_stairs", "");
+        String full = switch (id) {
+            case "deepslate_tile" -> "deepslate_tiles";
+            case "brick" -> "bricks";
+            case "stone_brick" -> "stone_bricks";
+            default -> id + "_planks";
+        };
+        return BuiltInRegistries.BLOCK.getOptional(Identifier.withDefaultNamespace(full)).map(net.minecraft.world.level.block.Block::defaultBlockState).orElse(fallback);
+    }
+
+    /** A bottom slab of what a roof's stairs are (a canopy). */
+    private static BlockState slab(BlockState stairs) {
+        String id = BuiltInRegistries.BLOCK.getKey(stairs.getBlock()).getPath().replace("_stairs", "_slab");
+        return BuiltInRegistries.BLOCK.getOptional(Identifier.withDefaultNamespace(id)).map(net.minecraft.world.level.block.Block::defaultBlockState)
+                .orElse(block("oak_slab")).setValue(BlockStateProperties.SLAB_TYPE, SlabType.BOTTOM);
+    }
+
     /** A chimney through the back of the roof, smoke rising from it. */
     private void chimney() {
         int x = -(size - 1), z = -(size - 1);
-        int roof = size + eaves - Math.abs(z);
+        int roof = size + eaves - Math.abs(ridgeAlong ? x : z);
         for (int y = roof; y <= size + eaves + 1; y++) set(x, y, z, block("cobblestone"));
         set(x, size + eaves + 2, z, block("campfire").setValue(BlockStateProperties.LIT, true));
     }
