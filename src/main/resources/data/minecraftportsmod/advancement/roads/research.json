@@ -1,0 +1,25 @@
+{
+  "parent": "minecraftportsmod:roads/root",
+  "display": {
+    "icon": {
+      "id": "minecraft:crafting_table"
+    },
+    "title": {
+      "translate": "advancements.minecraftportsmod.research.title"
+    },
+    "description": {
+      "translate": "advancements.minecraftportsmod.research.description"
+    },
+    "frame": "goal"
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

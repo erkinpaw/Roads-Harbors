@@ -41,6 +41,12 @@ public final class VillageManager {
 
     public static void init() {
         ServerTickEvents.END_SERVER_TICK.register(org.webtrade.minecraftportsmod.Perf.timed("Villages", VillageManager::tick));
+        // a monster killed by a player: the hunts the villages round there asked for
+        net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
+            if (entity instanceof net.minecraft.world.entity.monster.Enemy && source.getEntity() instanceof net.minecraft.server.level.ServerPlayer p) {
+                Quests.killed(p, entity.blockPosition());
+            }
+        });
         // what was learnt about one world's land means nothing in the next one
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPED.register(srv -> {
             lastTimeOfDay = -1;

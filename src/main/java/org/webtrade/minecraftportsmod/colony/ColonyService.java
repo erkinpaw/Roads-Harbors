@@ -72,6 +72,9 @@ public final class ColonyService {
         Village v = data.get(e.colonyVillage());
         Dweller d = v == null ? null : v.dweller(e.colonyDweller());
         if (d == null) return;
+        // a letter from a village that has never heard of this one: read out here, an answer written
+        if (Quests.deliver(player, player.level().getServer(), data, v)) return;
+        Achievements.talked(player);
         Building home = v.building(d.home);
         Component homeText = home == null ? Component.translatable("minecraftportsmod.colony.homeless")
                 : Component.empty().append(home.type.displayName()).append(" #" + home.id);
@@ -84,7 +87,46 @@ public final class ColonyService {
         Building work = workplace(v, d.job);
         int orders = work != null && !Orders.recipes(work).isEmpty() ? work.id : -1;
         ServerPlayNetworking.send(player, new ColonyPayloads.PersonView(v.id, d.id, v.name, v.level.ordinal(), d.name,
-                d.job == null ? -1 : d.job.ordinal(), d.child(data.day), d.elder, e.activity(), homeText, data.day - d.joined, orders));
+                d.job == null ? -1 : d.job.ordinal(), d.child(data.day), d.elder, e.activity(), homeText, data.day - d.joined, orders, questState(player, v, d)));
+    }
+
+    /** A person's task as this player sees it: 0 none, 1 one to take, 2 taken by them, 3 taken by someone else. */
+    static int questState(ServerPlayer player, Village v, Dweller d) {
+        Quests.Quest q = Quests.of(v, d.id);
+        if (q == null) return 0;
+        if (!q.taken()) return 1;
+        return player.getUUID().equals(q.taker()) ? 2 : 3;
+    }
+
+    /** What a task asks for, in words. */
+    static Component questText(VillageData data, Village v, Quests.Quest q) {
+        String k = "minecraftportsmod.quest." + q.kind.id();
+        return switch (q.kind) {
+            case BRING -> Component.translatable(k, q.res().displayName());
+            case SITE -> {
+                Building b = v.building(q.building());
+                yield Component.translatable(k, q.res().displayName(), b == null ? Component.literal("?") : b.type.displayName());
+            }
+            case ITEM -> Component.translatable(k + "." + q.what.replace("#", "").replace("minecraft:", ""));
+            case HUNT -> Component.translatable(k);
+            case LETTER -> Component.translatable(k);
+        };
+    }
+
+    public static void sendQuest(ServerPlayer player, Village v, Dweller d) {
+        VillageData data = data(player);
+        Quests.Quest q = Quests.of(v, d.id);
+        int taken = Quests.taken(data, player.getUUID()), thanks = v.tasks.thanks(player.getUUID());
+        if (q == null) {
+            ServerPlayNetworking.send(player, new ColonyPayloads.QuestView(v.id, d.id, d.name, d.job == null ? -1 : d.job.ordinal(), d.elder,
+                    -1, 0, net.minecraft.world.item.ItemStack.EMPTY, Component.empty(), 0, 0, 0, 0, 0, 0, "", taken, thanks));
+            return;
+        }
+        int state = !q.taken() ? 0 : player.getUUID().equals(q.taker()) ? 1 : 2;
+        Village to = data.get(q.to());
+        ServerPlayNetworking.send(player, new ColonyPayloads.QuestView(v.id, d.id, d.name, d.job == null ? -1 : d.job.ordinal(), d.elder,
+                q.id, q.kind.ordinal(), Quests.icon(q), questText(data, v, q), q.count, q.done(), Quests.carried(player, q), q.reward(),
+                (int) Math.max(0, q.until() - data.day), state, to == null ? "" : to.name, taken, thanks));
     }
 
     // ------------------------------------------------------------------ the village screen
@@ -381,6 +423,28 @@ public final class ColonyService {
         Village v = data.get(a.village());
         if (v == null || player.blockPosition().distSqr(v.center) > 200 * 200) return;
         switch (a.kind()) {
+            case ColonyPayloads.VillageAction.QUEST -> {
+                Dweller d = v.dweller(a.a());
+                if (d != null) sendQuest(player, v, d);
+            }
+            case ColonyPayloads.VillageAction.QUEST_TAKE, ColonyPayloads.VillageAction.QUEST_HAND, ColonyPayloads.VillageAction.QUEST_DROP -> {
+                Quests.Quest q = null;
+                for (Quests.Quest x : v.tasks.quests()) if (x.id == a.a()) q = x;
+                if (q == null) return;
+                Dweller d = v.dweller(q.giver);
+                Quests.Result r = switch (a.kind()) {
+                    case ColonyPayloads.VillageAction.QUEST_TAKE -> Quests.take(player, data, v, q);
+                    case ColonyPayloads.VillageAction.QUEST_HAND -> Quests.handIn(player, player.level().getServer(), data, v, q);
+                    default -> {
+                        Quests.drop(player, data, v, q);
+                        yield Quests.Result.OK;
+                    }
+                };
+                boolean finished = !v.tasks.quests().contains(q) && a.kind() == ColonyPayloads.VillageAction.QUEST_HAND;
+                player.level().playSound(null, player.blockPosition(), finished ? SoundEvents.PLAYER_LEVELUP
+                        : r == Quests.Result.OK ? SoundEvents.VILLAGER_YES : SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 0.6F, 1.0F);
+                if (d != null) sendQuest(player, v, d);
+            }
             case ColonyPayloads.VillageAction.PIN -> {
                 BuildingType t = a.a() < 0 || a.a() >= BuildingType.values().length ? null : BuildingType.values()[a.a()];
                 v.priority = t == v.priority ? null : t;
@@ -393,6 +457,7 @@ public final class ColonyService {
             case ColonyPayloads.VillageAction.UNLOCK -> {
                 BuildingType t = a.a() < 0 || a.a() >= BuildingType.values().length ? null : BuildingType.values()[a.a()];
                 if (t != null && Tree.unlock(v, t)) {
+                    Achievements.researched(player);
                     v.log(data.day, Component.translatable("minecraftportsmod.vlog.unlocked_by", player.getName(), t.displayName())
                             .withStyle(ChatFormatting.GOLD));
                     player.level().playSound(null, player.blockPosition(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 0.5F, 1.2F);
@@ -529,6 +594,7 @@ public final class ColonyService {
                 int recipe = a.b() / 1000, pieces = a.b() % 1000;
                 TreeData.Recipe r = Orders.recipe(b, recipe);
                 int paid = Orders.buyNow(player, v, b, recipe, pieces);
+                if (paid > 0) Achievements.traded(player);
                 Component note;
                 if (paid > 0 && r != null) {
                     Component what = TreeData.stack(v, r, 1).getHoverName();
@@ -546,6 +612,7 @@ public final class ColonyService {
                 Building b = v.building(a.a());
                 if (b == null) return;
                 int n = Orders.collect(player, v, b);
+                if (n > 0) Achievements.ordered(player);
                 Component note = n > 0 ? Component.translatable("minecraftportsmod.order.collected", n).withStyle(ChatFormatting.DARK_GREEN)
                         : Component.translatable("minecraftportsmod.order.nothing_ready").withStyle(ChatFormatting.GRAY);
                 if (n > 0) data.changed();
@@ -558,6 +625,7 @@ public final class ColonyService {
                 boolean selling = a.kind() == ColonyPayloads.VillageAction.SELL;
                 int n = Math.min(a.b(), selling ? Trade.maxSell(player, v, w) : Trade.maxBuy(player, v, w));
                 int paid = selling ? Trade.sell(player, v, w, n) : Trade.buy(player, v, w, n);
+                if (paid > 0) Achievements.traded(player);
                 Component note;
                 if (paid > 0) {
                     note = Component.translatable(selling ? "minecraftportsmod.trade.sold" : "minecraftportsmod.trade.bought",

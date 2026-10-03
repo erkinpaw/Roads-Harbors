@@ -114,8 +114,9 @@ public final class Village {
             Orders.Order.CODEC.listOf().optionalFieldOf("orders", List.of()).forGetter(v -> v.orders),
             Economy.CODEC.optionalFieldOf("economy", Economy.NONE).forGetter(v -> new Economy(v.rewarded, v.mined, v.dig, v.ready, v.traded)),
             Plans.CODEC.optionalFieldOf("plans", Plans.NONE).forGetter(v -> new Plans(List.copyOf(v.order), v.research == null ? "" : v.research.id(),
-                    v.sub == null ? "" : v.sub.id()))
-    ).apply(i, (core, life, dwellers, buildings, log, chart, orders, eco, plans) -> {
+                    v.sub == null ? "" : v.sub.id())),
+            Quests.Board.CODEC.optionalFieldOf("tasks").forGetter(v -> java.util.Optional.of(v.tasks))
+    ).apply(i, (core, life, dwellers, buildings, log, chart, orders, eco, plans, tasks) -> {
         Village v = new Village(core.id, core.name, core.center, core.front, core.wood, core.board, core.russian);
         try {
             v.level = Level.valueOf(life.level);
@@ -156,6 +157,7 @@ public final class Village {
         v.buildings.addAll(buildings);
         v.log.addAll(log);
         v.orders.addAll(orders);
+        tasks.ifPresent(b -> v.tasks = b);
         for (int k = 0; k < Math.min(chart.keys.size(), chart.colors.size()); k++) v.chart.put(chart.keys.get(k), chart.colors.get(k));
         chart.known.forEach((id, day) -> {
             try {
@@ -318,6 +320,13 @@ public final class Village {
     final List<Orders.Order> orders = new ArrayList<>();
     /** The share of each trade's day that went on orders today (not saved). */
     java.util.Map<Job, Double> orderLoad = new java.util.EnumMap<>(Job.class);
+    /** What the village's people asked the players for, and what the players did for it (see {@link Quests}). */
+    Quests.Board tasks = new Quests.Board();
+
+    public Quests.Board tasks() {
+        return tasks;
+    }
+
     /** Newest first. */
     final Deque<LogLine> log = new ArrayDeque<>();
 

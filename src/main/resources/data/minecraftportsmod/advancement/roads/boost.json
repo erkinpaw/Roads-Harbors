@@ -1,0 +1,25 @@
+{
+  "parent": "minecraftportsmod:roads/quest",
+  "display": {
+    "icon": {
+      "id": "minecraft:bone_meal"
+    },
+    "title": {
+      "translate": "advancements.minecraftportsmod.boost.title"
+    },
+    "description": {
+      "translate": "advancements.minecraftportsmod.boost.description"
+    },
+    "frame": "task"
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

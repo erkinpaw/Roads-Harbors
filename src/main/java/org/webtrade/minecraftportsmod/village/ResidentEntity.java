@@ -53,6 +53,8 @@ public class ResidentEntity extends PathfinderMob {
     private static final EntityDataAccessor<Boolean> DATA_CHILD = SynchedEntityData.defineId(ResidentEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_ELDER = SynchedEntityData.defineId(ResidentEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_COLONY = SynchedEntityData.defineId(ResidentEntity.class, EntityDataSerializers.BOOLEAN);
+    /** The marker over the head: 0 none, 1 a task to take, 2 a task taken. */
+    private static final EntityDataAccessor<Integer> DATA_QUEST = SynchedEntityData.defineId(ResidentEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Component> DATA_ACTIVITY = SynchedEntityData.defineId(ResidentEntity.class, EntityDataSerializers.COMPONENT);
 
     /** What kind of place the resident works at. */
@@ -135,6 +137,7 @@ public class ResidentEntity extends PathfinderMob {
         builder.define(DATA_ELDER, false);
         builder.define(DATA_COLONY, false);
         builder.define(DATA_ACTIVITY, Component.empty());
+        builder.define(DATA_QUEST, 0);
     }
 
     /** Sets who this is; called once when the village is settled. */
@@ -174,6 +177,8 @@ public class ResidentEntity extends PathfinderMob {
             refreshDimensions();
         }
         if (entityData.get(DATA_ELDER) != d.elder()) entityData.set(DATA_ELDER, d.elder());
+        int quest = org.webtrade.minecraftportsmod.colony.Quests.mark(v, d);
+        if (entityData.get(DATA_QUEST) != quest) entityData.set(DATA_QUEST, quest);
         if (getCustomName() == null || !getCustomName().getString().equals(d.name)) setCustomName(Component.literal(d.name));
         setCustomNameVisible(true);
     }
@@ -187,6 +192,11 @@ public class ResidentEntity extends PathfinderMob {
 
     public boolean elder() {
         return entityData.get(DATA_ELDER);
+    }
+
+    /** 0 no task, 1 a task to take, 2 a task taken. */
+    public int questMark() {
+        return entityData.get(DATA_QUEST);
     }
 
     public Component activity() {

@@ -1,0 +1,25 @@
+{
+  "parent": "minecraftportsmod:roads/quest",
+  "display": {
+    "icon": {
+      "id": "minecraft:poppy"
+    },
+    "title": {
+      "translate": "advancements.minecraftportsmod.flower.title"
+    },
+    "description": {
+      "translate": "advancements.minecraftportsmod.flower.description"
+    },
+    "frame": "task"
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

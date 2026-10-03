@@ -187,7 +187,8 @@ public final class Scouting {
     }
 
     private static void depart(ServerLevel level, Village v, Dweller d, Building house, long today) {
-        d.range = range(house.level);
+        // (with the maps the players brought, an expedition goes half as far again)
+        d.range = (int) Math.round(range(house.level) * (Quests.boost(v, Job.SCOUT) > 1 ? 1.5 : 1));
         d.heading = heading(level, v, d.range, level.getRandom());
         d.away = true;
         d.back = today + days(d.range);

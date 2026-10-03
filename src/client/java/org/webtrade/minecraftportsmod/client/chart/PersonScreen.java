@@ -38,10 +38,12 @@ public class PersonScreen extends UiScreen {
                 b -> Minecraft.getInstance().gui.setScreen(new VillageScreen(this, view.village()))).bounds(x0 + 8, by, bw, 18).build());
         about.active = view.elder();
         if (!view.elder()) about.setTooltip(Tooltip.create(Component.translatable("minecraftportsmod.person.about_elder")));
-        Button tasks = addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.person.tasks"), b -> {
-        }).bounds(x0 + 13 + bw, by, bw, 18).build());
-        tasks.active = false;
-        tasks.setTooltip(Tooltip.create(Component.translatable("minecraftportsmod.person.soon")));
+        Component label = Component.translatable("minecraftportsmod.person.tasks");
+        if (view.quest() == 1) label = Component.literal("! ").withStyle(net.minecraft.ChatFormatting.YELLOW).append(label);
+        Button tasks = addRenderableWidget(UiButton.make(label, b -> net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
+                new ColonyPayloads.VillageAction(view.village(), ColonyPayloads.VillageAction.QUEST, view.person(), 0)))
+                .bounds(x0 + 13 + bw, by, bw, 18).build());
+        tasks.active = view.quest() != 0;
         Button trade = addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.person.trade"), b -> {
             Minecraft.getInstance().gui.setScreen(null);
             net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(),

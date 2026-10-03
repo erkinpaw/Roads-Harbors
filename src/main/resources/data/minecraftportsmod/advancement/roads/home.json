@@ -1,0 +1,25 @@
+{
+  "parent": "minecraftportsmod:roads/plot",
+  "display": {
+    "icon": {
+      "id": "minecraft:oak_door"
+    },
+    "title": {
+      "translate": "advancements.minecraftportsmod.home.title"
+    },
+    "description": {
+      "translate": "advancements.minecraftportsmod.home.description"
+    },
+    "frame": "goal"
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

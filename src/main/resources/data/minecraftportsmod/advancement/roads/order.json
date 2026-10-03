@@ -1,0 +1,25 @@
+{
+  "parent": "minecraftportsmod:roads/trade",
+  "display": {
+    "icon": {
+      "id": "minecraft:chest"
+    },
+    "title": {
+      "translate": "advancements.minecraftportsmod.order.title"
+    },
+    "description": {
+      "translate": "advancements.minecraftportsmod.order.description"
+    },
+    "frame": "task"
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

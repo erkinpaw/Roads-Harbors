@@ -84,6 +84,7 @@ public final class VillageLife {
         grow(data, v, today, hungry);
         rehouse(v, today);
         levelUp(level, v, today);
+        Quests.day(data, v);
         plan(level, v, today);
         data.changed();
     }
@@ -146,6 +147,8 @@ public final class VillageLife {
         // (the farmstead's fields: the farming sub-branch's)
         if (j == Job.FARMER && v.count(BuildingType.FARM, true) > 0) n *= subFactor(v, BuildingType.Sub.FARMING);
         if (v.mood < 30) n *= 0.75;
+        // (what the players brought the trade: it works faster for some days)
+        n *= Quests.boost(v, job);
         return n;
     }
 
@@ -238,7 +241,7 @@ public final class VillageLife {
     }
 
     /** What a day of work brings in with these people. */
-    static int production(Village v, Res res) {
+    public static int production(Village v, Res res) {
         int n = 0;
         for (Dweller d : v.dwellers) {
             if (d.job == null) continue;
@@ -777,7 +780,7 @@ public final class VillageLife {
     static void craft(Village v) {
         int[] saw = sawing(v);
         // (what the sawyer spent on orders is not sawn for the village)
-        saw[0] = (int) (saw[0] * (1 - v.orderLoad.getOrDefault(Job.SAWYER, 0.0)));
+        saw[0] = (int) (saw[0] * (1 - v.orderLoad.getOrDefault(Job.SAWYER, 0.0)) * Quests.boost(v, Job.SAWYER));
         int free = Math.max(0, Math.min(saw[0], v.stock(Res.WOOD) - 10));
         int sticks = Math.min(free, (Math.max(0, target(v, Res.STICKS) - v.stock(Res.STICKS)) + saw[2] - 1) / saw[2]);
         free -= sticks;
@@ -895,7 +898,7 @@ public final class VillageLife {
     static void smith(Village v) {
         if (v.workers(Job.SMITH) == 0) return;
         int users = Math.max(1, toolUsers(v));
-        double free = 1 - v.orderLoad.getOrDefault(Job.SMITH, 0.0);
+        double free = (1 - v.orderLoad.getOrDefault(Job.SMITH, 0.0)) * Quests.boost(v, Job.SMITH);
         for (int made = 0; ; ) {
             int l = smithMakes(v);
             if (l == 0 || v.full(Res.tools(l))) return;
@@ -920,7 +923,7 @@ public final class VillageLife {
     /** The joiner's day: joinery from the planks and sticks over what the village keeps, up to twice what it wants of it. */
     static void joinery(Village v) {
         if (v.workers(Job.JOINER) == 0 || !v.has(BuildingType.CARPENTER)) return;
-        double free = 1 - v.orderLoad.getOrDefault(Job.JOINER, 0.0);
+        double free = (1 - v.orderLoad.getOrDefault(Job.JOINER, 0.0)) * Quests.boost(v, Job.JOINER);
         int batches = (int) Math.round((JOINERY_A_DAY + JOINERY_PER_LEVEL * houseLevel(v, Job.JOINER)) * v.workers(Job.JOINER)
                 * subFactor(v, BuildingType.Sub.JOINERY) * free);
         int made = 0;
@@ -1134,7 +1137,7 @@ public final class VillageLife {
     /** The locksmith's day: iron and coal (over what the smith needs) into metalware, for the village and to sell. */
     static void metalwork(Village v) {
         if (v.workers(Job.LOCKSMITH) == 0 || !v.has(BuildingType.LOCKSMITH)) return;
-        double free = 1 - v.orderLoad.getOrDefault(Job.LOCKSMITH, 0.0);
+        double free = (1 - v.orderLoad.getOrDefault(Job.LOCKSMITH, 0.0)) * Quests.boost(v, Job.LOCKSMITH);
         int batches = (int) Math.round((METALWARE_A_DAY + METALWARE_PER_LEVEL * houseLevel(v, Job.LOCKSMITH)) * v.workers(Job.LOCKSMITH)
                 * subFactor(v, BuildingType.Sub.METALWORK) * free);
         int keepIron = smithNeeds(v, Res.IRON), keepCoal = smithNeeds(v, Res.COAL), made = 0;
@@ -1167,7 +1170,7 @@ public final class VillageLife {
     static int weavingBatches(Village v) {
         int l = craftLevel(v, BuildingType.WEAVER, Job.WEAVER);
         if (l == 0) return 0;
-        double free = 1 - v.orderLoad.getOrDefault(Job.WEAVER, 0.0);
+        double free = (1 - v.orderLoad.getOrDefault(Job.WEAVER, 0.0)) * Quests.boost(v, Job.WEAVER);
         return (int) Math.round((3 + 2 * (l - 1)) * subFactor(v, BuildingType.Sub.HUSBANDRY) * free);
     }
 
@@ -1196,7 +1199,7 @@ public final class VillageLife {
         int l = craftLevel(v, BuildingType.SMELTER, Job.SMELTER);
         int ore = v.made.getOrDefault(Res.IRON, 0);
         if (l == 0 || ore <= 0) return;
-        double free = 1 - v.orderLoad.getOrDefault(Job.SMELTER, 0.0);
+        double free = (1 - v.orderLoad.getOrDefault(Job.SMELTER, 0.0)) * Quests.boost(v, Job.SMELTER);
         int more = (int) Math.round(ore * new double[]{0.5, 0.75, 1.0}[Math.min(3, l) - 1] * subFactor(v, BuildingType.Sub.MINING) * free);
         int coal = Math.max(0, Math.min((more + 3) / 4, v.stock(Res.COAL) - smithNeeds(v, Res.COAL)));
         more = Math.min(more, coal * 4);
@@ -1213,7 +1216,7 @@ public final class VillageLife {
     static void glassmaking(Village v) {
         int l = craftLevel(v, BuildingType.GLASSWORKS, Job.GLASSBLOWER);
         if (l == 0) return;
-        double free = 1 - v.orderLoad.getOrDefault(Job.GLASSBLOWER, 0.0);
+        double free = (1 - v.orderLoad.getOrDefault(Job.GLASSBLOWER, 0.0)) * Quests.boost(v, Job.GLASSBLOWER);
         double sand = Land.known(v).water() >= 0.1 ? 1.0 : 0.5;
         int glass = (int) Math.round((4 + 3 * (l - 1)) * sand * subFactor(v, BuildingType.Sub.MINING) * free);
         glass = Math.min(glass, Math.max(0, 40 - v.stock(Res.GLASS)));
@@ -1241,7 +1244,7 @@ public final class VillageLife {
     static int furnitureBatches(Village v) {
         int l = carpenterLevel(v);
         if (l < 2) return 0;
-        double free = 1 - v.orderLoad.getOrDefault(Job.JOINER, 0.0);
+        double free = (1 - v.orderLoad.getOrDefault(Job.JOINER, 0.0)) * Quests.boost(v, Job.JOINER);
         return (int) Math.round((FURNITURE_A_DAY + FURNITURE_PER_LEVEL * (l - 2)) * v.workers(Job.JOINER) * subFactor(v, BuildingType.Sub.JOINERY) * free);
     }
 

@@ -1,0 +1,26 @@
+{
+  "display": {
+    "icon": {
+      "id": "minecraft:bell"
+    },
+    "title": {
+      "translate": "advancements.minecraftportsmod.root.title"
+    },
+    "description": {
+      "translate": "advancements.minecraftportsmod.root.description"
+    },
+    "frame": "task",
+    "background": "minecraft:block/spruce_planks",
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

@@ -53,6 +53,9 @@ public class ResidentRenderer extends HumanoidMobRenderer<ResidentEntity, Avatar
         if (entity.colony() && entity.getCustomName() != null) {
             // name · trade on top, what they are doing below
             net.minecraft.network.chat.MutableComponent tag = Component.empty();
+            // a task to take: a yellow mark; one being done: a grey one
+            if (entity.questMark() == 1) tag.append(Component.literal("! ").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD));
+            if (entity.questMark() == 2) tag.append(Component.literal("? ").withStyle(ChatFormatting.GRAY, ChatFormatting.BOLD));
             if (entity.elder()) tag.append(Component.literal("★ ").withStyle(ChatFormatting.GOLD));
             tag.append(entity.getCustomName().copy().withStyle(entity.elder() ? ChatFormatting.GOLD : ChatFormatting.WHITE));
             var job = entity.colonyJob();

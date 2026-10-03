@@ -126,6 +126,13 @@ public class MinecraftportsmodClient implements ClientModInitializer {
             if (screen instanceof org.webtrade.minecraftportsmod.client.chart.ScoutMapScreen ms && ms.shows(payload)) ms.update(payload);
             else if (screen == null) ctx.client().gui.setScreen(new org.webtrade.minecraftportsmod.client.chart.ScoutMapScreen(payload));
         });
+        ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.ColonyPayloads.QuestView.TYPE, (payload, ctx) -> {
+            var screen = ctx.client().gui.screen();
+            if (screen instanceof org.webtrade.minecraftportsmod.client.chart.QuestScreen qs && qs.shows(payload)) qs.update(payload);
+            else if (screen == null || screen instanceof org.webtrade.minecraftportsmod.client.chart.PersonScreen
+                    || screen instanceof org.webtrade.minecraftportsmod.client.chart.QuestScreen)
+                ctx.client().gui.setScreen(new org.webtrade.minecraftportsmod.client.chart.QuestScreen(payload));
+        });
         ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.ColonyPayloads.PersonView.TYPE, (payload, ctx) -> {
             if (ctx.client().gui.screen() == null) {
                 ctx.client().gui.setScreen(new org.webtrade.minecraftportsmod.client.chart.PersonScreen(payload));
