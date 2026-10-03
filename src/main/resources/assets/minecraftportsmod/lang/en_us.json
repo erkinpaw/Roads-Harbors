@@ -955,5 +955,6 @@
   "entity.minecraftportsmod.cannonball": "Cannonball",
   "minecraftportsmod.pirates.sighted": "Sail on the horizon! Pirates!",
   "minecraftportsmod.pirates.sunk": "The pirate ship goes down!",
-  "minecraftportsmod.pirates.lost": "The ship is sinking!"
+  "minecraftportsmod.pirates.lost": "The ship is sinking!",
+  "key.minecraftportsmod.fight": "Fighting mode (warship)"
 }

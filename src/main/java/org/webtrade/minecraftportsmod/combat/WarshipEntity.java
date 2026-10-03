@@ -176,7 +176,6 @@ public class WarshipEntity extends Boat {
     public void fire(int side, float elevation) {
         if (sinking() > 0 || reload(side) > 0) return;
         entityData.set(side < 0 ? DATA_RELOAD_LEFT : DATA_RELOAD_RIGHT, RELOAD);
-        org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("[guns] {} fires to {} at {} deg", isPirate() ? "pirate" : "ship", side, elevation);
         for (int g = 0; g < GUNS; g++) firing.add(new int[]{side, g, g * 3 + random.nextInt(2), Math.round(elevation * 100)});
     }
 
@@ -342,7 +341,7 @@ public class WarshipEntity extends Boat {
             }
             sail();
             guns(level);
-            if (++sinceHit > 200 && hull() < MAX_HULL && tickCount % 20 == 0) entityData.set(DATA_HULL, Math.min(MAX_HULL, hull() + 1));
+            if (++sinceHit > 600 && hull() < MAX_HULL && tickCount % 20 == 0) entityData.set(DATA_HULL, Math.min(MAX_HULL, hull() + 1));
         }
         super.tick();
         setPaddleState(false, false);

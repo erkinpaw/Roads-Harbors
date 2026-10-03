@@ -955,5 +955,6 @@
   "entity.minecraftportsmod.cannonball": "Ядро",
   "minecraftportsmod.pirates.sighted": "Парус на горизонте! Пираты!",
   "minecraftportsmod.pirates.sunk": "Пиратский корабль пошёл ко дну!",
-  "minecraftportsmod.pirates.lost": "Корабль тонет!"
+  "minecraftportsmod.pirates.lost": "Корабль тонет!",
+  "key.minecraftportsmod.fight": "Режим боя (корабль)"
 }
