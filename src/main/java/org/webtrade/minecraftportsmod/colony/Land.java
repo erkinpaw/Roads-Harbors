@@ -114,6 +114,11 @@ public final class Land {
     }
 
     /** The land as it is known now (the usual until it has been read). */
+    /** Has the land round the village been read yet? */
+    static boolean ready(Village v) {
+        return READY.containsKey(v.id);
+    }
+
     static Shares known(Village v) {
         Shares s = READY.get(v.id);
         return s == null ? USUAL : s;

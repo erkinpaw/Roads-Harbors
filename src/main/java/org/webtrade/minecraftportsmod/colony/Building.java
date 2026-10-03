@@ -30,11 +30,12 @@ public final class Building {
     }
 
     /** The part of a building added with the levels: its level, the one it is growing to, kept from demolition. */
-    private record Grade(int level, int goal, boolean keep) {
+    private record Grade(int level, int goal, boolean keep, int look) {
         static final com.mojang.serialization.MapCodec<Grade> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
                 Codec.INT.optionalFieldOf("level", 1).forGetter(Grade::level),
                 Codec.INT.optionalFieldOf("goal", 0).forGetter(Grade::goal),
-                Codec.BOOL.optionalFieldOf("keep", false).forGetter(Grade::keep)
+                Codec.BOOL.optionalFieldOf("keep", false).forGetter(Grade::keep),
+                Codec.INT.optionalFieldOf("look", 0).forGetter(Grade::look)
         ).apply(i, Grade::new));
     }
 
@@ -107,8 +108,9 @@ public final class Building {
         if (g.level() > 1 || b.level == 1) b.level = Math.max(1, Math.min(b.type.maxLevel, g.level()));
         b.goal = g.goal() > b.level ? Math.min(b.type.maxLevel, g.goal()) : 0;
         b.keep = g.keep();
+        b.look = g.look();
         return b;
-    }, b -> com.mojang.datafixers.util.Pair.of(b, new Grade(b.level, b.goal, b.keep))).codec();
+    }, b -> com.mojang.datafixers.util.Pair.of(b, new Grade(b.level, b.goal, b.keep, b.look))).codec();
 
     public final int id;
     public final BuildingType type;
@@ -138,6 +140,14 @@ public final class Building {
     int goal;
     /** The players asked for it never to be pulled down. */
     boolean keep;
+    /** How it looks: 0 the plain look of old, else 1 + its village's style (see {@link Blueprint}). */
+    int look;
+
+    /** Sets its look (a new building: its village's style). */
+    Building look(int look) {
+        this.look = look;
+        return this;
+    }
 
     private transient Blueprint blueprint;
     private transient String blueprintWood;
@@ -155,7 +165,7 @@ public final class Building {
     public Blueprint blueprint(String wood) {
         int lv = upgrading() ? goal : level;
         if (blueprint == null || !wood.equals(blueprintWood) || blueprintLevel != lv) {
-            blueprint = Blueprint.of(type, new Blueprint.Frame(origin, front), wood, seed, crop(), lv);
+            blueprint = Blueprint.of(type, new Blueprint.Frame(origin, front), wood, seed, crop(), lv, look);
             blueprintWood = wood;
             blueprintLevel = lv;
         }

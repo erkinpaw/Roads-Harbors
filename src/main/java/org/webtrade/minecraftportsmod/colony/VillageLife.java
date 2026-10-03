@@ -97,6 +97,20 @@ public final class VillageLife {
         }
     }
 
+    /**
+     * The look of a new building of the village: 1 + its style. The style goes by the land round it (once that is
+     * read): rock and mountains build in stone and brick, the forest in logs, the meadows in plaster and timber, the
+     * shore in painted boards; till the land is read, by the village's number (not kept).
+     */
+    static int look(Village v) {
+        if (v.style < 0 && Land.ready(v)) {
+            Land.Shares s = Land.known(v);
+            v.style = s.rock() + s.mountain() > 0.35 ? Blueprint.STONE : s.forest() > 0.45 ? Blueprint.CABIN
+                    : s.water() > 0.45 ? Blueprint.PAINTED : s.meadow() > 0.25 ? Blueprint.TIMBER : Math.floorMod(v.id, Blueprint.STYLES);
+        }
+        return 1 + (v.style >= 0 ? v.style : Math.floorMod(v.id, Blueprint.STYLES));
+    }
+
     /** What one person brings in a day at their trade: better tools, better crops, less when unhappy. */
     static int daily(Village v, Job job) {
         return (int) Math.round(dailyBase(v, job) * own(v, branchOf(job)));
@@ -1645,7 +1659,7 @@ public final class VillageLife {
             if (v.freeBeds() < hut.type.beds) return false;
             Blueprint.Frame f = PlotFinder.inPlace(level, v, t, hut);
             if (f == null) continue;
-            Building b = new Building(v.nextBuilding++, t, f.origin(), f.front(), RND.nextLong());
+            Building b = new Building(v.nextBuilding++, t, f.origin(), f.front(), RND.nextLong()).look(VillageLife.look(v));
             b.replaces = hut.id;
             add(v, b, today);
             return true;
@@ -1824,7 +1838,7 @@ public final class VillageLife {
         if (next.half > old.type.half) {
             for (Building o : v.buildings) if (o != old && o.overlaps(old.origin, next.half, 0)) return false;
         }
-        Building b = new Building(v.nextBuilding++, next, old.origin, old.front, RND.nextLong());
+        Building b = new Building(v.nextBuilding++, next, old.origin, old.front, RND.nextLong()).look(VillageLife.look(v));
         b.replaces = old.id;
         add(v, b, today);
         return true;
@@ -1878,7 +1892,7 @@ public final class VillageLife {
                     today, type.id(), PlotFinder.WHY);
             return false;
         }
-        add(v, new Building(v.nextBuilding++, type, f.origin(), f.front(), RND.nextLong()), today);
+        add(v, new Building(v.nextBuilding++, type, f.origin(), f.front(), RND.nextLong()).look(VillageLife.look(v)), today);
         return true;
     }
 

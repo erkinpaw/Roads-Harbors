@@ -159,6 +159,12 @@ public final class VillageManager {
         Trails.plan(srv.overworld(), data, v, o);
     }
 
+    /** Sets how the village builds from now on (tests, commands). */
+    public static void style(MinecraftServer srv, Village v, int style) {
+        v.style = style;
+        VillageData.get(srv).changed();
+    }
+
     public static void give(MinecraftServer srv, Village v, Res r, int n) {
         v.add(r, n);
         VillageData.get(srv).changed();
@@ -168,7 +174,7 @@ public final class VillageManager {
     public static Building buildNow(ServerLevel level, Village v, BuildingType type) {
         Blueprint.Frame f = PlotFinder.find(level, v, type, -1);
         if (f == null) return null;
-        Building b = new Building(v.nextBuilding++, type, f.origin(), f.front(), RND.nextLong());
+        Building b = new Building(v.nextBuilding++, type, f.origin(), f.front(), RND.nextLong()).look(VillageLife.look(v));
         b.created = VillageData.get(level.getServer()).day;
         if (type.isNode() && !type.free) v.unlocked.add(type);
         standUp(level, v, b);
@@ -181,7 +187,7 @@ public final class VillageManager {
     public static Building buildNow(ServerLevel level, Village v, BuildingType type, int lv) {
         Blueprint.Frame f = PlotFinder.find(level, v, type, -1);
         if (f == null) return null;
-        Building b = new Building(v.nextBuilding++, type, f.origin(), f.front(), RND.nextLong());
+        Building b = new Building(v.nextBuilding++, type, f.origin(), f.front(), RND.nextLong()).look(VillageLife.look(v));
         b.level = Math.max(1, Math.min(type.maxLevel, lv));
         b.created = VillageData.get(level.getServer()).day;
         if (type.isNode() && !type.free) v.unlocked.add(type);
@@ -623,12 +629,12 @@ public final class VillageManager {
         int logs = Construction.clearTrees(level, center, 14);
         placed.add(Res.WOOD, logs);
 
-        Building fire = new Building(placed.nextBuilding++, BuildingType.CAMPFIRE, center, toWater, RND.nextLong());
+        Building fire = new Building(placed.nextBuilding++, BuildingType.CAMPFIRE, center, toWater, RND.nextLong()).look(VillageLife.look(placed));
         standUp(level, placed, fire);
         for (int i = 0; i < 2; i++) {
             Blueprint.Frame f = PlotFinder.find(level, placed, BuildingType.TENT, -1);
             if (f == null) break;
-            standUp(level, placed, new Building(placed.nextBuilding++, BuildingType.TENT, f.origin(), f.front(), RND.nextLong()));
+            standUp(level, placed, new Building(placed.nextBuilding++, BuildingType.TENT, f.origin(), f.front(), RND.nextLong()).look(VillageLife.look(placed)));
         }
         // the board, on a patch of ground by the fire at the camp's own height
         pad(level, boardAt, 1);
