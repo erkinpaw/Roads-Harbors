@@ -1622,6 +1622,9 @@ public final class VillageLife {
             // (the trades' houses have beds too: they count)
             if (b.state != Building.State.DEMOLISHING && b.type != BuildingType.HUT && b.type != BuildingType.TENT) betterBeds += b.type.beds;
         }
+        // a home grown to the top rebuilt, where it stands, into the next kind of house (a hut into a house, a house
+        // into a stone one or one of two storeys...): the village's homes keep getting better while it can spare it
+        if (!homeQueued && upgradeHome(level, v, today)) return;
         if (!homeQueued && v.count(BuildingType.HUT, true) > 0) {
             for (BuildingType t : HOMES) {
                 if (t == BuildingType.HUT || !Tree.open(v, t) || !spare(v, Tree.price(v, t))) continue;
@@ -1650,6 +1653,48 @@ public final class VillageLife {
             if (f == null) continue;
             Building b = new Building(v.nextBuilding++, t, f.origin(), f.front(), RND.nextLong());
             b.replaces = hut.id;
+            add(v, b, today);
+            return true;
+        }
+        return false;
+    }
+
+    /** How good a kind of home is: a hut 0, a house 1, a stone house or one of two storeys 2, a tall stone one 3. */
+    static int homeRank(BuildingType t) {
+        return switch (t) {
+            case HUT -> 0;
+            case HOUSE -> 1;
+            case STONE_HOUSE, HOUSE_TALL -> 2;
+            case STONE_HOUSE_TALL -> 3;
+            default -> -1;
+        };
+    }
+
+    /**
+     * One home at its top level (the nearest the middle of the lowest kind first) rebuilt in place into a home of the
+     * next kind that is open and the village can spare the price of (of two such kinds, one or the other by the
+     * house). Its people sleep elsewhere meanwhile, so only while there are beds to spare.
+     */
+    private static boolean upgradeHome(ServerLevel level, Village v, long today) {
+        List<Building> homes = new ArrayList<>();
+        for (Building b : v.buildings) {
+            if (homeRank(b.type) < 0 || homeRank(b.type) >= 3 || !b.standing() || b.keep || b.upgrading() || b.state != Building.State.BUILT) continue;
+            if (b.level < b.type.maxLevel) continue;
+            homes.add(b);
+        }
+        homes.sort(Comparator.comparingInt((Building b) -> homeRank(b.type)).thenComparingDouble(b -> b.origin.distSqr(v.center)));
+        for (Building old : homes) {
+            if (v.freeBeds() < old.type.beds) return false;
+            List<BuildingType> next = new ArrayList<>();
+            for (BuildingType t : HOMES) {
+                if (homeRank(t) == homeRank(old.type) + 1 && Tree.open(v, t) && spare(v, Tree.price(v, t))) next.add(t);
+            }
+            if (next.isEmpty()) continue;
+            BuildingType t = next.get(Math.floorMod(old.id, next.size()));
+            Blueprint.Frame f = PlotFinder.inPlace(level, v, t, old);
+            if (f == null) continue;
+            Building b = new Building(v.nextBuilding++, t, f.origin(), f.front(), RND.nextLong());
+            b.replaces = old.id;
             add(v, b, today);
             return true;
         }
