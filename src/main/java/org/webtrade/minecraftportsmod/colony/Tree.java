@@ -70,13 +70,13 @@ public final class Tree {
     }
 
     /**
-     * Opening a node: twice a building's worth for the first of a branch, two and a half times after it; +40% a step
+     * Opening a node: one and a half times a building's worth for the first of a branch, 1.8 times after it; +40% a step
      * from the middle; -25% in the speciality; +35% per node open deeper in the other trades (the first houses of the
      * trades, every village may have: going deep is what specialises it).
      */
     public static List<Factor> factors(Village v, BuildingType t) {
         List<Factor> out = new ArrayList<>();
-        out.add(new Factor(Component.translatable("minecraftportsmod.tree.f_base"), t.parent == null ? 200 : 250));
+        out.add(new Factor(Component.translatable("minecraftportsmod.tree.f_base"), t.parent == null ? 150 : 180));
         int d = t.depth();
         if (d > 1) out.add(new Factor(Component.translatable("minecraftportsmod.tree.f_depth", d - 1), 100 + 40 * (d - 1)));
         if (t.branch == v.focus) {
@@ -223,12 +223,12 @@ public final class Tree {
     // ------------------------------------------------------------------ the levels of a building
 
     /**
-     * Raising a building to {@code level}: half its price for level 2, three quarters for level 3, and at level 3
+     * Raising a building to {@code level}: 35% of its price for level 2, half for level 3, and at level 3
      * half the logs are wanted as planks.
      */
     public static Map<Res, Integer> levelCost(BuildingType t, int level) {
         Map<Res, Integer> out = new EnumMap<>(Res.class);
-        double k = level >= 3 ? 0.75 : 0.5;
+        double k = level >= 3 ? 0.5 : 0.35;
         for (Res r : Res.values()) {
             int c = t.cost(r);
             if (c > 0) out.put(r, (int) Math.max(1, Math.round(c * k)));
