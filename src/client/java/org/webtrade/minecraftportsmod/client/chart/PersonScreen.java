@@ -33,7 +33,8 @@ public class PersonScreen extends UiScreen {
         y0 = (height - h) / 2;
         x1 = x0 + w;
         y1 = y0 + h;
-        int bw = (w - 26) / 3, by = y1 - 26;
+        int buttons = view.plotPrice() >= 0 ? 4 : 3;
+        int bw = (w - 16 - 5 * (buttons - 1)) / buttons, by = y1 - 26;
         Button about = addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.person.about"),
                 b -> Minecraft.getInstance().gui.setScreen(new VillageScreen(this, view.village()))).bounds(x0 + 8, by, bw, 18).build());
         about.active = view.elder();
@@ -50,6 +51,16 @@ public class PersonScreen extends UiScreen {
                     ColonyPayloads.VillageAction.ORDERS, view.orders(), 0));
         }).bounds(x0 + 18 + 2 * bw, by, bw, 18).build());
         trade.active = view.orders() >= 0;
+        if (view.plotPrice() >= 0) {
+            Button plot = addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.person.plot", view.plotPrice()), b -> {
+                Minecraft.getInstance().gui.setScreen(null);
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(),
+                        ColonyPayloads.VillageAction.PLOT_BUY, view.person(), 0));
+            }).bounds(x0 + 23 + 3 * bw, by, bw, 18).build());
+            var mc = Minecraft.getInstance();
+            int em = mc.player == null ? 0 : mc.player.getInventory().countItem(net.minecraft.world.item.Items.EMERALD);
+            plot.active = em >= view.plotPrice();
+        }
         if (view.orders() < 0) trade.setTooltip(Tooltip.create(Component.translatable("minecraftportsmod.person.no_trade")));
     }
 

@@ -172,8 +172,10 @@ public final class Quests {
                     Map<String, Long> m = new HashMap<>();
                     b.boosts.forEach((j, d) -> m.put(j.id(), d));
                     return m;
-                })
-        ).apply(i, (quests, next, thanks, boosts) -> {
+                }),
+                Plots.Plot.CODEC.listOf().optionalFieldOf("plots", List.of()).forGetter(b -> b.plots),
+                UUIDUtil.CODEC.listOf().optionalFieldOf("gifted", List.of()).forGetter(b -> new ArrayList<>(b.gifted))
+        ).apply(i, (quests, next, thanks, boosts, plots, gifted) -> {
             Board b = new Board();
             b.quests.addAll(quests);
             b.next = next;
@@ -187,6 +189,8 @@ public final class Quests {
                 Job job = Job.byId(j);
                 if (job != null) b.boosts.put(job, d);
             });
+            b.plots.addAll(plots);
+            b.gifted.addAll(gifted);
             return b;
         }));
 
@@ -196,6 +200,13 @@ public final class Quests {
         final Map<UUID, Integer> thanks = new HashMap<>();
         /** The trades working faster thanks to the players, until the day given. */
         final EnumMap<Job, Long> boosts = new EnumMap<>(Job.class);
+        /** The players' plots in the village (see {@link Plots}), and those it gave a boundary stone to. */
+        final List<Plots.Plot> plots = new ArrayList<>();
+        final java.util.Set<UUID> gifted = new java.util.HashSet<>();
+
+        public List<Plots.Plot> plots() {
+            return plots;
+        }
 
         public List<Quest> quests() {
             return quests;
@@ -631,6 +642,7 @@ public final class Quests {
         v.log(today, Component.translatable("minecraftportsmod.vlog.quest_done", p.getName(), giver == null ? "?" : giver.name)
                 .withStyle(ChatFormatting.DARK_GREEN));
         Achievements.questDone(p, q, v.tasks.thanks(p.getUUID()));
+        Plots.thank(p, v);
     }
 
     /** Emeralds' worth of what the village has most to spare. */

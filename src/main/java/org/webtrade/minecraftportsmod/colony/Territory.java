@@ -90,6 +90,7 @@ public final class Territory {
     private static int signature(Village v) {
         int s = v.center.hashCode();
         for (Building b : v.buildings) s = s * 31 + b.origin.hashCode() * 7 + b.type.ordinal();
+        for (Plots.Plot p : v.tasks.plots()) s = s * 31 + p.marker().hashCode();
         return s;
     }
 
@@ -102,6 +103,7 @@ public final class Territory {
             mark(cells, b.origin.getX(), b.origin.getZ(), b.type.half + (b.type == BuildingType.WOOD_HUT ? 2 : MARGIN));
         }
         if (extra != null) mark(cells, (int) (at >> 32), (int) at, extra.half + MARGIN);
+        for (Plots.Plot p : v.tasks.plots()) mark(cells, p.marker().getX(), p.marker().getZ(), Plots.HALF + MARGIN);
         close(cells);
         // the woodcutters' grove is theirs to plant and fell: only their hut's own yard is the village's
         for (Building b : v.buildings) {

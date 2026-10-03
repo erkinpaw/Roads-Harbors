@@ -41,6 +41,11 @@ public final class ModContent {
     public static final Block CONSTRUCTION_SITE = block("construction_site", org.webtrade.minecraftportsmod.block.ConstructionSiteBlock::new,
             BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(-1.0F, 3600000.0F).sound(SoundType.WOOD).noOcclusion().noLootTable());
 
+    /** A player's boundary stone: marks their plot in a village. Only its owner can take it up. */
+    public static final Block PLOT_MARKER = block("plot_marker", org.webtrade.minecraftportsmod.block.PlotMarkerBlock::new,
+            BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(1.5F, 1200.0F).sound(SoundType.STONE).noOcclusion().noLootTable());
+    public static final Item PLOT_MARKER_ITEM = blockItem(PLOT_MARKER);
+
     public static final EntityType<VesselEntity> VESSEL = entity("vessel",
             EntityType.Builder.<VesselEntity>of(VesselEntity::new, MobCategory.MISC)
                     .noLootTable()

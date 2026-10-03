@@ -31,6 +31,7 @@
       "org.webtrade.minecraftportsmod.gametest.BranchesClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.TerritoryClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.QuestClientGameTest",
+      "org.webtrade.minecraftportsmod.gametest.PlotClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.LongRunClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.WorldRunClientGameTest"
     ]

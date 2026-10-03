@@ -68,6 +68,8 @@ public final class Tidy {
     }
 
     private static boolean inPlot(Village v, int x, int z) {
+        // (a player's plot is the player's: nothing cleared there)
+        if (Plots.inside(v, x, z, 0)) return true;
         for (Building b : v.buildings) {
             int h = b.type.half;
             if (Math.abs(x - b.origin.getX()) <= h && Math.abs(z - b.origin.getZ()) <= h) return true;
