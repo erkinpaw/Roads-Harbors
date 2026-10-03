@@ -138,6 +138,8 @@ final class Paths {
     }
 
     private static boolean inPlot(Village v, int x, int z, int margin, Building except) {
+        // (round the miners' pit, never into it)
+        if (Mine.inPit(v, x, z, margin)) return true;
         for (Building b : v.buildings) {
             if (b == except || b.state == Building.State.DEMOLISHING && b.finished) continue;
             int h = b.type.half + margin;

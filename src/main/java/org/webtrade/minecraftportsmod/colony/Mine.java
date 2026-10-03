@@ -10,9 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The village mine, dug by the miners from behind their house: a stair going down away from the village, then a
- * main tunnel with side tunnels off it every few blocks (branch mining), lit with torches. The plan is fixed by the
- * miners' house; how far along it the miners are is kept with the village.
+ * The village mine: an open pit dug by the miners behind their house, wherever the house stands (by rock, on a
+ * knoll or on flat grass: the land round it is only how it looks). Dug a layer at a time, each one a block narrower
+ * than the one above, so its sides go down in steps the miners walk; wider and deeper with the house's levels. Once
+ * dug, the miners work its walls. How far along it the miners are is kept with the village.
  */
 public final class Mine {
 
@@ -20,8 +21,14 @@ public final class Mine {
     public record Step(BlockPos dig, BlockPos stand, Direction torchWall) {
     }
 
-    /** How deep the stair goes, and how long the tunnel is: a small mine, the miners work its walls. */
-    static final int DEPTH = 4, TUNNEL = 8;
+    /** The pit by the house's level: half its width at the top, and how many layers deep. */
+    static int radius(int level) {
+        return Math.max(1, Math.min(3, level)) + 2;
+    }
+
+    static int depth(int level) {
+        return 1 + 2 * Math.max(1, Math.min(3, level));
+    }
 
     private Mine() {
     }
@@ -32,90 +39,108 @@ public final class Mine {
         return null;
     }
 
-    /** The whole plan of the mine of a miners' house: a short stair down, a tunnel, a chamber at its end. */
+    /** The middle of the pit of a miners' house standing at a place, facing a way (its back to the pit). */
+    static BlockPos pitCenter(BlockPos origin, Direction front) {
+        int r = radius(3), d = BuildingType.MINE_HOUSE.half + 1 + r;
+        Direction back = front.getOpposite();
+        return origin.relative(back, d);
+    }
+
+    /** Does a column fall in the pit (as wide as it will ever be, with a margin) of the village's miners' house? */
+    static boolean inPit(Village v, int x, int z, int margin) {
+        for (Building b : v.buildings) {
+            if (b.type != BuildingType.MINE_HOUSE || b.state == Building.State.DEMOLISHING && b.finished) continue;
+            BlockPos c = pitCenter(b.origin, b.front);
+            int r = radius(3) + margin;
+            if (Math.abs(x - c.getX()) <= r && Math.abs(z - c.getZ()) <= r) return true;
+        }
+        return false;
+    }
+
+    /** Would a plot (middle, half its side, a gap kept) fall on the pit of the village's miners' house? */
+    static boolean pitClash(Village v, BlockPos pos, int half, int gap) {
+        for (Building b : v.buildings) {
+            if (b.type != BuildingType.MINE_HOUSE || b.state == Building.State.DEMOLISHING && b.finished) continue;
+            BlockPos c = pitCenter(b.origin, b.front);
+            int d = radius(3) + 1 + half + gap;
+            if (Math.abs(pos.getX() - c.getX()) <= d && Math.abs(pos.getZ() - c.getZ()) <= d) return true;
+        }
+        return false;
+    }
+
+    /**
+     * The whole plan of the pit of a miners' house, for its level: layer by layer from the top, each from its edge
+     * inwards (where one stands to dig a block: the block before it, outwards, already dug; or the step of the layer
+     * above).
+     */
     static List<Step> plan(ServerLevel level, Village v, Building house) {
         List<Step> out = new ArrayList<>();
-        Blueprint bp = house.blueprint(v.wood);
-        Direction out_ = house.front.getOpposite();          // away from the village
-        Direction left = out_.getCounterClockWise(), right = out_.getClockWise();
-        BlockPos start = bp.frame.at(0, 0, -(house.type.half + 1));
-        int y0 = PlotFinder.floorAt(level, start.getX(), start.getZ());
-        BlockPos entrance = new BlockPos(start.getX(), y0, start.getZ());
-        // the stair: each step one forward and one down, three blocks of headroom
-        BlockPos stand = entrance;
-        for (int i = 1; i <= DEPTH; i++) {
-            BlockPos floor = entrance.relative(out_, i).below(i);
-            for (int h = 2; h >= 0; h--) out.add(new Step(floor.above(h), stand, null));
-            stand = floor;
-        }
-        // the tunnel, two high, a torch halfway; at its end a chamber three wide and three high
-        BlockPos bottom = stand;
-        for (int k = 1; k <= TUNNEL; k++) {
-            BlockPos floor = bottom.relative(out_, k);
-            out.add(new Step(floor.above(), stand, null));
-            out.add(new Step(floor, stand, k == TUNNEL / 2 ? left : null));
-            if (k > TUNNEL - 3) {
-                out.add(new Step(floor.above(2), floor, null));
-                for (Direction side : new Direction[]{left, right}) {
-                    BlockPos f = floor.relative(side);
-                    for (int h = 2; h >= 0; h--) out.add(new Step(f.above(h), floor, k == TUNNEL - 1 && h == 0 ? side : null));
+        BlockPos c = pitCenter(house.origin, house.front);
+        int top = PlotFinder.floorAt(level, c.getX(), c.getZ()) - 1;
+        int r0 = radius(house.level), depth = depth(house.level);
+        for (int k = 0; k < depth; k++) {
+            int r = Math.max(1, r0 - k), y = top - k;
+            for (int ring = r; ring >= 0; ring--) {
+                for (int dx = -ring; dx <= ring; dx++) {
+                    for (int dz = -ring; dz <= ring; dz++) {
+                        if (Math.max(Math.abs(dx), Math.abs(dz)) != ring) continue;
+                        BlockPos dig = new BlockPos(c.getX() + dx, y, c.getZ() + dz);
+                        // one step outwards: in this layer already dug (stand in it), else the step of the layer above
+                        int ox = dx == 0 ? 0 : Integer.signum(dx), oz = dz == 0 ? 0 : Integer.signum(dz);
+                        if (ring == 0) ox = 1;
+                        BlockPos outward = dig.offset(ox, 0, oz);
+                        BlockPos stand = ring < r ? outward : outward.above();
+                        out.add(new Step(dig, stand, null));
+                    }
                 }
             }
-            stand = floor;
         }
         return out;
     }
 
     /**
-     * Where a miner works a dug-out mine: standing on its floor, at the rock of its walls (stone, coal, ore: it
-     * stays where it is: the mine is not dug any further, what is chipped off comes in by the day).
+     * Where a miner works a dug-out pit: standing on its floor or one of its steps, at the earth and rock of its sides
+     * (it stays where it is: the pit is not dug any further, what is chipped off comes in by the day).
      */
     static List<BlockPos[]> faces(ServerLevel level, List<Step> plan) {
         List<BlockPos[]> out = new ArrayList<>();
         java.util.Set<BlockPos> open = new java.util.HashSet<>();
         for (Step s : plan) open.add(s.dig());
         for (Step s : plan) {
-            BlockPos floor = s.dig();
-            if (!open.contains(floor.above()) || open.contains(floor.below())) continue;
-            // a floor cell: the rock round it at head height
+            BlockPos cell = s.dig();
+            if (open.contains(cell.below()) || !level.getBlockState(cell).isAir()) continue;
+            // a floor cell of the pit: the side beside it
             for (Direction d : Direction.Plane.HORIZONTAL) {
-                BlockPos wall = floor.relative(d).above();
+                BlockPos wall = cell.relative(d);
                 if (open.contains(wall)) continue;
                 BlockState st = level.getBlockState(wall);
-                if (DwellerGoals.rock(st) || st.is(Blocks.COAL_ORE) || st.is(Blocks.DEEPSLATE_COAL_ORE)
-                        || st.is(Blocks.IRON_ORE) || st.is(Blocks.DEEPSLATE_IRON_ORE)) {
-                    out.add(new BlockPos[]{floor, wall});
-                }
+                if (st.isSolid() && st.getFluidState().isEmpty() && !st.is(Blocks.BEDROCK)) out.add(new BlockPos[]{cell, wall});
             }
         }
         return out;
     }
 
     /**
-     * A timber frame over the mouth of the stair: two posts and a beam of the village wood. Only into empty air,
-     * never over anything already there.
+     * The pit's edge: a post of the village wood at each top corner, with a lantern (only into empty air, never over
+     * anything already there).
      */
     static void entrance(ServerLevel level, Village v, Building house) {
-        Blueprint bp = house.blueprint(v.wood);
-        Direction out_ = house.front.getOpposite();
-        Direction left = out_.getCounterClockWise(), right = out_.getClockWise();
-        BlockPos start = bp.frame.at(0, 0, -(house.type.half + 1));
-        int y0 = PlotFinder.floorAt(level, start.getX(), start.getZ());
-        BlockPos mouth = new BlockPos(start.getX(), y0, start.getZ()).relative(out_);
-        if (!level.getBlockState(mouth.below()).isAir()) return;        // the stair not dug yet
-        var id = net.minecraft.resources.Identifier.withDefaultNamespace(v.wood + "_log");
-        BlockState log = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getOptional(id).orElse(Blocks.OAK_LOG).defaultBlockState();
-        var axis = net.minecraft.world.level.block.state.properties.BlockStateProperties.AXIS;
-        for (Direction side : new Direction[]{left, right}) {
-            BlockPos post = mouth.relative(side);
-            if (!level.getBlockState(post.below()).isSolid()) continue;
-            for (int h = 0; h < 2; h++) {
-                if (level.getBlockState(post.above(h)).isAir()) level.setBlock(post.above(h), log, 3);
+        BlockPos c = pitCenter(house.origin, house.front);
+        int r = radius(house.level) + 1;
+        var id = net.minecraft.resources.Identifier.withDefaultNamespace(v.wood + "_fence");
+        BlockState post = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getOptional(id).orElse(Blocks.OAK_FENCE).defaultBlockState();
+        for (int sx = -1; sx <= 1; sx += 2) {
+            for (int sz = -1; sz <= 1; sz += 2) {
+                int x = c.getX() + sx * r, z = c.getZ() + sz * r;
+                int y = PlotFinder.floorAt(level, x, z);
+                BlockPos p = new BlockPos(x, y, z);
+                // (a post already there: the floor is found on top of it)
+                BlockState under = level.getBlockState(p.below());
+                if (under.is(Blocks.LANTERN) || under.is(net.minecraft.tags.BlockTags.FENCES)) continue;
+                if (!level.getBlockState(p.below()).isSolid() || !level.getBlockState(p).isAir() || !level.getBlockState(p.above()).isAir()) continue;
+                level.setBlock(p, post, 3);
+                level.setBlock(p.above(), Blocks.LANTERN.defaultBlockState(), 3);
             }
-        }
-        for (int k = -1; k <= 1; k++) {
-            BlockPos beam = mouth.relative(right, k).above(2);
-            if (level.getBlockState(beam).isAir()) level.setBlock(beam, log.trySetValue(axis, left.getAxis()), 3);
         }
     }
 
