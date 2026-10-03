@@ -14,6 +14,7 @@ import json
 import math
 import os
 import random
+import zlib
 
 from PIL import Image
 
@@ -30,6 +31,8 @@ class Box:
         self.x, self.y, self.z = int(round(x)), int(round(y)), int(round(z))
         self.w, self.h, self.d = max(1, int(round(w))), max(1, int(round(h))), max(1, int(round(d)))
         self.u = self.v = 0
+        # how far the box is grown all round (model units) so its faces don't share a plane with another box's
+        self.grow = 0.0
 
 
 class Part:
@@ -131,6 +134,14 @@ def hull(root, half_beam, half_len, height, wall, bow_fracs, sheer, stripe_mat, 
     return h, z
 
 
+def gun(h, side, hb, y, z):
+    """A gun in its port at (y, z): a slim barrel out over the side, the port's lid swung up above it."""
+    x_out = hb if side > 0 else -hb - 8
+    h.box("iron", x_out, y + 1, z - 2, 8, 4, 4)
+    h.box("iron", (hb + 7) if side > 0 else (-hb - 9), y + 0, z - 3, 2, 6, 6)       # the muzzle's swell
+    h.box("dark", hb if side > 0 else -hb - 1, y - 8, z - 6, 1, 7, 12)               # the lid, up
+
+
 # ---------------------------------------------------------------------------- sloop
 
 def build_sloop():
@@ -230,7 +241,7 @@ def build_brig():
     # guns in their ports, anchors, figurehead
     for side in (-1, 1):
         for z in (-50, -18, 14, 46):
-            h.box("iron", (hb if side > 0 else -hb - 10), -1, z - 3, 10, 6, 6)
+            gun(h, side, hb, -1, z)
         h.box("iron", side * (hb + 1) - 1, -6, hl - 10, 3, 26, 3)          # anchor shank
         h.box("iron", side * (hb + 1) - 2, 18, hl - 16, 5, 3, 15)          # anchor arms
         h.box("dark", side * (hb + 1) - 2, -8, hl - 18, 5, 3, 19)          # anchor stock
@@ -356,7 +367,7 @@ def build_galleon():
     h.box("dark", -2, 0, -hl - 14, 4, height + 4, 8)                       # rudder
     for side in (-1, 1):
         for z in ports:
-            h.box("iron", (hb if side > 0 else -hb - 10), -1, z - 3, 10, 6, 6)
+            gun(h, side, hb, -1, z)
         h.box("iron", side * (hb + 1) - 1, -6, hl - 12, 3, 26, 3)
         h.box("iron", side * (hb + 1) - 2, 18, hl - 18, 5, 3, 15)
         h.box("dark", side * (hb + 1) - 2, -8, hl - 20, 5, 3, 19)
@@ -430,7 +441,7 @@ def build_line():
     for side in (-1, 1):
         for y0, y1 in rows:
             for z in ports:
-                h.box("iron", (hb if side > 0 else -hb - 10), y0 + 1, z - 3, 10, 6, 6)
+                gun(h, side, hb, y0 + 1, z)
         h.box("iron", side * (hb + 1) - 1, -6, hl - 14, 3, 30, 3)
         h.box("iron", side * (hb + 1) - 2, 22, hl - 20, 5, 3, 15)
         h.box("dark", side * (hb + 1) - 2, -8, hl - 22, 5, 3, 19)
@@ -471,7 +482,8 @@ def build_line():
 # ============================================================================ painting
 
 def rnd(*k):
-    return random.Random(hash(k) & 0xFFFFFFFF).random()
+    # (a stable hash: the same texture every run, unlike Python's own salted hash of strings)
+    return random.Random(zlib.crc32(repr(k).encode())).random()
 
 
 def hexc(h, a=255):
@@ -535,6 +547,8 @@ def paint_pixel(mat, face, ax, ay, az, box, pal):
             return wood(pal.dark, ax, az, 4, along=az)
         along = az if side_face else ax
         c = wood(pal.hull, along, ay, 4, along=along)
+        if ay > 0:
+            c = shade(c, -ay * 0.5)                                  # darker down towards the water (shadow, wet)
         if box.deco.get("side") and side_face and not box.deco.get("castle"):
             wl = box.deco.get("wl", 12)
             for y0, y1 in box.deco.get("rows", []):
@@ -581,6 +595,10 @@ def paint_pixel(mat, face, ax, ay, az, box, pal):
     if mat in ("sail", "sail_square"):
         base = pal.sail
         c = shade(base, (rnd("c", ax, ay, az) - 0.5) * 6)
+        if mat == "sail_square" and box.w > 4:
+            # the cloth full of wind: lighter in the belly, shaded towards the leeches and the foot
+            k = abs(ax) / max(1.0, box.w / 2)
+            c = shade(c, -18 * k * k - (6 if (ay - box.y) > box.h * 0.6 else 0))
         seam_coord = az if mat == "sail" else ax
         if seam_coord % 12 == 0:
             c = shade(base, -22)                                     # cloth seams
@@ -705,7 +723,64 @@ def pack(boxes, width):
     return size
 
 
+EPS = 0.12
+
+
+def faces(b):
+    """The six faces of a box: (axis, side, plane, rect in the other two axes)."""
+    lo = (b.x, b.y, b.z)
+    hi = (b.x + b.w, b.y + b.h, b.z + b.d)
+    out = []
+    for a in range(3):
+        o = [i for i in range(3) if i != a]
+        rect = (lo[o[0]], hi[o[0]], lo[o[1]], hi[o[1]])
+        out.append((a, "-", lo[a], rect))
+        out.append((a, "+", hi[a], rect))
+    return out
+
+
+def unfight(root):
+    """Faces of two boxes of a part in one plane, facing the same way and overlapping, flicker (z-fighting): the box
+    added later is grown a hair all round (its texture stays as it is), so that it is drawn over the other.
+    Returns the number of boxes grown."""
+    pushed = 0
+
+    def visit(part):
+        nonlocal pushed
+        boxes = part.boxes
+        for j in range(len(boxes)):
+            for i in range(j):
+                for (a, sd, pl, r), (a2, sd2, pl2, r2) in ((f, g) for f in faces(boxes[j]) for g in faces(boxes[i])):
+                    if a != a2 or sd != sd2 or pl != pl2:
+                        continue
+                    if min(r[1], r2[1]) - max(r[0], r2[0]) <= 0 or min(r[3], r2[3]) - max(r[2], r2[2]) <= 0:
+                        continue
+                    if boxes[j].grow < boxes[i].grow + EPS:
+                        if boxes[j].grow == 0:
+                            pushed += 1
+                        boxes[j].grow = boxes[i].grow + EPS
+        for c in part.children:
+            visit(c)
+
+    visit(root)
+    return pushed
+
+
+def pirate(img):
+    """The same ship under black sails (and dark glass): the pirates' texture."""
+    out = img.copy()
+    px = out.load()
+    for y in range(out.height):
+        for x in range(out.width):
+            r, g, b, a = px[x, y]
+            if a and max(r, g, b) > 175 and max(r, g, b) - min(r, g, b) < 60:
+                v = int(22 + 38 * (r + g + b) / 3 / 255)
+                px[x, y] = (v, v - 3, v - 5, a)
+    return out
+
+
 def export(name, root, pal, width=1024):
+    fixed = unfight(root)
     boxes = [b for b, _ in root.all_boxes()]
     height = pack(boxes, width)
     img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
@@ -725,7 +800,8 @@ def export(name, root, pal, width=1024):
             "pivot": list(p.pivot),
             "rotation": list(p.rot),
             "anim": p.anim,
-            "boxes": [{"uv": [b.u, b.v], "from": [b.x, b.y, b.z], "size": [b.w, b.h, b.d]} for b in p.boxes],
+            "boxes": [dict({"uv": [b.u, b.v], "from": [b.x, b.y, b.z], "size": [b.w, b.h, b.d]},
+                           **({"grow": round(b.grow, 3)} if b.grow else {})) for b in p.boxes],
             "children": [part_json(c) for c in p.children],
         }
 
@@ -735,7 +811,9 @@ def export(name, root, pal, width=1024):
         json.dump({"texture_size": [width, height], "scale": 0.5,
                    "parts": [part_json(c) for c in root.children]}, f)
     img.save(os.path.join(TEXTURES, name + ".png"))
-    print(f"{name}: {len(boxes)} boxes, texture {width}x{height}")
+    if name != "sloop":
+        pirate(img).save(os.path.join(TEXTURES, name + "_pirate.png"))
+    print(f"{name}: {len(boxes)} boxes, texture {width}x{height}, {fixed} boxes grown apart (flicker)")
 
 
 if __name__ == "__main__":

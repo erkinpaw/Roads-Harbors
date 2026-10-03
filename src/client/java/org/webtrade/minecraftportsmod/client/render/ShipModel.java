@@ -60,9 +60,12 @@ public class ShipModel extends EntityModel<VesselRenderState> {
             for (JsonElement e : json.getAsJsonArray("boxes")) {
                 JsonObject b = e.getAsJsonObject();
                 JsonArray uv = b.getAsJsonArray("uv"), from = b.getAsJsonArray("from"), s = b.getAsJsonArray("size");
+                // (a box grown a hair all round, so that its faces don't flicker against another's in the same plane)
+                float grow = b.has("grow") ? b.get("grow").getAsFloat() : 0F;
                 cubes.texOffs(uv.get(0).getAsInt(), uv.get(1).getAsInt())
                         .addBox(from.get(0).getAsFloat(), from.get(1).getAsFloat(), from.get(2).getAsFloat(),
-                                s.get(0).getAsFloat(), s.get(1).getAsFloat(), s.get(2).getAsFloat());
+                                s.get(0).getAsFloat(), s.get(1).getAsFloat(), s.get(2).getAsFloat(),
+                                new net.minecraft.client.model.geom.builders.CubeDeformation(grow));
             }
             JsonArray p = json.getAsJsonArray("pivot"), r = json.getAsJsonArray("rotation");
             PartDefinition part = parent.addOrReplaceChild(json.get("name").getAsString(), cubes,
