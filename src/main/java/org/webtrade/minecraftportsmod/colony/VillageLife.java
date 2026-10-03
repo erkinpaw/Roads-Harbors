@@ -1579,7 +1579,7 @@ public final class VillageLife {
         if (camp) return;
         // a big village keeps one closed storehouse, room to spare or not (the better store of a grown village)
         if (v.population() >= 20 && v.count(BuildingType.STOREHOUSE_2, false) == 0 && v.unlocked(BuildingType.STOREHOUSE_2)
-                && spare(v, Tree.price(v, BuildingType.STOREHOUSE_2)) && rebuildStore(level, v, today)) return;
+                && Tree.affordable(v, Tree.price(v, BuildingType.STOREHOUSE_2)) && rebuildStore(level, v, today)) return;
         // the middle's next step, once there are people enough and the store can pay for it
         if (Tree.centerReady(v) && Tree.affordable(v, Tree.centerNext(v).cost()) && startCenter(v, today)) return;
         // a first field, so that there can be farmers
@@ -1764,6 +1764,10 @@ public final class VillageLife {
                 boolean nextShut = false;
                 for (BuildingType k : b.type.children()) if (!v.unlocked(k)) nextShut = true;
                 if (nextShut) score = 50;
+            }
+            // a home whose next kind is open: grown to the top, it is rebuilt into one (see upgradeHome)
+            if (homeRank(b.type) >= 0 && homeRank(b.type) < 3) {
+                for (BuildingType k : b.type.children()) if (v.unlocked(k)) score = Math.max(score, 45);
             }
             score -= 5 * b.level;
             if (score > bestScore) {
