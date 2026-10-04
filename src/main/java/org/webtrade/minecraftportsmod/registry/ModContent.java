@@ -72,6 +72,59 @@ public final class ModContent {
                     .eyeHeight(1.62F)
                     .clientTrackingRange(10));
 
+    /** The warships: a brig, a galleon, a ship of the line, sailed by hand (or a pirate's, sailed by the server). */
+    public static final EntityType<org.webtrade.minecraftportsmod.combat.WarshipEntity> WARSHIP = warship("warship", 4.0F, 1.2F);
+    public static final EntityType<org.webtrade.minecraftportsmod.combat.WarshipEntity> GALLEON = warship("galleon", 4.6F, 1.2F);
+    public static final EntityType<org.webtrade.minecraftportsmod.combat.WarshipEntity> SHIP_OF_THE_LINE = warship("ship_of_the_line", 5.4F, 1.2F);
+
+    /** The kind of warship an entity type is. */
+    public static org.webtrade.minecraftportsmod.combat.ShipClass shipClass(EntityType<?> type) {
+        return type == GALLEON ? org.webtrade.minecraftportsmod.combat.ShipClass.GALLEON
+                : type == SHIP_OF_THE_LINE ? org.webtrade.minecraftportsmod.combat.ShipClass.LINE : org.webtrade.minecraftportsmod.combat.ShipClass.BRIG;
+    }
+
+    /** The entity type of a kind of warship. */
+    public static EntityType<org.webtrade.minecraftportsmod.combat.WarshipEntity> warshipType(org.webtrade.minecraftportsmod.combat.ShipClass c) {
+        return switch (c) {
+            case BRIG -> WARSHIP;
+            case GALLEON -> GALLEON;
+            case LINE -> SHIP_OF_THE_LINE;
+        };
+    }
+
+    private static EntityType<org.webtrade.minecraftportsmod.combat.WarshipEntity> warship(String name, float width, float height) {
+        return entity(name, EntityType.Builder.<org.webtrade.minecraftportsmod.combat.WarshipEntity>of(org.webtrade.minecraftportsmod.combat.WarshipEntity::new, MobCategory.MISC)
+                .noLootTable()
+                .sized(width, height)
+                .eyeHeight(1.0F)
+                .clientTrackingRange(16)
+                .updateInterval(1));
+    }
+
+    /** A warship's sailor (her captain, a gunner, a marine, a hand): kept by his ship, never saved himself. */
+    public static final EntityType<org.webtrade.minecraftportsmod.combat.SailorEntity> SAILOR = entity("sailor",
+            EntityType.Builder.<org.webtrade.minecraftportsmod.combat.SailorEntity>of(org.webtrade.minecraftportsmod.combat.SailorEntity::new, MobCategory.MISC)
+                    .sized(0.6F, 1.8F).eyeHeight(1.62F).noSave().noSummon().clientTrackingRange(10).updateInterval(1));
+    public static final EntityType<org.webtrade.minecraftportsmod.combat.MusketBallEntity> MUSKET_BALL = entity("musket_ball",
+            EntityType.Builder.<org.webtrade.minecraftportsmod.combat.MusketBallEntity>of(org.webtrade.minecraftportsmod.combat.MusketBallEntity::new, MobCategory.MISC)
+                    .sized(0.15F, 0.15F).noSave().noSummon().noLootTable().clientTrackingRange(8).updateInterval(1));
+    public static final Item MUSKET_ITEM = item("musket", p -> new org.webtrade.minecraftportsmod.combat.MusketItem(p.stacksTo(1)));
+
+    public static final EntityType<org.webtrade.minecraftportsmod.combat.CannonballEntity> CANNONBALL = entity("cannonball",
+            EntityType.Builder.<org.webtrade.minecraftportsmod.combat.CannonballEntity>of(org.webtrade.minecraftportsmod.combat.CannonballEntity::new, MobCategory.MISC)
+                    .noLootTable()
+                    .noSave()
+                    .sized(0.4F, 0.4F)
+                    .clientTrackingRange(16)
+                    .updateInterval(2));
+
+    public static final Item WARSHIP_SPAWN_EGG = item("warship_spawn_egg",
+            p -> new net.minecraft.world.item.SpawnEggItem(p.spawnEgg(WARSHIP)));
+    public static final Item GALLEON_SPAWN_EGG = item("galleon_spawn_egg",
+            p -> new net.minecraft.world.item.SpawnEggItem(p.spawnEgg(GALLEON)));
+    public static final Item SHIP_OF_THE_LINE_SPAWN_EGG = item("ship_of_the_line_spawn_egg",
+            p -> new net.minecraft.world.item.SpawnEggItem(p.spawnEgg(SHIP_OF_THE_LINE)));
+
     public static final net.fabricmc.fabric.api.menu.v1.ExtendedMenuType<org.webtrade.minecraftportsmod.vessel.HoldMenu, Integer> HOLD_MENU =
             Registry.register(BuiltInRegistries.MENU, Minecraftportsmod.id("hold"),
                     new net.fabricmc.fabric.api.menu.v1.ExtendedMenuType<>(org.webtrade.minecraftportsmod.vessel.HoldMenu::new,
@@ -83,8 +136,16 @@ public final class ModContent {
     public static void register() {
         net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry.register(RESIDENT,
                 org.webtrade.minecraftportsmod.village.ResidentEntity.createAttributes());
+        net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry.register(SAILOR,
+                org.webtrade.minecraftportsmod.combat.SailorEntity.createAttributes());
+        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.COMBAT).register(output -> output.accept(MUSKET_ITEM));
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(output -> {
             output.accept(PORT_OFFICE_ITEM);
+        });
+        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.SPAWN_EGGS).register(output -> {
+            output.accept(WARSHIP_SPAWN_EGG);
+            output.accept(GALLEON_SPAWN_EGG);
+            output.accept(SHIP_OF_THE_LINE_SPAWN_EGG);
         });
     }
 
@@ -97,6 +158,11 @@ public final class ModContent {
         ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, BuiltInRegistries.BLOCK.getKey(block));
         return Registry.register(BuiltInRegistries.ITEM, key,
                 new BlockItem(block, new Item.Properties().setId(key).useBlockDescriptionPrefix()));
+    }
+
+    private static Item item(String name, Function<Item.Properties, Item> factory) {
+        ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, Minecraftportsmod.id(name));
+        return Registry.register(BuiltInRegistries.ITEM, key, factory.apply(new Item.Properties().setId(key)));
     }
 
     private static <T extends net.minecraft.world.entity.Entity> EntityType<T> entity(String name, EntityType.Builder<T> builder) {

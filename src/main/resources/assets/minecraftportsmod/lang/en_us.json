@@ -1062,5 +1062,22 @@
   "minecraftportsmod.work.done": "%s: a day's work done (%s / %s), paid",
   "minecraftportsmod.work.short": "%s: the day's work not done (%s / %s)",
   "minecraftportsmod.vlog.deposit": "%s brought to the store: %s",
-  "minecraftportsmod.vlog.hired": "%s hired on as %s"
+  "minecraftportsmod.vlog.hired": "%s hired on as %s",
+  "item.minecraftportsmod.warship_spawn_egg": "Brig Spawn Egg",
+  "entity.minecraftportsmod.warship": "Brig",
+  "entity.minecraftportsmod.cannonball": "Cannonball",
+  "minecraftportsmod.pirates.sighted": "Sail on the horizon! Pirates!",
+  "minecraftportsmod.pirates.sunk": "The pirate ship goes down!",
+  "minecraftportsmod.pirates.lost": "The ship is sinking!",
+  "key.minecraftportsmod.fight": "Fighting mode (warship)",
+  "item.minecraftportsmod.galleon_spawn_egg": "Galleon Spawn Egg",
+  "item.minecraftportsmod.ship_of_the_line_spawn_egg": "Ship of the Line Spawn Egg",
+  "entity.minecraftportsmod.galleon": "Galleon",
+  "entity.minecraftportsmod.ship_of_the_line": "Ship of the Line",
+  "key.minecraftportsmod.broadside": "Switch broadside (warship)",
+  "item.minecraftportsmod.musket": "Musket",
+  "entity.minecraftportsmod.sailor": "Sailor",
+  "entity.minecraftportsmod.sailor.captain": "Captain",
+  "entity.minecraftportsmod.sailor.pirate_captain": "Pirate Captain",
+  "entity.minecraftportsmod.musket_ball": "Musket Ball"
 }

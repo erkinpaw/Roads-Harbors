@@ -1062,5 +1062,22 @@
   "minecraftportsmod.work.done": "%s: дневная норма выполнена (%s / %s), плата получена",
   "minecraftportsmod.work.short": "%s: дневная норма не выполнена (%s / %s)",
   "minecraftportsmod.vlog.deposit": "%s принёс на склад: %s",
-  "minecraftportsmod.vlog.hired": "%s нанялся: %s"
+  "minecraftportsmod.vlog.hired": "%s нанялся: %s",
+  "item.minecraftportsmod.warship_spawn_egg": "Яйцо призыва брига",
+  "entity.minecraftportsmod.warship": "Бриг",
+  "entity.minecraftportsmod.cannonball": "Ядро",
+  "minecraftportsmod.pirates.sighted": "Парус на горизонте! Пираты!",
+  "minecraftportsmod.pirates.sunk": "Пиратский корабль пошёл ко дну!",
+  "minecraftportsmod.pirates.lost": "Корабль тонет!",
+  "key.minecraftportsmod.fight": "Режим боя (корабль)",
+  "item.minecraftportsmod.galleon_spawn_egg": "Яйцо призыва галеона",
+  "item.minecraftportsmod.ship_of_the_line_spawn_egg": "Яйцо призыва линейного корабля",
+  "entity.minecraftportsmod.galleon": "Галеон",
+  "entity.minecraftportsmod.ship_of_the_line": "Линейный корабль",
+  "key.minecraftportsmod.broadside": "Сменить борт (корабль)",
+  "item.minecraftportsmod.musket": "Мушкет",
+  "entity.minecraftportsmod.sailor": "Матрос",
+  "entity.minecraftportsmod.sailor.captain": "Капитан",
+  "entity.minecraftportsmod.sailor.pirate_captain": "Капитан пиратов",
+  "entity.minecraftportsmod.musket_ball": "Мушкетная пуля"
 }

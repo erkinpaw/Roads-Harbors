@@ -34,6 +34,9 @@
       "org.webtrade.minecraftportsmod.gametest.PlotClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.HelpingClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.LooksClientGameTest",
+      "org.webtrade.minecraftportsmod.gametest.ShipCombatClientGameTest",
+      "org.webtrade.minecraftportsmod.gametest.ShipDeckClientGameTest",
+      "org.webtrade.minecraftportsmod.gametest.ShipCrewClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.LongRunClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.WorldRunClientGameTest"
     ]

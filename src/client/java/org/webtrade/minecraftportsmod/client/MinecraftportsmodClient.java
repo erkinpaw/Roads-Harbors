@@ -23,9 +23,17 @@ public class MinecraftportsmodClient implements ClientModInitializer {
     public void onInitializeClient() {
         // boats look like the boat they were built from; upgraded hulls get their own ship models
         VesselRenderer.registerLayers();
+        org.webtrade.minecraftportsmod.client.render.WarshipRenderer.registerLayers();
         EntityRendererRegistry.register(ModContent.VESSEL, VesselRenderer::new);
         EntityRendererRegistry.register(ModContent.VESSEL_DECK, net.minecraft.client.renderer.entity.NoopRenderer::new);
         EntityRendererRegistry.register(ModContent.RESIDENT, org.webtrade.minecraftportsmod.client.render.ResidentRenderer::new);
+        EntityRendererRegistry.register(ModContent.WARSHIP, org.webtrade.minecraftportsmod.client.render.WarshipRenderer::new);
+        EntityRendererRegistry.register(ModContent.GALLEON, org.webtrade.minecraftportsmod.client.render.WarshipRenderer::new);
+        EntityRendererRegistry.register(ModContent.SHIP_OF_THE_LINE, org.webtrade.minecraftportsmod.client.render.WarshipRenderer::new);
+        EntityRendererRegistry.register(ModContent.CANNONBALL, org.webtrade.minecraftportsmod.client.render.CannonballRenderer::new);
+        EntityRendererRegistry.register(ModContent.SAILOR, org.webtrade.minecraftportsmod.client.render.SailorRenderer::new);
+        EntityRendererRegistry.register(ModContent.MUSKET_BALL, net.minecraft.client.renderer.entity.NoopRenderer::new);
+        CombatClient.init();
 
         KeyMappingHelper.registerKeyMapping(MinecraftportsmodKeys.CHART);
         KeyMappingHelper.registerKeyMapping(MinecraftportsmodKeys.MAP_SHOT);
