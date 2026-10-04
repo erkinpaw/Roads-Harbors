@@ -65,7 +65,7 @@ public final class WorldPlanner {
     /** Chunk radius generated to find the shore, and around the shore to build. */
     static final int SEARCH_CHUNKS = 3, BUILD_CHUNKS = 4;
     /** Chunk radius loaded round an island being raised, and its rows raised every second. */
-    static final int ISLE_CHUNKS = 7, ISLE_ROWS = 10;
+    static final int ISLE_CHUNKS = 7, ISLE_ROWS = 5;
     /** Give up on a site whose chunks don't arrive in this many ticks. */
     static final int JOB_TIMEOUT = 20 * 180;
     /** No village closer than this to a port someone else founded. */
