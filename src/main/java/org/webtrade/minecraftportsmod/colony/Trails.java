@@ -1130,7 +1130,8 @@ public final class Trails {
         int deepest = 0;
         for (int i = i0; i <= i1; i++) {
             int g = groundAt(level, p[2 * i], p[2 * i + 1]);
-            if (!level.getBlockState(new BlockPos(p[2 * i], g, p[2 * i + 1])).getFluidState().isEmpty()) wet = true;
+            BlockState top = level.getBlockState(new BlockPos(p[2 * i], g, p[2 * i + 1]));
+            if (!top.getFluidState().isEmpty() || top.is(BlockTags.ICE)) wet = true;
             deepest = Math.max(deepest, Math.max(decks[i], decks[s]) - g);
         }
         double[] cum = new double[i1 - i0 + 1];
@@ -1187,7 +1188,9 @@ public final class Trails {
             town[i] = home(data, x, z);
             if (ok[i]) {
                 g[i] = groundAt(level, x, z);
-                wet[i] = !level.getBlockState(new BlockPos(x, g[i], z)).getFluidState().isEmpty();
+                // (ice is water frozen over: bridged like water, not walked on)
+                BlockState top = level.getBlockState(new BlockPos(x, g[i], z));
+                wet[i] = !top.getFluidState().isEmpty() || top.is(BlockTags.ICE);
             }
             deck[i] = NONE;
         }

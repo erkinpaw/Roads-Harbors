@@ -496,6 +496,8 @@ final class SiteSurvey {
         return cache.computeIfAbsent(key(x, z), k -> {
             if (RaisedIslands.land(x, z, sea)) return false;
             int f = floor(x, z);
+            // (frozen water: ice a ship can't get through)
+            if (frozen(x, z)) return false;
             return f <= sea - 2 || waterBiome(x, z) && f <= sea + 1;
         });
     }
