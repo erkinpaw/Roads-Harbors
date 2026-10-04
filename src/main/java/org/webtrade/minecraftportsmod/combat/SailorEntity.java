@@ -63,6 +63,8 @@ public class SailorEntity extends PathfinderMob {
         setPersistenceRequired();
         noPhysics = true;
         setNoGravity(true);
+        // (drawn where the server has him: on a moving deck a sailor drawn ticks behind would trail his ship)
+        if (getInterpolation() != null) getInterpolation().setInterpolationLength(1);
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -97,6 +99,7 @@ public class SailorEntity extends PathfinderMob {
         entityData.set(DATA_PIRATE, w.isPirate());
         this.side = toSide = side;
         this.along = toAlong = along;
+        dress(role, w.isPirate());
         switch (role) {
             case CAPTAIN -> {
                 setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.IRON_SWORD));
@@ -109,6 +112,35 @@ public class SailorEntity extends PathfinderMob {
             }
         }
         place(w);
+    }
+
+    /** A piece of dyed leather to wear. */
+    private static ItemStack worn(net.minecraft.world.item.Item item, int rgb) {
+        ItemStack s = new ItemStack(item);
+        s.set(net.minecraft.core.component.DataComponents.DYED_COLOR, new net.minecraft.world.item.component.DyedItemColor(rgb));
+        return s;
+    }
+
+    /**
+     * What he wears: a navy captain a dark blue coat and hat, a pirate captain a red coat and a black hat; the navy's
+     * marines red coats; pirates a kerchief on their heads (red or black), the rest of a navy's crew their own clothes.
+     */
+    private void dress(Role role, boolean pirate) {
+        switch (role) {
+            case CAPTAIN -> {
+                setItemSlot(EquipmentSlot.HEAD, worn(Items.LEATHER_HELMET, pirate ? 0x161616 : 0x1C2A4E));
+                setItemSlot(EquipmentSlot.CHEST, worn(Items.LEATHER_CHESTPLATE, pirate ? 0x8C1C1C : 0x1C2A4E));
+                setItemSlot(EquipmentSlot.LEGS, worn(Items.LEATHER_LEGGINGS, pirate ? 0x3A2A1A : 0xE8E2D0));
+            }
+            case MARINE -> {
+                if (!pirate) setItemSlot(EquipmentSlot.CHEST, worn(Items.LEATHER_CHESTPLATE, 0xB02424));
+                setItemSlot(EquipmentSlot.HEAD, worn(Items.LEATHER_HELMET, pirate ? 0x8C1C1C : 0x161616));
+            }
+            default -> {
+                if (pirate) setItemSlot(EquipmentSlot.HEAD, worn(Items.LEATHER_HELMET, random.nextBoolean() ? 0x9C1E1E : 0x1A1A1A));
+            }
+        }
+        for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS}) setDropChance(slot, 0);
     }
 
     public WarshipEntity ship() {
