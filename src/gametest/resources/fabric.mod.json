@@ -37,6 +37,7 @@
       "org.webtrade.minecraftportsmod.gametest.ShipCombatClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.ShipDeckClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.ShipCrewClientGameTest",
+      "org.webtrade.minecraftportsmod.gametest.ShipHudClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.LongRunClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.WorldRunClientGameTest"
     ]

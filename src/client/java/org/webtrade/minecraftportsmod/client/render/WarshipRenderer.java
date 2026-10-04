@@ -82,8 +82,7 @@ public class WarshipRenderer extends EntityRenderer<WarshipEntity, WarshipRender
         state.pirate = ship.isPirate();
         state.sinking = ship.sinking();
         // heeling over in a turn: the faster and the harder, the more
-        float turn = Mth.wrapDegrees(ship.getYRot() - ship.yRotO);
-        state.heel = Mth.clamp(turn * 4F, -8F, 8F);
+        state.heel = ship.heel(partialTick);
     }
 
     @Override

@@ -136,6 +136,12 @@ public class CannonballEntity extends Entity {
         return false;
     }
 
+    /** Seen far off (the game would draw a thing this small only close by): the whole flight of it, across the water. */
+    @Override
+    public boolean shouldRenderAtSqrDistance(double d) {
+        return d < 256 * 256;
+    }
+
     @Override
     public boolean isPickable() {
         return false;

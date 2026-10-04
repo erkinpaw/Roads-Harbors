@@ -23,8 +23,11 @@ public final class ShipMinimap {
     /** Cells across (one gui pixel each) and blocks to a cell. */
     static final int N = 80, STEP = 2;
     private static final int[] colors = new int[N * N];
+    /** Which cells are water (the currents run over them). */
+    private static final boolean[] wet = new boolean[N * N];
     private static int cx = Integer.MIN_VALUE, cz;
     private static long updated = -100;
+    private static final long START = System.currentTimeMillis();
 
     /** The ship the player is aboard (at her helm, or standing on her deck), or null. */
     static WarshipEntity aboard(Minecraft mc) {
@@ -36,38 +39,84 @@ public final class ShipMinimap {
         return null;
     }
 
-    /** The land and water round her, read off the world now and then (every half second, or when she has moved on). */
-    private static void update(Minecraft mc, WarshipEntity ship) {
-        int x0 = Mth.floor(ship.getX()), z0 = Mth.floor(ship.getZ());
-        long now = mc.level.getGameTime();
-        if (now - updated < 10 && Math.abs(x0 - cx) < 4 && Math.abs(z0 - cz) < 4) return;
-        updated = now;
-        cx = x0;
-        cz = z0;
+    /** Rows of the chart read off the world a tick (all of it every ten ticks), the next row to read. */
+    private static final int ROWS_A_TICK = 8;
+    private static int nextRow;
+    private static final net.minecraft.resources.Identifier TEXTURE = org.webtrade.minecraftportsmod.Minecraftportsmod.id("ship_minimap");
+    private static net.minecraft.client.renderer.texture.DynamicTexture texture;
+
+    /** Reads a row of the land and water round her (the sea one colour, lighter only in the shallows). */
+    private static void readRow(Minecraft mc, int j) {
         var level = mc.level;
         BlockPos.MutableBlockPos p = new BlockPos.MutableBlockPos();
-        for (int j = 0; j < N; j++) {
-            for (int i = 0; i < N; i++) {
-                int x = cx + (i - N / 2) * STEP, z = cz + (j - N / 2) * STEP;
-                int c;
-                if (!level.hasChunk(x >> 4, z >> 4)) {
-                    c = 0xFF1A2430;
-                } else {
-                    int y = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
-                    p.set(x, y, z);
-                    BlockState st = level.getBlockState(p);
-                    MapColor m = st.getMapColor(level, p);
-                    c = 0xFF000000 | m.col;
-                    if (!st.getFluidState().isEmpty()) {
-                        // the sea: darker where it is deep
-                        int depth = 0;
-                        while (depth < 12 && !level.getBlockState(p.move(0, -1, 0)).getFluidState().isEmpty()) depth++;
-                        c = shade(0xFF3A5FB8, 1.15F - depth * 0.04F);
-                    }
+        for (int i = 0; i < N; i++) {
+            int x = cx + (i - N / 2) * STEP, z = cz + (j - N / 2) * STEP;
+            int c;
+            wet[j * N + i] = false;
+            if (!level.hasChunk(x >> 4, z >> 4)) {
+                c = 0xFF1A2430;
+            } else {
+                int y = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
+                p.set(x, y, z);
+                BlockState st = level.getBlockState(p);
+                c = 0xFF000000 | st.getMapColor(level, p).col;
+                if (!st.getFluidState().isEmpty()) {
+                    int depth = 0;
+                    while (depth < 4 && !level.getBlockState(p.move(0, -1, 0)).getFluidState().isEmpty()) depth++;
+                    c = depth < 4 ? shade(0xFF3A5FB8, 1.25F - depth * 0.06F) : 0xFF3A5FB8;
+                    wet[j * N + i] = true;
                 }
-                colors[j * N + i] = c;
+            }
+            colors[j * N + i] = c;
+        }
+    }
+
+    /**
+     * A tick of the chart: a few more rows read off the world (all of them when she has gone some way), and the
+     * picture made anew with the streaks of the currents where they have run to now.
+     */
+    static void tick(Minecraft mc) {
+        WarshipEntity ship = aboard(mc);
+        if (ship == null) return;
+        int x0 = Mth.floor(ship.getX()), z0 = Mth.floor(ship.getZ());
+        boolean moved = Math.abs(x0 - cx) >= STEP * 4 || Math.abs(z0 - cz) >= STEP * 4;
+        if (moved || cx == Integer.MIN_VALUE) {
+            cx = x0;
+            cz = z0;
+            for (int j = 0; j < N; j++) readRow(mc, j);
+        } else {
+            for (int k = 0; k < ROWS_A_TICK; k++) {
+                readRow(mc, nextRow);
+                nextRow = (nextRow + 1) % N;
             }
         }
+        if (texture == null) {
+            texture = new net.minecraft.client.renderer.texture.DynamicTexture(TEXTURE::toString, N, N, false);
+            mc.getTextureManager().register(TEXTURE, texture);
+        }
+        var image = texture.getPixels();
+        double t = (System.currentTimeMillis() - START) / 50.0;
+        // (the current is worked out once for every four cells by four: it hardly changes over a few blocks)
+        double[][] cur = new double[(N / 4) * (N / 4)][];
+        for (int j = 0; j < N; j++) {
+            for (int i = 0; i < N; i++) {
+                int color = colors[j * N + i];
+                if (wet[j * N + i]) {
+                    double wx = cx + (i - N / 2) * STEP, wz = cz + (j - N / 2) * STEP;
+                    int key = (j / 4) * (N / 4) + i / 4;
+                    double[] c = cur[key] != null ? cur[key] : (cur[key] = Currents.at(wx, wz));
+                    double len = Math.max(1e-6, Math.hypot(c[0], c[1]));
+                    double k = (len - Currents.MIN) / (Currents.MAX - Currents.MIN);
+                    double along = (wx * c[0] + wz * c[1]) / len, across = (-wx * c[1] + wz * c[0]) / len;
+                    // (all the streaks move at one pace: a pace by the strength of each spot would tear them apart)
+                    double wave = Math.sin(along * 0.22 - t * 0.03 + Math.sin(across * 0.07) * 0.6);
+                    double band = Math.max(0, wave);
+                    color = shade(color, (float) (1.0 - (0.14 + 0.16 * k) * band * band));
+                }
+                image.setPixel(i, j, color);
+            }
+        }
+        texture.upload();
     }
 
     private static int shade(int argb, float k) {
@@ -78,30 +127,26 @@ public final class ShipMinimap {
 
     static void draw(Minecraft mc, GuiGraphicsExtractor g) {
         WarshipEntity ship = aboard(mc);
-        if (ship == null) return;
-        update(mc, ship);
+        if (ship == null || texture == null) return;
         int w = mc.getWindow().getGuiScaledWidth();
         int x0 = w - N - 8, y0 = 8;
         // the frame, the chart
         g.fill(x0 - 3, y0 - 3, x0 + N + 3, y0 + N + 3, 0xFF5A3A22);
         g.fill(x0 - 2, y0 - 2, x0 + N + 2, y0 + N + 2, 0xFFC9A55A);
-        for (int j = 0; j < N; j++) {
-            int run = 0;
-            for (int i = 0; i <= N; i++) {
-                // (runs of one colour drawn as one strip)
-                if (i < N && i > run && colors[j * N + i] == colors[j * N + run]) continue;
-                if (i > run || i == N) g.fill(x0 + run, y0 + j, x0 + i, y0 + j + 1, colors[j * N + run]);
-                run = i;
-            }
-        }
-        // the currents: an arrow every so far across the water
-        int grid = 16;
+        g.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, TEXTURE, x0, y0, 0, 0, N, N, N, N);
+        double t = (System.currentTimeMillis() - START) / 50.0;
+        // the arrows of the currents, sliding with the flow and fading out as they go
+        int grid = 20;
         for (int gj = grid / 2; gj < N; gj += grid) {
             for (int gi = grid / 2; gi < N; gi += grid) {
+                if (!wet[gj * N + gi]) continue;
                 double wx = cx + (gi - N / 2) * STEP, wz = cz + (gj - N / 2) * STEP;
                 double[] c = Currents.at(wx, wz);
-                double len = 3 + 7 * Currents.strength(wx, wz);
-                arrow(g, x0 + gi, y0 + gj, c[0], c[1], len, 0xB0D8F4FF);
+                double k = Currents.strength(wx, wz), l = Math.max(1e-6, Math.hypot(c[0], c[1]));
+                double phase = ((t * 0.0067 + (gi + gj) * 0.37) % 1.0);
+                int ox = (int) Math.round(c[0] / l * (phase - 0.5) * 8), oz = (int) Math.round(c[1] / l * (phase - 0.5) * 8);
+                int alpha = (int) (200 * Math.sin(Math.PI * phase));
+                arrow(g, x0 + gi + ox, y0 + gj + oz, c[0], c[1], 3 + 6 * k, alpha << 24 | 0xE8F6FF);
             }
         }
         // the ships about

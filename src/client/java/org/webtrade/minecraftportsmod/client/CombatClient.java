@@ -81,6 +81,7 @@ public final class CombatClient {
         // (after the world's tick: the ships have moved, the player too; he is moved on with his ship)
         ClientTickEvents.END_CLIENT_TICK.register(CombatClient::carryPlayer);
         ClientTickEvents.END_CLIENT_TICK.register(SeaSounds::tick);
+        ClientTickEvents.END_CLIENT_TICK.register(ShipMinimap::tick);
         HudElementRegistry.addLast(Minecraftportsmod.id("warship"), (g, delta) -> hud(Minecraft.getInstance(), g));
     }
 
@@ -223,7 +224,7 @@ public final class CombatClient {
             // the guns of each side, port on the left of the bar and starboard on the right: loaded (green), or how far
             // through reloading; the side chosen in the fighting mode framed
             for (int side : new int[]{-1, 1}) {
-                float r = 1F - ship.reload(side) / (float) ship.cls().reload;
+                float r = ship.loaded(side);
                 int bx = side < 0 ? x - 52 : x + 182 + 6, by = y - 2;
                 if (fighting && side == aimSide) g.fill(bx - 2, by - 2, bx + 48, by + 12, 0xFFF0C040);
                 g.fill(bx, by, bx + 46, by + 10, 0xC0000000);

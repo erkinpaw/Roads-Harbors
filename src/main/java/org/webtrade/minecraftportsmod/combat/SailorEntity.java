@@ -64,7 +64,7 @@ public class SailorEntity extends PathfinderMob {
         noPhysics = true;
         setNoGravity(true);
         // (drawn where the server has him: on a moving deck a sailor drawn ticks behind would trail his ship)
-        if (getInterpolation() != null) getInterpolation().setInterpolationLength(1);
+        if (getInterpolation() != null) getInterpolation().setInterpolationLength(3);
     }
 
     public static AttributeSupplier.Builder createAttributes() {
