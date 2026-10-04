@@ -73,6 +73,7 @@ final class PlotFinder {
      */
     static Blueprint.Frame find(ServerLevel level, Village v, BuildingType type, int ignore) {
         WHY.clear();
+        if (type == BuildingType.PIER) return harbour(level, v, ignore);
         try {
             // grass first, then the beach: a coastal village builds on the strand only when the grass is taken
             for (boolean sand : new boolean[]{false, true}) {
@@ -343,8 +344,71 @@ final class PlotFinder {
         return null;
     }
 
-    /** Blocks kept between the water and any building but the fishers' (and, one day, the harbour's). */
+    /** Blocks kept between the water and any building but the fishers' and the pier. */
     static final int SHORE = 6;
+
+    /**
+     * The pier's plot: on the shore where a jetty can reach deep water ({@link Harbour#jetty}). The shore is looked for
+     * along lines out from the middle (the nearest first); the plot a few blocks back from where the water starts.
+     */
+    private static Blueprint.Frame harbour(ServerLevel level, Village v, int ignore) {
+        BuildingType type = BuildingType.PIER;
+        int half = type.half;
+        List<int[]> shores = new ArrayList<>();
+        for (int a = 0; a < 32; a++) {
+            double ang = a * Math.PI * 2 / 32 + v.id * 0.37;
+            double cx = Math.cos(ang), cz = Math.sin(ang);
+            int lastDry = -1;
+            for (int d = 6; d <= MAX_RING + 24; d += 2) {
+                int x = v.center.getX() + (int) Math.round(cx * d), z = v.center.getZ() + (int) Math.round(cz * d);
+                if (wet(level, v, new BlockPos(x, 0, z), 0)) {
+                    if (lastDry >= 0) shores.add(new int[]{lastDry, a});
+                    break;
+                }
+                lastDry = d;
+            }
+        }
+        if (shores.isEmpty()) no("shoreless");
+        shores.sort(java.util.Comparator.comparingInt(s -> s[0]));
+        for (int[] s : shores) {
+            double ang = s[1] * Math.PI * 2 / 32 + v.id * 0.37;
+            double cx = Math.cos(ang), cz = Math.sin(ang);
+            // a few blocks back from the water, and a little to either side along the shore
+            for (int back = half + 1; back <= half + 5; back += 2) {
+                for (int side : new int[]{0, 4, -4, 8, -8}) {
+                    double d = s[0] - back;
+                    int x = v.center.getX() + (int) Math.round(cx * d - cz * side), z = v.center.getZ() + (int) Math.round(cz * d + cx * side);
+                    BlockPos pos = new BlockPos(x, v.center.getY(), z);
+                    if (clash(v, pos, half, ignore)) {
+                        no("clash");
+                        continue;
+                    }
+                    Integer floor = floor(level, v, pos, half, true);
+                    if (floor == null || !fits(level, v, type, pos)) continue;
+                    BlockPos origin = new BlockPos(x, floor, z);
+                    int[] jetty = Harbour.jetty(level, v, origin, half);
+                    if (jetty == null) {
+                        no("jetty");
+                        continue;
+                    }
+                    // (the jetty clear of the other plots)
+                    Direction out = Direction.from2DDataValue(jetty[0]);
+                    boolean free = true;
+                    for (int k = 1; k <= jetty[1] + 1 && free; k++) {
+                        BlockPos p = origin.relative(out, half + k);
+                        for (Building b : v.buildings) if (b.id != ignore && b.overlaps(p, 2, 0)) free = false;
+                    }
+                    if (!free) {
+                        no("jetty");
+                        continue;
+                    }
+                    return new Blueprint.Frame(origin, Direction.getApproximateNearest(v.center.getX() - x, 0, v.center.getZ() - z));
+                }
+            }
+        }
+        return null;
+    }
+
 
     /**
      * May a building of this type go up here: away from the shore (the fishers right by it), within the land the
@@ -450,6 +514,28 @@ final class PlotFinder {
 
     static Integer floor(ServerLevel level, BlockPos center, int half) {
         return floor(level, null, center, half, false);
+    }
+
+    /**
+     * The floor for a camp's middle: low in the lie of the land round it (a quarter of it lower, the rest higher), so
+     * that a bump there is cut away and the land round eased down to it, never the fire put up on a heap of earth.
+     * Null if there is water there or it is not loaded.
+     */
+    static Integer lowFloor(ServerLevel level, BlockPos center, int half) {
+        List<Integer> heights = new ArrayList<>();
+        for (int x = -half - 1; x <= half + 1; x++) {
+            for (int z = -half - 1; z <= half + 1; z++) {
+                int px = center.getX() + x, pz = center.getZ() + z;
+                if (!Construction.loaded(level, new BlockPos(px, 0, pz))) return null;
+                int f = floorAt(level, px, pz);
+                BlockState st = level.getBlockState(new BlockPos(px, f - 1, pz));
+                if (!st.getFluidState().isEmpty() || st.is(BlockTags.ICE)) continue;
+                heights.add(f);
+            }
+        }
+        if (heights.size() < 9) return null;
+        heights.sort(Integer::compare);
+        return Math.max(level.getSeaLevel(), heights.get(heights.size() / 4));
     }
 
     /**

@@ -742,6 +742,7 @@ public final class VillageLife {
         if (v.has(BuildingType.WEAVER) && v.workers(Job.WEAVER) == 0 && adults >= 5) return Job.WEAVER;
         if (v.has(BuildingType.SMELTER) && v.workers(Job.SMELTER) == 0 && adults >= 5) return Job.SMELTER;
         if (v.has(BuildingType.GLASSWORKS) && v.workers(Job.GLASSBLOWER) == 0 && adults >= 5) return Job.GLASSBLOWER;
+        if (v.workers(Job.SAILOR) < Harbour.ships(v) && adults >= 5) return Job.SAILOR;
         if (v.has(BuildingType.CARTOGRAPHER) && v.workers(Job.SCOUT) < Scouting.scouts(v) && adults >= 5) return Job.SCOUT;
         return null;
     }
@@ -1630,6 +1631,9 @@ public final class VillageLife {
         if (locksmith(v) && Tree.open(v, BuildingType.LOCKSMITH) && start(level, v, BuildingType.LOCKSMITH, today)) return;
         // the cartographer's house, for a village big enough to spare a scout
         if (v.adults() >= 5 && Tree.open(v, BuildingType.CARTOGRAPHER) && start(level, v, BuildingType.CARTOGRAPHER, today)) return;
+        // a pier and a ship: the way to trade for an island, and over the sea for a bigger village on the coast
+        if (Harbour.wanted(v) && v.count(BuildingType.PIER, false) == 0 && Tree.open(v, BuildingType.PIER)
+                && start(level, v, BuildingType.PIER, today)) return;
         // more fields for the farmers
         if (v.workers(Job.FARMER) > v.count(BuildingType.FIELD, false) * FARMERS_PER_FIELD - 1 && Tree.open(v, BuildingType.FIELD)
                 && start(level, v, BuildingType.FIELD, today)) return;
@@ -1780,6 +1784,9 @@ public final class VillageLife {
             if (b.type == BuildingType.WOOD_HUT && !v.unlocked(BuildingType.SAWMILL) && (want(v, Res.PLANKS) > 0.2 || want(v, Res.JOINERY) > 0.3)) score = 55;
             // wooden tools only: the smithy grown a level makes stone ones, that last six times as long
             if (b.type == BuildingType.SMITHY && b.level < 2 && toolUsers(v) >= 4) score = 52;
+            // the pier grown: a brig, then a second ship (an island lives by them); the fishers' hut, to open the pier
+            if (b.type == BuildingType.PIER) score = Math.max(score, v.island ? 50 : 35);
+            if (b.type == BuildingType.FISH_HUT && b.level < 2 && v.island && !v.unlocked(BuildingType.PIER)) score = Math.max(score, 48);
             // short of beds and the next kind of house not open yet: a home grown to the top is what opens it
             if (b.type.branch == BuildingType.Branch.HOME && v.freeBeds() <= 2) {
                 boolean nextShut = false;
@@ -1849,7 +1856,8 @@ public final class VillageLife {
                     || t.isPen() && husbandry(v, t)
                     || t == BuildingType.LOCKSMITH && locksmith(v)
                     || t == BuildingType.WEAVER && weaver(v) || t == BuildingType.SMELTER && smelter(v) || t == BuildingType.GLASSWORKS && glassworks(v)
-                    || t == BuildingType.CARTOGRAPHER && v.adults() >= 5;
+                    || t == BuildingType.CARTOGRAPHER && v.adults() >= 5
+                    || t == BuildingType.PIER && Harbour.wanted(v);
             // (the way to what the wanted nodes ask for: the sawmill and the joiner's for joinery, and so on)
             boolean leads = leadsTo(t, wanted);
             if (!mine && !leads) continue;
@@ -1858,6 +1866,8 @@ public final class VillageLife {
             // (the stall and the map table open the way to the other villages: early, once there are people for them)
             if (t == BuildingType.MARKET) score += 35;
             if (t == BuildingType.CARTOGRAPHER && v.known.isEmpty()) score += 40;
+            // (an island's way out: its fishers' hut, then the pier)
+            if (v.island && (t == BuildingType.PIER || t == BuildingType.FISH_HUT)) score += 40;
             if (score > bestScore) {
                 bestScore = score;
                 best = t;
@@ -2056,7 +2066,12 @@ public final class VillageLife {
                     today, type.id(), PlotFinder.WHY);
             return false;
         }
-        add(v, new Building(v.nextBuilding++, type, f.origin(), f.front(), RND.nextLong()).look(VillageLife.look(v)), today);
+        Building b = new Building(v.nextBuilding++, type, f.origin(), f.front(), RND.nextLong()).look(VillageLife.look(v));
+        if (type == BuildingType.PIER) {
+            b.jetty = Harbour.jetty(level, v, f.origin(), type.half);
+            if (b.jetty == null) return false;
+        }
+        add(v, b, today);
         return true;
     }
 

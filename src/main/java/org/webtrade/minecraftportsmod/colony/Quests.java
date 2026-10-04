@@ -288,7 +288,10 @@ public final class Quests {
             new Want(Job.SMELTER, "minecraft:lava_bucket", 1),
             new Want(Job.MERCHANT, "minecraft:chest", 4),
             new Want(Job.MERCHANT, "minecraft:lantern", 2),
-            new Want(Job.MERCHANT, "minecraft:writable_book", 1));
+            new Want(Job.MERCHANT, "minecraft:writable_book", 1),
+            new Want(Job.SAILOR, "minecraft:lead", 4),
+            new Want(Job.SAILOR, "minecraft:spyglass", 1),
+            new Want(Job.SAILOR, "minecraft:compass", 1));
 
     /** What a child asks for: a flower, a cookie, an apple. */
     static final List<String> TREATS = List.of("#flowers", "minecraft:cookie", "minecraft:apple", "minecraft:sweet_berries");
@@ -306,6 +309,7 @@ public final class Quests {
             case WEAVER -> List.of(Res.WOOL);
             case GLASSBLOWER -> List.of(Res.COAL);
             case MERCHANT, SCOUT -> List.of(Res.FOOD);
+            case SAILOR -> List.of(Res.PLANKS, Res.WOOL);
         };
     }
 

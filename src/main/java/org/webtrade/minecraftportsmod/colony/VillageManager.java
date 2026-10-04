@@ -71,6 +71,7 @@ public final class VillageManager {
             Scouting.reset();
             VillageTerrain.reset();
             Caravans.reset();
+            Voyages.reset();
             Roadworks.reset();
             Land.reset();
             Plots.clear();
@@ -111,6 +112,11 @@ public final class VillageManager {
                 Roadworks.tick(level, data);
             } catch (Throwable e) {
                 Minecraftportsmod.LOGGER.error("Roadworks failed", e);
+            }
+            try {
+                Voyages.tick(level, data);
+            } catch (Throwable e) {
+                Minecraftportsmod.LOGGER.error("Voyages failed", e);
             }
         }
         if (t % 100 == 0) {
@@ -154,6 +160,11 @@ public final class VillageManager {
             Caravans.day(level, data, skip);
         } catch (Throwable e) {
             Minecraftportsmod.LOGGER.error("Caravans failed", e);
+        }
+        try {
+            Voyages.day(level, data, skip);
+        } catch (Throwable e) {
+            Minecraftportsmod.LOGGER.error("Voyages failed", e);
         }
         data.changed();
     }
@@ -651,10 +662,17 @@ public final class VillageManager {
      * miner). {@code toWater} points at the water the camp lies by.
      */
     public static Village foundCamp(ServerLevel level, BlockPos near, Direction toWater, String name, boolean russian, String wood) {
+        return foundCamp(level, near, toWater, name, russian, wood, false);
+    }
+
+    /** A camp, on an island or not. */
+    public static Village foundCamp(ServerLevel level, BlockPos near, Direction toWater, String name, boolean russian, String wood, boolean island) {
         VillageData data = VillageData.get(level.getServer());
         // the camp stands a little back from the shore
         BlockPos c = near.relative(toWater.getOpposite(), 8);
-        Integer floor = PlotFinder.floor(level, c, 2);
+        // (low in the lie of the land: a bump cut away, not the fire heaped up on earth)
+        Integer floor = PlotFinder.lowFloor(level, c, 2);
+        if (floor == null) floor = PlotFinder.floor(level, c, 2);
         if (floor == null) floor = PlotFinder.floorAt(level, c.getX(), c.getZ());
         BlockPos center = new BlockPos(c.getX(), floor, c.getZ());
         BlockPos board = center.relative(toWater.getOpposite(), 4).relative(toWater.getClockWise(), 2);
@@ -662,6 +680,7 @@ public final class VillageManager {
         Village placed = new Village(data.newId(), name, center, toWater, wood, boardAt, russian);
         placed.founded = data.day;
         placed.lastGrowth = data.day;
+        placed.island = island;
         placed.add(Res.FOOD, VillageLife.START_FOOD);
         placed.add(Res.WOOD, VillageLife.START_WOOD);
         placed.add(Res.STONE, VillageLife.START_STONE);

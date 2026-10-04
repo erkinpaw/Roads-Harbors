@@ -7,6 +7,7 @@ import net.minecraft.core.Direction;
 
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -30,12 +31,13 @@ public final class Building {
     }
 
     /** The part of a building added with the levels: its level, the one it is growing to, kept from demolition. */
-    private record Grade(int level, int goal, boolean keep, int look) {
+    private record Grade(int level, int goal, boolean keep, int look, List<Integer> jetty) {
         static final com.mojang.serialization.MapCodec<Grade> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
                 Codec.INT.optionalFieldOf("level", 1).forGetter(Grade::level),
                 Codec.INT.optionalFieldOf("goal", 0).forGetter(Grade::goal),
                 Codec.BOOL.optionalFieldOf("keep", false).forGetter(Grade::keep),
-                Codec.INT.optionalFieldOf("look", 0).forGetter(Grade::look)
+                Codec.INT.optionalFieldOf("look", 0).forGetter(Grade::look),
+                Codec.INT.listOf().optionalFieldOf("jetty", List.of()).forGetter(Grade::jetty)
         ).apply(i, Grade::new));
     }
 
@@ -109,8 +111,10 @@ public final class Building {
         b.goal = g.goal() > b.level ? Math.min(b.type.maxLevel, g.goal()) : 0;
         b.keep = g.keep();
         b.look = g.look();
+        if (g.jetty().size() == 3) b.jetty = new int[]{g.jetty().get(0), g.jetty().get(1), g.jetty().get(2)};
         return b;
-    }, b -> com.mojang.datafixers.util.Pair.of(b, new Grade(b.level, b.goal, b.keep, b.look))).codec();
+    }, b -> com.mojang.datafixers.util.Pair.of(b, new Grade(b.level, b.goal, b.keep, b.look,
+            b.jetty == null ? List.of() : List.of(b.jetty[0], b.jetty[1], b.jetty[2])))).codec();
 
     public final int id;
     public final BuildingType type;
@@ -142,6 +146,8 @@ public final class Building {
     boolean keep;
     /** How it looks: 0 the plain look of old, else 1 + its village's style (see {@link Blueprint}). */
     int look;
+    /** A pier's jetty: {way out (2D data value), length beyond the plot, the sea's level}; null for anything else. */
+    int[] jetty;
 
     /** Sets its look (a new building: its village's style). */
     Building look(int look) {
@@ -165,7 +171,7 @@ public final class Building {
     public Blueprint blueprint(String wood) {
         int lv = upgrading() ? goal : level;
         if (blueprint == null || !wood.equals(blueprintWood) || blueprintLevel != lv) {
-            blueprint = Blueprint.of(type, new Blueprint.Frame(origin, front), wood, seed, crop(), lv, look);
+            blueprint = Blueprint.of(type, new Blueprint.Frame(origin, front), wood, seed, crop(), lv, look, jetty);
             blueprintWood = wood;
             blueprintLevel = lv;
         }

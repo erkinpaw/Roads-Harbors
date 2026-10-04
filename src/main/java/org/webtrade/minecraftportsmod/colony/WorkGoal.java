@@ -237,7 +237,7 @@ final class WorkGoal extends Goal {
             case FARMER -> farmer(level, v);
             case GATHERER -> gatherer(level, v);
             case HERDER -> herder(level, v, d);
-            case MERCHANT, SAWYER, SCOUT, SMITH, JOINER, LOCKSMITH, WEAVER, SMELTER, GLASSBLOWER -> {
+            case MERCHANT, SAWYER, SCOUT, SMITH, JOINER, LOCKSMITH, WEAVER, SMELTER, GLASSBLOWER, SAILOR -> {
             }
         }
     }
@@ -253,7 +253,7 @@ final class WorkGoal extends Goal {
             case FARMER -> Items.WHEAT;
             case GATHERER -> Items.SWEET_BERRIES;
             case HERDER -> Items.EGG;
-            case MERCHANT, SAWYER, SCOUT, SMITH, JOINER, LOCKSMITH, WEAVER, SMELTER, GLASSBLOWER -> Items.EMERALD;
+            case MERCHANT, SAWYER, SCOUT, SMITH, JOINER, LOCKSMITH, WEAVER, SMELTER, GLASSBLOWER, SAILOR -> Items.EMERALD;
         }));
         activity("delivering", res.displayName(), carried);
         // a store that can't be walked to (a cliff, water between): after a while the load goes by cart, as it were

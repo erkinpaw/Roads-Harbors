@@ -60,6 +60,12 @@ public enum BuildingType {
     CARPENTER(Branch.WOOD, SAWMILL, null, 3, 1, Job.JOINER, 0xB07A4A, Items.CRAFTING_TABLE, 3, false, Map.of(Res.WOOD, 40, Res.PLANKS, 25, Res.STONE, 10)),
     /** The fishers' hut on the shore (one day, the village's port): its fisher catches fish off the shore. */
     FISH_HUT(Branch.COAST, null, null, 3, 1, Job.FISHER, 0x4A7AA0, Items.COD, 3, false, Map.of(Res.WOOD, 40, Res.STONE, 10)),
+    /**
+     * The pier: the skipper's house on the shore and a jetty out to deep water, the village's ships moored at it (a
+     * sloop; a brig at the second level; two brigs at the third). They trade over the sea with the other harbours.
+     */
+    PIER(Branch.COAST, FISH_HUT, null, 3, 1, Job.SAILOR, 0x2A5A8A, Items.OAK_BOAT, 3, false,
+            Map.of(Res.WOOD, 60, Res.PLANKS, 40, Res.STONE, 10)),
 
     // ---- trade
     /** The village stall: its merchant trades with the players (and one day, with other villages). */
@@ -166,7 +172,7 @@ public enum BuildingType {
     /** The level a building of the node before this one must have for this one to open (the woods and the mine: once the smithy stands). */
     public int opensAt() {
         return this == MINE_HOUSE || this == WOOD_HUT || this == CARPENTER || this == FARMYARD ? 1
-                : this == WEAVER || this == LOCKSMITH || this == SMELTER || this == GLASSWORKS ? 2 : 3;
+                : this == WEAVER || this == LOCKSMITH || this == SMELTER || this == GLASSWORKS || this == PIER ? 2 : 3;
     }
 
     public final Branch branch;

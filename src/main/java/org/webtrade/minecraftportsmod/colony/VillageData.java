@@ -41,8 +41,9 @@ public final class VillageData extends SavedData {
             }),
             Roadworks.Work.CODEC.listOf().optionalFieldOf("roadworks", List.of()).forGetter(d -> d.works),
             Codec.LONG.optionalFieldOf("minted", 0L).forGetter(d -> d.minted),
-            Codec.LONG.optionalFieldOf("burnt", 0L).forGetter(d -> d.burnt)
-    ).apply(i, (list, day, dayTicks, dayLength, nextId, trails, trips, lastTrip, forks, works, minted, burnt) -> {
+            Codec.LONG.optionalFieldOf("burnt", 0L).forGetter(d -> d.burnt),
+            Voyages.Sea.CODEC.optionalFieldOf("sea", Voyages.Sea.EMPTY).forGetter(Voyages::save)
+    ).apply(i, (list, day, dayTicks, dayLength, nextId, trails, trips, lastTrip, forks, works, minted, burnt, sea) -> {
         VillageData d = new VillageData();
         list.forEach(v -> d.villages.put(v.id, v));
         d.day = day;
@@ -60,6 +61,7 @@ public final class VillageData extends SavedData {
         d.works.addAll(works);
         d.minted = minted;
         d.burnt = burnt;
+        Voyages.load(d, sea);
         lastTrip.forEach((k, v) -> {
             try {
                 d.lastTrip.put(Integer.parseInt(k), v);
@@ -89,6 +91,24 @@ public final class VillageData extends SavedData {
     final Map<Integer, Long> lastTrip = new java.util.HashMap<>();
     /** Trails being built by the villages' crews, see {@link Roadworks}. */
     final List<Roadworks.Work> works = new ArrayList<>();
+    /** Ships at sea, the ways over the sea between harbours (and the pairs with none), the day each ship last came home: see {@link Voyages}. */
+    final List<Voyages.Voyage> voyages = new ArrayList<>();
+    final Map<Long, int[]> seaLanes = new LinkedHashMap<>();
+    final java.util.Set<Long> noSea = new java.util.HashSet<>();
+    final Map<Integer, Long> lastVoyage = new java.util.HashMap<>();
+
+    public List<Voyages.Voyage> voyages() {
+        return Collections.unmodifiableList(voyages);
+    }
+
+    /** Ways over the sea worked out, and pairs of harbours found to have none. */
+    public int seaLanes() {
+        return seaLanes.size();
+    }
+
+    public int noSeaLanes() {
+        return noSea.size();
+    }
     /**
      * Emeralds that came into the villages' hands other than from a player or from one another (a new village's
      * purse, a level reached, a vein found), and emeralds gone out of them (with a merchant lost on the road): all

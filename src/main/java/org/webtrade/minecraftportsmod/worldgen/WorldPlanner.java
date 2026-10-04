@@ -64,6 +64,8 @@ public final class WorldPlanner {
     static final double BUSY_TICK_MS = 35;
     /** Chunk radius generated to find the shore, and around the shore to build. */
     static final int SEARCH_CHUNKS = 3, BUILD_CHUNKS = 4;
+    /** Chunk radius loaded round an island being raised, and its rows raised every second. */
+    static final int ISLE_CHUNKS = 7, ISLE_ROWS = 10;
     /** Give up on a site whose chunks don't arrive in this many ticks. */
     static final int JOB_TIMEOUT = 20 * 180;
     /** No village closer than this to a port someone else founded. */
@@ -93,7 +95,7 @@ public final class WorldPlanner {
     private WorldPlanner() {
     }
 
-    private enum Phase {SEARCH, BUILD, CONSTRUCT}
+    private enum Phase {RAISE, SEARCH, BUILD, CONSTRUCT}
 
     private static final class Job {
         final WorldPlan.Site site;
@@ -106,6 +108,8 @@ public final class WorldPlanner {
         VillageBuilder.Survey land;
         Specialization spec;
         RandomSource rnd;
+        /** RAISE: the next row of the island to raise. */
+        int row;
 
         Job(WorldPlan.Site site) {
             this.site = site;
@@ -122,6 +126,7 @@ public final class WorldPlanner {
             predictor = null;
             for (Job j : JOBS) unforce(srv.overworld(), j);
             JOBS.clear();
+            RaisedIslands.clear();
             QUEUED_CELLS.clear();
             QUEUED_LANES.clear();
             QUEUED_PREDICTIONS.clear();
@@ -161,11 +166,62 @@ public final class WorldPlanner {
             return t;
         });
         KNOWN.clear();
-        for (WorldPlan.Site s : plan.sites()) KNOWN.add(new int[]{s.x, s.z});
+        RaisedIslands.clear();
+        for (WorldPlan.Site s : plan.sites()) {
+            KNOWN.add(new int[]{s.x, s.z});
+            if (s.isle != null && s.state != WorldPlan.State.FAILED) RaisedIslands.ISLES.add(s.isle());
+        }
         if (plan.enabled()) {
             BlockPos spawn = level.getRespawnData().pos();
+            planIslands(plan, spawn.getX(), spawn.getZ());
             planAround(plan, spawn.getX(), spawn.getZ(), INITIAL_RADIUS);
         }
+    }
+
+    /** Islands settled round the spawn (at most), and how far from it they are looked for. */
+    static final int ISLANDS = 2, ISLAND_RANGE = 2400;
+
+    /**
+     * The sea round the spawn searched once for islands big enough for a village; up to {@link #ISLANDS} of them get
+     * one (before the cells round them are planned: those keep their distance).
+     */
+    private static void planIslands(WorldPlan plan, int x, int z) {
+        if (plan.islandsSearched || !QUEUED_CELLS.add(Long.MIN_VALUE)) return;
+        worker.execute(() -> {
+            List<SiteSurvey.Found> found = new ArrayList<>();
+            try {
+                long t0 = System.currentTimeMillis();
+                found = survey.islands(x, z, ISLAND_RANGE, ISLANDS, KNOWN, () -> stopping);
+                for (SiteSurvey.Found f : found) KNOWN.add(new int[]{f.x(), f.z()});
+                Minecraftportsmod.LOGGER.info("Islands searched in {} s", (System.currentTimeMillis() - t0) / 1000);
+            } catch (Throwable t) {
+                Minecraftportsmod.LOGGER.error("Searching for islands failed", t);
+            }
+            final List<SiteSurvey.Found> list = found;
+            MinecraftServer srv = server;
+            if (srv != null) srv.execute(() -> {
+                QUEUED_CELLS.remove(Long.MIN_VALUE);
+                if (server == null || stopping) return;
+                WorldPlan wp = WorldPlan.get(srv);
+                wp.islandsSearched = true;
+                wp.setDirty();
+                for (SiteSurvey.Found f : list) addSite(wp, f);
+            });
+        });
+    }
+
+    private static void addSite(WorldPlan plan, SiteSurvey.Found found) {
+        List<String> taken = new ArrayList<>();
+        plan.sites().forEach(s -> taken.add(s.name));
+        PortData.get(server).ports().forEach(p -> taken.add(p.name()));
+        String name = Names.portName("ru".equals(plan.lang), taken);
+        WorldPlan.Site site = new WorldPlan.Site(plan.nextSiteId(), found.x(), found.z(), name, found.river());
+        site.island = found.island();
+        site.isle = found.isle();
+        if (site.isle != null) RaisedIslands.ISLES.add(site.isle());
+        plan.addSite(site);
+        Minecraftportsmod.LOGGER.info("Planned village {} at {}, {}{}{}", name, found.x(), found.z(), found.river() ? " (river)" : "",
+                found.island() ? " (island)" : "");
     }
 
     /** Turns the world plan on or off (admin). */
@@ -231,13 +287,7 @@ public final class WorldPlanner {
         if (plan.cellPlanned(cx, cz)) return;
         plan.markCell(cx, cz);
         if (found == null) return;
-        List<String> taken = new ArrayList<>();
-        plan.sites().forEach(s -> taken.add(s.name));
-        PortData.get(server).ports().forEach(p -> taken.add(p.name()));
-        String name = Names.portName("ru".equals(plan.lang), taken);
-        WorldPlan.Site site = new WorldPlan.Site(plan.nextSiteId(), found.x(), found.z(), name, found.river());
-        plan.addSite(site);
-        Minecraftportsmod.LOGGER.info("Planned village {} at {}, {}{}", name, found.x(), found.z(), found.river() ? " (river)" : "");
+        addSite(plan, found);
     }
 
     private static void queueLanes(WorldPlan plan) {
@@ -326,6 +376,27 @@ public final class WorldPlanner {
         }
     }
 
+    /**
+     * A way over the open water between two points, worked out in the background on the world's generator; {@code done}
+     * gets the points (x, z) on the server thread, or null if the waters don't join. False if it cannot be asked now
+     * (no generator to read: a flat world).
+     */
+    public static boolean seaLane(int ax, int az, int bx, int bz, java.util.function.Consumer<int[]> done) {
+        if (server == null || worker == null || survey == null) return false;
+        worker.execute(() -> {
+            int[] path = null;
+            try {
+                path = survey.lane(ax, az, bx, bz, () -> stopping);
+            } catch (Throwable t) {
+                Minecraftportsmod.LOGGER.error("Sea way {},{} -> {},{} failed", ax, az, bx, bz, t);
+            }
+            final int[] p = path;
+            MinecraftServer srv = server;
+            if (srv != null) srv.execute(() -> done.accept(p));
+        });
+        return true;
+    }
+
     /** Debug: what the generator says about a column. */
     public static String probe(int x, int z) {
         if (survey == null) return "no survey";
@@ -396,7 +467,13 @@ public final class WorldPlanner {
                 WorldPlan.Site next = nextSite(srv, plan);
                 if (next == null) break;
                 Job j = new Job(next);
-                force(level, j, next.x, next.z, SEARCH_CHUNKS);
+                if (next.isle != null && !next.raised) {
+                    // an island to raise first: all of it loaded
+                    j.phase = Phase.RAISE;
+                    force(level, j, next.isle[0], next.isle[1], ISLE_CHUNKS);
+                } else {
+                    force(level, j, next.x, next.z, SEARCH_CHUNKS);
+                }
                 JOBS.add(j);
             }
         }
@@ -462,6 +539,22 @@ public final class WorldPlanner {
             return;
         }
         WorldPlan.Site s = j.site;
+        if (j.phase == Phase.RAISE) {
+            if (!loaded(level, s.isle[0], s.isle[1], ISLE_CHUNKS)) return;
+            RaisedIslands.Isle isle = s.isle();
+            long t0 = System.nanoTime();
+            RaisedIslands.raise(level, isle, j.row, j.row + ISLE_ROWS);
+            org.webtrade.minecraftportsmod.Perf.report("raise " + s.name, t0);
+            j.row += ISLE_ROWS;
+            j.waited = 0;
+            if (j.row < RaisedIslands.rows(isle)) return;
+            s.raised = true;
+            plan.setDirty();
+            Minecraftportsmod.LOGGER.info("Island raised for {} at {}, {}", s.name, s.isle[0], s.isle[1]);
+            j.phase = Phase.SEARCH;
+            force(level, j, s.x, s.z, SEARCH_CHUNKS);
+            return;
+        }
         if (j.phase == Phase.SEARCH) {
             if (!loaded(level, s.x, s.z, SEARCH_CHUNKS)) return;
             long t0 = System.nanoTime();
@@ -532,9 +625,10 @@ public final class WorldPlanner {
         WorldPlan.Site s = j.site;
         VillageBuilder.Survey land = VillageBuilder.survey(level, j.spot.ground(), 32);
         var v = org.webtrade.minecraftportsmod.colony.VillageManager.foundCamp(level, j.spot.ground(), j.spot.toWater(), s.name,
-                "ru".equals(plan.lang), land.buildingWood());
+                "ru".equals(plan.lang), land.buildingWood(), s.island);
         plan.setState(s, WorldPlan.State.BUILT, -1);
-        Minecraftportsmod.LOGGER.info("Village {} (#{}) set up camp at {}", s.name, v.id, v.center.toShortString());
+        Minecraftportsmod.LOGGER.info("Village {} (#{}) set up camp at {}{}", s.name, v.id, v.center.toShortString(), s.island ? " (island)" : "");
+
     }
 
     /** Reads the land, picks the trade and sets up the construction (the old, ready-made villages with a port). */

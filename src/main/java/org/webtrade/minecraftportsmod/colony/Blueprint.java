@@ -79,6 +79,11 @@ public final class Blueprint {
      * 1 + the village's style ({@link Look}), each building with touches of its own by its seed.
      */
     public static Blueprint of(BuildingType type, Frame frame, String wood, long seed, Crop crop, int level, int look) {
+        return of(type, frame, wood, seed, crop, level, look, null);
+    }
+
+    /** The same, a pier with its jetty ({@code jetty}: see {@link Building#jetty}). */
+    public static Blueprint of(BuildingType type, Frame frame, String wood, long seed, Crop crop, int level, int look, int[] jetty) {
         Blueprint b = new Blueprint(type, frame, wood);
         if (look > 0) b.look = Look.make(b, look - 1, RandomSource.create(seed ^ 0x5DEECE66DL));
         RandomSource rnd = RandomSource.create(seed);
@@ -107,6 +112,7 @@ public final class Blueprint {
             case FARMYARD -> b.farmyard();
             case LOCKSMITH -> b.locksmith();
             case WEAVER, SMELTER, GLASSWORKS -> b.craftHouse();
+            case PIER -> b.pier(jetty);
         }
         b.upTo[1] = b.pieces.size();
         // the additions draw on their own dice: the building under them stays the same
@@ -499,6 +505,55 @@ public final class Blueprint {
         set(3, 1, 0, block("barrel").setValue(BlockStateProperties.FACING, Direction.UP));
     }
 
+    /**
+     * The pier: the skipper's cottage on the shore (rope, barrels, a bell at the door), and the jetty from the edge of
+     * the plot out over the water: a deck of planks three wide on log piles, rails along it with a gap at the end
+     * where the ships come alongside, a lantern at each corner of its head.
+     */
+    private void pier(int[] jetty) {
+        BlockState planks = wood("planks");
+        cottage(2, wood("log"), planks, planks, planks);
+        oneBed("blue");
+        set(3, 0, 0, barrel());
+        set(3, 0, 1, barrel());
+        set(3, 1, 0, block("hay_block"));
+        set(-3, 0, 1, block("bell").setValue(BlockStateProperties.HORIZONTAL_FACING, frame.right()));
+        if (jetty == null) return;
+        Direction out = Direction.from2DDataValue(jetty[0]), side = out.getClockWise();
+        int deck = Math.max(frame.origin().getY() - 1, jetty[2] - 1), reach = jetty[1], h = type.half;
+        BlockState log = wood("log").setValue(BlockStateProperties.AXIS, Direction.Axis.Y);
+        java.util.function.BiFunction<Integer, Integer, BlockPos> at = (k, w) -> new BlockPos(
+                frame.origin().getX() + out.getStepX() * (h + k) + side.getStepX() * w, deck,
+                frame.origin().getZ() + out.getStepZ() * (h + k) + side.getStepZ() * w);
+        // the deck (wider at its head), headroom cleared over it
+        for (int k = 1; k <= reach + 1; k++) {
+            int wide = k >= reach ? 2 : 1;
+            for (int w = -wide; w <= wide; w++) {
+                BlockPos p = at.apply(k, w);
+                pieces.add(new Piece(p.above(), Blocks.AIR.defaultBlockState(), false));
+                pieces.add(new Piece(p.above(2), Blocks.AIR.defaultBlockState(), false));
+                pieces.add(new Piece(p, planks, false));
+            }
+        }
+        // the piles: down into the sea floor
+        for (int k = 2; k <= reach + 1; k += 3) {
+            for (int w : new int[]{-1, 1}) {
+                BlockPos p = at.apply(k, w);
+                for (int y = deck - 1; y >= jetty[2] - 6; y--) pieces.add(new Piece(new BlockPos(p.getX(), y, p.getZ()), log, false));
+            }
+        }
+        // the rails, and the lanterns at the head
+        for (int k = 1; k < reach; k++) {
+            for (int w : new int[]{-1, 1}) pieces.add(new Piece(at.apply(k, w).above(), wood("fence"), true));
+        }
+        for (int w : new int[]{-2, 2}) {
+            BlockPos p = at.apply(reach + 1, w).above();
+            pieces.add(new Piece(p, wood("fence"), true));
+            pieces.add(new Piece(p.above(), block("lantern"), false));
+        }
+        workSpot = at.apply(Math.max(1, reach - 2), 0).above();
+    }
+
     /** The farmstead: a barn with hay by it and a composter. */
     private void farm() {
         BlockState planks = wood("planks");
@@ -694,6 +749,13 @@ public final class Blueprint {
                 if (level == 2) porch(rnd);
                 else {
                     set(3, 0, 0, block("lectern").setValue(BlockStateProperties.HORIZONTAL_FACING, frame.right().getOpposite()));
+                    lampPost();
+                    chimney();
+                }
+            }
+            case PIER -> {
+                if (level == 2) porch(rnd);
+                else {
                     lampPost();
                     chimney();
                 }

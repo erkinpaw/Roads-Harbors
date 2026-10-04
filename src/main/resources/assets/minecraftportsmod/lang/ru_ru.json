@@ -1079,5 +1079,22 @@
   "entity.minecraftportsmod.sailor": "Матрос",
   "entity.minecraftportsmod.sailor.captain": "Капитан",
   "entity.minecraftportsmod.sailor.pirate_captain": "Капитан пиратов",
-  "entity.minecraftportsmod.musket_ball": "Мушкетная пуля"
+  "entity.minecraftportsmod.musket_ball": "Мушкетная пуля",
+  "minecraftportsmod.building.pier": "Пристань",
+  "minecraftportsmod.tree.desc.pier": "Дом шкипера на берегу и причал до глубокой воды. Корабли деревни торгуют по морю с другими гаванями: шлюп, потом бриг, потом два брига.",
+  "minecraftportsmod.bmenu.level_gives.pier": "Уровень %s: корабль больше, потом второй корабль.",
+  "minecraftportsmod.job.sailor": "Шкипер",
+  "minecraftportsmod.profession.sailor": "Шкипер",
+  "minecraftportsmod.act.at_pier": "На причале, у кораблей",
+  "entity.minecraftportsmod.trade_ship": "Торговый корабль",
+  "minecraftportsmod.vlog.ship_round": "%s вышел в море (%s): везёт %s, на покупки %s изумрудов.",
+  "minecraftportsmod.vlog.ship_round_buy": "%s вышел в море за покупками (%s) с %s изумрудами.",
+  "minecraftportsmod.vlog.ship_at": "Корабль шкипера %s в гавани %s: продано %s за %s изумр., куплено %s за %s.",
+  "minecraftportsmod.vlog.ship_sold": "%s, шкипер из %s, продал нам с корабля %s × %s за %s изумр.",
+  "minecraftportsmod.vlog.ship_bought": "%s погрузил у нас для %s %s × %s за %s изумр.",
+  "minecraftportsmod.vlog.ship_home": "Корабль шкипера %s вернулся: привёз %s и %s изумрудов.",
+  "minecraftportsmod.vlog.ship_home_empty": "Корабль шкипера %s вернулся без груза, с %s изумрудами.",
+  "minecraftportsmod.sea.at_pier": "у причала",
+  "minecraftportsmod.sea.bound": "идёт в %s: везёт %s, в кошельке %s изумр.",
+  "minecraftportsmod.sea.coming_home": "возвращается домой: везёт %s, в кошельке %s изумр."
 }

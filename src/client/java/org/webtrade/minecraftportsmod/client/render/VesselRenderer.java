@@ -53,6 +53,11 @@ public class VesselRenderer extends EntityRenderer<VesselEntity, VesselRenderSta
     private static ShipModel.Spec sloopSpec;
     private static ShipModel.Spec brigSpec;
 
+    /** The sloop's model file (for the villages' trade ships). */
+    public static ShipModel.Spec sloopSpec() {
+        return sloopSpec;
+    }
+
     /** The brig's model file (for the warships, drawn bigger). */
     public static ShipModel.Spec brigSpec() {
         return brigSpec;
