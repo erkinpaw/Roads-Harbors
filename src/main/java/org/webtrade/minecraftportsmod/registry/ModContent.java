@@ -96,6 +96,15 @@ public final class ModContent {
                 .updateInterval(1));
     }
 
+    /** A warship's sailor (her captain, a gunner, a marine, a hand): kept by his ship, never saved himself. */
+    public static final EntityType<org.webtrade.minecraftportsmod.combat.SailorEntity> SAILOR = entity("sailor",
+            EntityType.Builder.<org.webtrade.minecraftportsmod.combat.SailorEntity>of(org.webtrade.minecraftportsmod.combat.SailorEntity::new, MobCategory.MISC)
+                    .sized(0.6F, 1.8F).eyeHeight(1.62F).noSave().noSummon().clientTrackingRange(10).updateInterval(1));
+    public static final EntityType<org.webtrade.minecraftportsmod.combat.MusketBallEntity> MUSKET_BALL = entity("musket_ball",
+            EntityType.Builder.<org.webtrade.minecraftportsmod.combat.MusketBallEntity>of(org.webtrade.minecraftportsmod.combat.MusketBallEntity::new, MobCategory.MISC)
+                    .sized(0.15F, 0.15F).noSave().noSummon().noLootTable().clientTrackingRange(8).updateInterval(1));
+    public static final Item MUSKET_ITEM = item("musket", p -> new org.webtrade.minecraftportsmod.combat.MusketItem(p.stacksTo(1)));
+
     public static final EntityType<org.webtrade.minecraftportsmod.combat.CannonballEntity> CANNONBALL = entity("cannonball",
             EntityType.Builder.<org.webtrade.minecraftportsmod.combat.CannonballEntity>of(org.webtrade.minecraftportsmod.combat.CannonballEntity::new, MobCategory.MISC)
                     .noLootTable()
@@ -122,6 +131,9 @@ public final class ModContent {
     public static void register() {
         net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry.register(RESIDENT,
                 org.webtrade.minecraftportsmod.village.ResidentEntity.createAttributes());
+        net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry.register(SAILOR,
+                org.webtrade.minecraftportsmod.combat.SailorEntity.createAttributes());
+        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.COMBAT).register(output -> output.accept(MUSKET_ITEM));
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(output -> {
             output.accept(PORT_OFFICE_ITEM);
         });

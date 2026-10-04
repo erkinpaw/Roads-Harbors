@@ -961,5 +961,10 @@
   "item.minecraftportsmod.ship_of_the_line_spawn_egg": "Яйцо призыва линейного корабля",
   "entity.minecraftportsmod.galleon": "Галеон",
   "entity.minecraftportsmod.ship_of_the_line": "Линейный корабль",
-  "key.minecraftportsmod.broadside": "Сменить борт (корабль)"
+  "key.minecraftportsmod.broadside": "Сменить борт (корабль)",
+  "item.minecraftportsmod.musket": "Мушкет",
+  "entity.minecraftportsmod.sailor": "Матрос",
+  "entity.minecraftportsmod.sailor.captain": "Капитан",
+  "entity.minecraftportsmod.sailor.pirate_captain": "Капитан пиратов",
+  "entity.minecraftportsmod.musket_ball": "Мушкетная пуля"
 }

@@ -31,6 +31,8 @@ public class MinecraftportsmodClient implements ClientModInitializer {
         EntityRendererRegistry.register(ModContent.GALLEON, org.webtrade.minecraftportsmod.client.render.WarshipRenderer::new);
         EntityRendererRegistry.register(ModContent.SHIP_OF_THE_LINE, org.webtrade.minecraftportsmod.client.render.WarshipRenderer::new);
         EntityRendererRegistry.register(ModContent.CANNONBALL, org.webtrade.minecraftportsmod.client.render.CannonballRenderer::new);
+        EntityRendererRegistry.register(ModContent.SAILOR, org.webtrade.minecraftportsmod.client.render.SailorRenderer::new);
+        EntityRendererRegistry.register(ModContent.MUSKET_BALL, net.minecraft.client.renderer.entity.NoopRenderer::new);
         CombatClient.init();
 
         KeyMappingHelper.registerKeyMapping(MinecraftportsmodKeys.CHART);

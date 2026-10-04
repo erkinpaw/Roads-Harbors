@@ -75,13 +75,13 @@ public class ShipLookClientGameTest implements FabricClientGameTest {
             double[] xs = {-40, 10, 70, 10}, zs = {0, 0, 0, 40};
             for (int i = 0; i < 4; i++) {
                 double x = xs[i], z = zs[i];
-                camera(server, x, -55, z - 30, 0, 8);
+                camera(server, x, -56, z - 20, 0, 6);
                 context.waitTicks(30);
                 context.takeScreenshot("shiplook_" + names[i] + "_side");
-                camera(server, x + 26, -52, z - 18, 55, 10);
+                camera(server, x + 16, -54, z - 12, 55, 10);
                 context.waitTicks(30);
                 context.takeScreenshot("shiplook_" + names[i] + "_quarter");
-                camera(server, x - 14, -30, z - 10, -55, 50);
+                camera(server, x - 10, -42, z - 8, -55, 50);
                 context.waitTicks(30);
                 context.takeScreenshot("shiplook_" + names[i] + "_above");
             }
