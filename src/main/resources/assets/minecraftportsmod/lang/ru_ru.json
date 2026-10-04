@@ -1096,5 +1096,6 @@
   "minecraftportsmod.vlog.ship_home_empty": "Корабль шкипера %s вернулся без груза, с %s изумрудами.",
   "minecraftportsmod.sea.at_pier": "у причала",
   "minecraftportsmod.sea.bound": "идёт в %s: везёт %s, в кошельке %s изумр.",
-  "minecraftportsmod.sea.coming_home": "возвращается домой: везёт %s, в кошельке %s изумр."
+  "minecraftportsmod.sea.coming_home": "возвращается домой: везёт %s, в кошельке %s изумр.",
+  "minecraftportsmod.sea.ships": "Корабли: %s."
 }
