@@ -363,6 +363,14 @@ public class RoadworkClientGameTest implements FabricClientGameTest {
                         log("bridge pile at {}", q.toShortString());
                         continue;
                     }
+                    // (a post of a house the village has put up there since: not a tree)
+                    BlockPos foot = q;
+                    while (l.getBlockState(foot.below()).is(BlockTags.LOGS)) foot = foot.below();
+                    var under = l.getBlockState(foot.below());
+                    if (under.is(BlockTags.PLANKS) || under.is(Blocks.COBBLESTONE) || under.is(BlockTags.STAIRS) || under.is(BlockTags.SLABS)) {
+                        log("a house post at {}", q.toShortString());
+                        continue;
+                    }
                     double off = 1e9;
                     for (int i = 0; i + 1 < p.length; i += 2) off = Math.min(off, Math.hypot(p[i] - q.getX(), p[i + 1] - q.getZ()));
                     // (a tree beside the cutting, not in it: it stays)

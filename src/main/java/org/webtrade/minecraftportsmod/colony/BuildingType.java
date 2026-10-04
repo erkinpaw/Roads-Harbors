@@ -66,6 +66,11 @@ public enum BuildingType {
      */
     PIER(Branch.COAST, FISH_HUT, null, 3, 1, Job.SAILOR, 0x2A5A8A, Items.OAK_BOAT, 3, false,
             Map.of(Res.WOOD, 60, Res.PLANKS, 40, Res.STONE, 10)),
+    /**
+     * A ship on the stocks by the pier: not a node of the tree, a site whose materials are brought like any building's
+     * (by the village out of what it can spare, and by players at its post on the jetty); see {@link Harbour#shipyard}.
+     */
+    SHIP(Branch.COAST, null, null, 0, 0, null, 0x8A6A3A, Items.OAK_BOAT, 1, true, Map.of()),
 
     // ---- trade
     /** The village stall: its merchant trades with the players (and one day, with other villages). */
@@ -230,7 +235,7 @@ public enum BuildingType {
 
     /** A node of the tree (the middle and the tents are not). */
     public boolean isNode() {
-        return !isCenter() && this != TENT;
+        return !isCenter() && this != TENT && this != SHIP;
     }
 
     /** The middle's next step: the building this one can be rebuilt into, or null. */

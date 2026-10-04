@@ -293,12 +293,19 @@ public final class Voyages {
     }
 
     private static void setOut(VillageData data, Village v, Dweller s, int ship, long today) {
-        int cap = Harbour.load(v);
+        setOut(data, v, s, ship, today, null);
+    }
+
+    /** {@code first}: a harbour the ship sails to first whatever the trade there (a player's passage), or null. */
+    private static Voyage setOut(VillageData data, Village v, Dweller s, int ship, long today, Village first) {
+        int cap = Harbour.load(v, ship);
         EnumMap<Res, Integer> spare = new EnumMap<>(Res.class);
         for (Res r : Caravans.GOODS) if (Caravans.spare(v, r) > 0) spare.put(r, Caravans.spare(v, r));
         int money = v.emeralds;
         // (what the other ship of the village carries already is not loaded twice)
-        Voyage other = voyageOf(data, v.id, 1 - ship);
+        Voyage other = null;
+        for (Voyage o : data.voyages) if (o.from == v.id && o.ship != ship) other = o;
+
         List<Village> can = new ArrayList<>();
         Map<Integer, Double> worth = new HashMap<>();
         for (Village o : harbours(data)) {
@@ -311,7 +318,7 @@ public final class Voyages {
             can.add(o);
             worth.put(o.id, w);
         }
-        if (can.isEmpty()) {
+        if (can.isEmpty() && first == null) {
             stayed++;
             if (today % 10 == 0) {
                 int lanes = 0, spareAll = 0;
@@ -320,13 +327,20 @@ public final class Voyages {
                 Minecraftportsmod.LOGGER.info("[sea] #{} {} ship {} stays: {} harbours in reach, {} to spare, {} emeralds", v.id, v.name, ship, lanes,
                         spareAll, money);
             }
-            return;
+            return null;
         }
         can.sort((x, y) -> Double.compare(worth.get(y.id), worth.get(x.id)));
-        List<Village> chosen = new ArrayList<>(can.subList(0, Math.min(MAX_STOPS, can.size())));
+        if (first != null) can.remove(first);
+        List<Village> chosen = new ArrayList<>(can.subList(0, Math.min(first != null ? MAX_STOPS - 1 : MAX_STOPS, can.size())));
         List<Village> round = new ArrayList<>();
         int at = v.id;
         double sailed_ = 0;
+        if (first != null) {
+            round.add(first);
+            int[] l = lane(data, v.id, first.id);
+            sailed_ = l == null ? 0 : length(l);
+            at = first.id;
+        }
         while (!chosen.isEmpty()) {
             Village next = null;
             double nearest = Double.MAX_VALUE;
@@ -345,7 +359,7 @@ public final class Voyages {
             sailed_ += nearest;
             at = next.id;
         }
-        if (round.isEmpty()) return;
+        if (round.isEmpty()) return null;
         EnumMap<Res, Integer> load = new EnumMap<>(Res.class);
         int total = 0;
         List<Res> byWorth = new ArrayList<>(List.of(Caravans.GOODS));
@@ -367,9 +381,9 @@ public final class Voyages {
             toBuy += Math.min(Caravans.short_(v, r), there);
         }
         int purse = Math.min(v.emeralds, (int) Math.ceil(buy * 1.2));
-        if (total + (purse > 0 ? toBuy : 0) < MIN_DEAL) {
+        if (total + (purse > 0 ? toBuy : 0) < MIN_DEAL && first == null) {
             stayed++;
-            return;
+            return null;
         }
         for (var e : load.entrySet()) v.add(e.getKey(), -e.getValue());
         v.emeralds -= purse;
@@ -387,6 +401,93 @@ public final class Voyages {
                 ? Component.translatable("minecraftportsmod.vlog.ship_round", s.name, names, Caravans.goods(load), purse)
                 : Component.translatable("minecraftportsmod.vlog.ship_round_buy", s.name, names, purse)).withStyle(ChatFormatting.DARK_AQUA));
         Minecraftportsmod.LOGGER.info("[sea] #{} {} ship {} sets out for {} with {} and {} emeralds", v.id, v.name, ship, names.getString(), load, purse);
+        return t;
+    }
+
+    // ------------------------------------------------------------------ passengers
+
+    /** What a passage costs: an emerald for every 250 blocks of the way, two at least. */
+    static int fare(int[] lane) {
+        return Math.max(2, (int) Math.ceil(length(lane) / 250));
+    }
+
+    /** A ship of the village at its pier, free to sail now (-1: none). */
+    private static int freeShip(VillageData data, Village v) {
+        for (int i = 0; i < Harbour.ships(v); i++) if (voyageOf(data, v.id, i) == null) return i;
+        return -1;
+    }
+
+    /** Where a skipper at home with a ship free at the pier will take a player, and for how much (the nearest first, six at most). */
+    public static List<org.webtrade.minecraftportsmod.network.ColonyPayloads.Passage> passages(VillageData data, Village v, Dweller s) {
+        List<org.webtrade.minecraftportsmod.network.ColonyPayloads.Passage> out = new ArrayList<>();
+        if (s.away || freeShip(data, v) < 0) return out;
+        for (Voyage t : data.voyages) if (t.from == v.id && t.sailor == s.id) return out;
+        List<Village> hs = harbours(data);
+        hs.sort(java.util.Comparator.comparingDouble(o -> {
+            int[] l = lane(data, v.id, o.id);
+            return l == null ? Double.MAX_VALUE : length(l);
+        }));
+        for (Village o : hs) {
+            if (o.id == v.id) continue;
+            int[] l = lane(data, v.id, o.id);
+            if (l == null || out.size() >= 6) continue;
+            out.add(new org.webtrade.minecraftportsmod.network.ColonyPayloads.Passage(o.id, o.name, fare(l)));
+        }
+        return out;
+    }
+
+    /**
+     * A player pays for a passage to {@code to}: the skipper puts to sea with him at once, on a round that calls there
+     * first (and trades as usual); the player stands on deck, and is put ashore on the jetty there.
+     */
+    public static boolean charter(net.minecraft.server.level.ServerPlayer player, VillageData data, Village v, Dweller s, int to) {
+        Village target = data.get(to);
+        int ship = freeShip(data, v);
+        Building pier = Harbour.pier(v);
+        int[] lane = target == null ? null : lane(data, v.id, target.id);
+        if (target == null || ship < 0 || pier == null || lane == null || s.away || s.job != Job.SAILOR) return false;
+        int fare = fare(lane);
+        var inv = player.getInventory();
+        if (inv.countItem(net.minecraft.world.item.Items.EMERALD) < fare) return false;
+        Voyage t = setOut(data, v, s, ship, data.day, target);
+        if (t == null) return false;
+        int left = fare;
+        for (int i = 0; i < inv.getContainerSize() && left > 0; i++) {
+            var st = inv.getItem(i);
+            if (!st.is(net.minecraft.world.item.Items.EMERALD)) continue;
+            int n = Math.min(left, st.getCount());
+            st.shrink(n);
+            left -= n;
+        }
+        v.emeralds += fare;
+        ServerLevel level = (ServerLevel) player.level();
+        TradeShipEntity e = org.webtrade.minecraftportsmod.registry.ModContent.TRADE_SHIP.create(level, net.minecraft.world.entity.EntitySpawnReason.MOB_SUMMONED);
+        if (e != null) {
+            drop(MOORED.remove(bodyKey(v.id, ship)));
+            e.sail(Harbour.tier(v, ship), lane, 0, level.getSeaLevel(), t.amount() > 0, a -> pace(a[0], a[1], a[2], a[3]));
+            level.addFreshEntity(e);
+            BODIES.put(bodyKey(v.id, ship), e);
+            player.startRiding(e, true, true);
+        }
+        v.log(data.day, Component.translatable("minecraftportsmod.vlog.passage", player.getName(), target.name, fare).withStyle(ChatFormatting.GOLD));
+        data.changed();
+        return true;
+    }
+
+    /** Players on deck put ashore at a harbour: on its jetty (or its middle, with no jetty). */
+    private static void ashore(TradeShipEntity body, Village there) {
+        if (body == null || there == null || body.getPassengers().isEmpty()) return;
+        Building pier = Harbour.pier(there);
+        BlockPos to = there.center;
+        if (pier != null) {
+            net.minecraft.core.Direction out = Harbour.out(pier);
+            int k = pier.type.half + Math.max(1, pier.jetty[1] - 1);
+            to = new BlockPos(pier.origin.getX() + out.getStepX() * k, pier.origin.getY(), pier.origin.getZ() + out.getStepZ() * k);
+        }
+        for (var p : new ArrayList<>(body.getPassengers())) {
+            p.stopRiding();
+            p.teleportTo(to.getX() + 0.5, to.getY() + 0.1, to.getZ() + 0.5);
+        }
     }
 
     // ------------------------------------------------------------------ at a harbour
@@ -394,7 +495,7 @@ public final class Voyages {
     /** At a harbour of the round: sold what it is short of (as it can pay), bought what home is short of. On to the next, or home. */
     private static void arrive(VillageData data, Voyage t, Village home, Village there, Dweller s, long today) {
         arrivals++;
-        int cap = Math.max(Harbour.load(home), t.amount());
+        int cap = Math.max(Harbour.load(home, t.ship), t.amount());
         EnumMap<Res, Integer> sold = new EnumMap<>(Res.class), bought = new EnumMap<>(Res.class);
         int earned = 0, paid = 0;
         for (Res r : Caravans.GOODS) {
@@ -536,7 +637,7 @@ public final class Voyages {
                     TradeShipEntity e = org.webtrade.minecraftportsmod.registry.ModContent.TRADE_SHIP.create(level,
                             net.minecraft.world.entity.EntitySpawnReason.MOB_SUMMONED);
                     if (e != null) {
-                        e.sail(Harbour.tier(home), p, t.at, level.getSeaLevel(), t.amount() > 0, a -> pace(a[0], a[1], a[2], a[3]));
+                        e.sail(Harbour.tier(home, t.ship), p, t.at, level.getSeaLevel(), t.amount() > 0, a -> pace(a[0], a[1], a[2], a[3]));
                         level.addFreshEntity(e);
                         BODIES.put(k, e);
                     }
@@ -552,7 +653,10 @@ public final class Voyages {
         if (t.at < length(p) - 2) return;
         Village home = data.get(t.from), there = data.get(t.to);
         Dweller s = home.dweller(t.sailor);
-        drop(BODIES.remove(bodyKey(t.from, t.ship)));
+        TradeShipEntity body = BODIES.remove(bodyKey(t.from, t.ship));
+        ashore(body, there);
+        drop(body);
+
         if (!t.back) arrive(data, t, home, there, s, data.day);
         else {
             comeHome(data, t, home, s, data.day);
@@ -587,6 +691,28 @@ public final class Voyages {
         for (Village v : harbours(data)) {
             Building pier = Harbour.pier(v);
             if (pier == null || !playerNear(level, pier.origin.getX(), pier.origin.getZ(), PIER_SEEN)) continue;
+            // the one being built: a bare hull at her berth
+            if (Harbour.building(v) && v.ships < Harbour.MAX_SHIPS) {
+                int i = v.ships;
+                long k = bodyKey(v.id, i);
+                Vec3 at = Harbour.berth(pier, i);
+                BlockPos bp = BlockPos.containing(at);
+                if (level.hasChunkAt(bp) && level.isPositionEntityTicking(bp)) {
+                    keep.add(k);
+                    TradeShipEntity e = MOORED.get(k);
+                    if (e == null || e.isRemoved() || !e.onStocks()) {
+                        drop(e);
+                        e = org.webtrade.minecraftportsmod.registry.ModContent.TRADE_SHIP.create(level, net.minecraft.world.entity.EntitySpawnReason.MOB_SUMMONED);
+                        if (e != null) {
+                            e.stocks(v.id, Harbour.tier(v, i), at, Harbour.berthYaw(pier));
+                            level.addFreshEntity(e);
+                            MOORED.put(k, e);
+                        }
+                    } else {
+                        e.stocks(v.id, Harbour.tier(v, i), at, Harbour.berthYaw(pier));
+                    }
+                }
+            }
             for (int i = 0; i < Harbour.ships(v); i++) {
                 if (voyageOf(data, v.id, i) != null) continue;
                 long k = bodyKey(v.id, i);
@@ -595,14 +721,15 @@ public final class Voyages {
                 if (!level.hasChunkAt(bp) || !level.isPositionEntityTicking(bp)) continue;
                 keep.add(k);
                 TradeShipEntity e = MOORED.get(k);
-                if (e == null || e.isRemoved()) {
+                if (e == null || e.isRemoved() || e.onStocks()) {
+                    drop(e);
                     e = org.webtrade.minecraftportsmod.registry.ModContent.TRADE_SHIP.create(level, net.minecraft.world.entity.EntitySpawnReason.MOB_SUMMONED);
                     if (e == null) continue;
-                    e.moor(Harbour.tier(v), at, Harbour.berthYaw(pier), false);
+                    e.moor(Harbour.tier(v, i), at, Harbour.berthYaw(pier), false);
                     level.addFreshEntity(e);
                     MOORED.put(k, e);
                 }
-                e.moor(Harbour.tier(v), at, Harbour.berthYaw(pier), false);
+                e.moor(Harbour.tier(v, i), at, Harbour.berthYaw(pier), false);
             }
         }
         for (var it = MOORED.entrySet().iterator(); it.hasNext(); ) {

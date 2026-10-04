@@ -91,7 +91,8 @@ public final class ColonyService {
                 d.job == null ? -1 : d.job.ordinal(), d.child(data.day), d.elder, e.activity(), homeText, data.day - d.joined, orders, questState(player, v, d),
                 d.elder && Plots.of(v, player.getUUID()) == null ? Plots.price(v, player.getUUID()) : -1,
                 Helping.hired(v, player.getUUID()) == null ? -1 : Helping.hired(v, player.getUUID()).ordinal(), Helping.brought(v, player.getUUID()),
-                Helping.hired(v, player.getUUID()) == null ? 0 : Helping.quota(v, Helping.hired(v, player.getUUID()))));
+                Helping.hired(v, player.getUUID()) == null ? 0 : Helping.quota(v, Helping.hired(v, player.getUUID())),
+                d.job == Job.SAILOR ? Voyages.passages(data, v, d) : java.util.List.of()));
     }
 
     /** A person's task as this player sees it: 0 none, 1 one to take, 2 taken by them, 3 taken by someone else. */
@@ -474,6 +475,13 @@ public final class ColonyService {
                 player.sendSystemMessage((j == null ? Component.translatable("minecraftportsmod.work.left", v.name)
                         : Component.translatable("minecraftportsmod.work.hired", j.displayName(), Helping.quota(v, j))).withStyle(ChatFormatting.GOLD), true);
                 player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 0.6F, 1.0F);
+            }
+            case ColonyPayloads.VillageAction.PASSAGE -> {
+                Dweller d = v.dweller(a.a());
+                boolean ok = d != null && Voyages.charter(player, data, v, d, a.b());
+                if (!ok) player.sendSystemMessage(Component.translatable("minecraftportsmod.sea.no_passage").withStyle(ChatFormatting.RED), true);
+                player.level().playSound(null, player.blockPosition(), ok ? SoundEvents.VILLAGER_YES : SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 0.6F, 1.0F);
+                if (ok) player.closeContainer();
             }
             case ColonyPayloads.VillageAction.PLOT_BUY -> {
                 boolean ok = Plots.buy(player, data, v);

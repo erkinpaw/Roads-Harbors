@@ -23,7 +23,7 @@ import org.webtrade.minecraftportsmod.worldgen.WorldPlan;
 public class IslandClientGameTest implements FabricClientGameTest {
 
     /** Worlds ("seed" or "seed:d150" for that many days). */
-    private static final String[] SEEDS = {"4242:d60:ships"};
+    private static final String[] SEEDS = {"4242:d70:ships:passage"};
     private static final int VILLAGES = 10;
 
     private static void log(String seed, String fmt, Object... args) {
@@ -120,6 +120,8 @@ public class IslandClientGameTest implements FabricClientGameTest {
                 sp.getConnection().waitForChunksRender();
                 context.waitTicks(100);
                 context.takeScreenshot("island_village");
+                // (":passage") a player pays a skipper for a passage, sails with him and is put ashore at the other harbour
+                if (spec.contains(":passage")) passage(context, sp, server, spec);
                 // a ship at sea, from above: a day or two more till one sets out, then the time for her to get away
                 for (int extra = 0; extra < 8; extra++) {
                     boolean[] out = {false};
@@ -159,7 +161,72 @@ public class IslandClientGameTest implements FabricClientGameTest {
         }
     }
 
+    private static void passage(ClientGameTestContext context, TestSingleplayerContext sp, TestServerContext server, String spec) {
+        int[] trip = {-1, -1, -1, 0};
+        for (int day = 0; day < 20 && trip[0] < 0; day++) {
+            server.runOnServer(s -> {
+                VillageData data = VillageData.get(s);
+                for (Village v : data.all()) {
+                    for (var d : v.dwellers()) {
+                        if (d.job() != org.webtrade.minecraftportsmod.colony.Job.SAILOR) continue;
+                        var list = Voyages.passages(data, v, d);
+                        if (list.isEmpty()) continue;
+                        trip[0] = v.id;
+                        trip[1] = d.id;
+                        trip[2] = list.getFirst().village();
+                        trip[3] = list.getFirst().price();
+                        return;
+                    }
+                }
+            });
+            if (trip[0] >= 0) break;
+            server.runOnServer(s -> s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), "village day"));
+            context.waitTicks(20);
+        }
+        if (trip[0] < 0) throw new AssertionError("no skipper to take a passage with");
+        log(spec, "passage from #{} with skipper {} to #{} for {} emeralds", trip[0], trip[1], trip[2], trip[3]);
+        server.runCommand("gamemode survival @a");
+        server.runCommand("effect give @a minecraft:resistance 1000 4 true");
+        server.runOnServer(s -> {
+            VillageData data = VillageData.get(s);
+            Village v = data.get(trip[0]);
+            var pl = s.getPlayerList().getPlayers().getFirst();
+            var pier = v.buildings().stream().filter(b -> b.type == BuildingType.PIER).findFirst().orElseThrow();
+            pl.teleportTo(pier.origin.getX() + 0.5, pier.origin.getY() + 1, pier.origin.getZ() + 0.5);
+            pl.getInventory().add(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.EMERALD, trip[3] + 5));
+        });
+        context.waitTicks(60);
+        boolean[] ok = {false};
+        server.runOnServer(s -> {
+            VillageData data = VillageData.get(s);
+            Village v = data.get(trip[0]);
+            var pl = s.getPlayerList().getPlayers().getFirst();
+            ok[0] = Voyages.charter(pl, data, v, v.dweller(trip[1]), trip[2]);
+            log(spec, "chartered: {}, riding {}, emeralds left {}", ok[0], pl.getVehicle(), pl.getInventory().countItem(net.minecraft.world.item.Items.EMERALD));
+        });
+        if (!ok[0]) throw new AssertionError("the passage was refused");
+        context.waitTicks(20 * 20);
+        context.takeScreenshot("passage_aboard");
+        // sailing: till put ashore (at most ten minutes)
+        boolean[] ashore = {false};
+        for (int k = 0; k < 60 && !ashore[0]; k++) {
+            context.waitTicks(200);
+            final int kk = k;
+            server.runOnServer(s -> {
+                var pl = s.getPlayerList().getPlayers().getFirst();
+                Village to = VillageData.get(s).get(trip[2]);
+                double far = Math.hypot(pl.getX() - to.center.getX(), pl.getZ() - to.center.getZ());
+                if (kk % 3 == 0) log(spec, "aboard: {} at {} ({} from the harbour)", pl.getVehicle() != null, pl.blockPosition().toShortString(), (int) far);
+                ashore[0] = pl.getVehicle() == null && far < 80;
+            });
+        }
+        context.takeScreenshot("passage_ashore");
+        server.runCommand("gamemode spectator @a");
+        if (!ashore[0]) throw new AssertionError("the player was not put ashore at the harbour");
+    }
+
     private static int islandSites(net.minecraft.server.MinecraftServer s) {
+
         int n = 0;
         for (WorldPlan.Site site : WorldPlan.get(s).sites()) if (site.island && site.state() != WorldPlan.State.FAILED) n++;
         return n;

@@ -45,6 +45,8 @@ public class TradeShipRenderer extends EntityRenderer<TradeShipEntity, VesselRen
         state.yRot = ship.getYRot(partialTick);
         state.tier = Math.max(1, Math.min(2, ship.tier()));
         state.sailing = ship.sailing();
+        // (on the stocks: a bare hull, no sails bent on)
+        state.hullId = ship.onStocks() ? "stocks" : "";
         state.cargo.clear();
         if (ship.laden()) {
             for (net.minecraft.world.item.Item item : CARGO_ITEMS) {
@@ -75,6 +77,11 @@ public class TradeShipRenderer extends EntityRenderer<TradeShipEntity, VesselRen
         pose.mulPose(Axis.YP.rotationDegrees(180.0F));
         pose.scale(model.scale(), model.scale(), model.scale());
         collector.submitModel(model, state, pose, texture, state.lightCoords, OverlayTexture.NO_OVERLAY, state.outlineColor, null);
+        if ("stocks".equals(state.hullId)) {
+            pose.popPose();
+            super.submit(state, pose, collector, camera);
+            return;
+        }
         boolean sailing = state.sailing;
         int light = state.lightCoords;
         float age = state.ageInTicks;

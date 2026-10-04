@@ -26,6 +26,9 @@ public class TradeShipEntity extends Entity {
     private static final EntityDataAccessor<Integer> DATA_TIER = SynchedEntityData.defineId(TradeShipEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> DATA_SAILING = SynchedEntityData.defineId(TradeShipEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_CARGO = SynchedEntityData.defineId(TradeShipEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> DATA_STOCKS = SynchedEntityData.defineId(TradeShipEntity.class, EntityDataSerializers.BOOLEAN);
+    /** The village whose ship she is (server side). */
+    private int village = -1;
 
     private final InterpolationHandler interpolation = new InterpolationHandler(this, 3);
 
@@ -49,6 +52,29 @@ public class TradeShipEntity extends Entity {
         builder.define(DATA_TIER, 1);
         builder.define(DATA_SAILING, false);
         builder.define(DATA_CARGO, false);
+        builder.define(DATA_STOCKS, false);
+    }
+
+    /** Still being built: a bare hull on the stocks, no masts rigged. */
+    public boolean onStocks() {
+        return entityData.get(DATA_STOCKS);
+    }
+
+    /** A ship being built at the pier of a village (shown as a bare hull; a player at her sees what she still needs). */
+    public void stocks(int village, int tier, Vec3 pos, float yaw) {
+        moor(tier, pos, yaw, false);
+        this.village = village;
+        entityData.set(DATA_STOCKS, true);
+    }
+
+    @Override
+    public net.minecraft.world.InteractionResult interact(net.minecraft.world.entity.player.Player player, net.minecraft.world.InteractionHand hand,
+                                                         Vec3 location) {
+        if (!onStocks()) return super.interact(player, hand, location);
+        if (player instanceof net.minecraft.server.level.ServerPlayer sp && village >= 0) {
+            org.webtrade.minecraftportsmod.colony.Harbour.openSite(sp, village);
+        }
+        return net.minecraft.world.InteractionResult.SUCCESS;
     }
 
     /** 1: a sloop, 2: a brig. */
@@ -173,7 +199,20 @@ public class TradeShipEntity extends Entity {
 
     @Override
     public boolean isPickable() {
-        return false;
+        return onStocks();
+    }
+
+    /** A passenger or two on deck (players who paid for the passage). */
+    @Override
+    protected boolean canAddPassenger(Entity passenger) {
+        return getPassengers().size() < 2;
+    }
+
+    @Override
+    protected Vec3 getPassengerAttachmentPoint(Entity passenger, net.minecraft.world.entity.EntityDimensions dimensions, float scale) {
+        // on deck, abaft the mast
+        int i = Math.max(0, getPassengers().indexOf(passenger));
+        return new Vec3(i == 0 ? 0.4 : -0.4, 1.15, -1.2).yRot(-getYRot() * Mth.DEG_TO_RAD);
     }
 
     @Override
@@ -205,6 +244,16 @@ public class TradeShipEntity extends Entity {
 
     @Override
     public boolean shouldBeSaved() {
+        return false;
+    }
+
+    @Override
+    public boolean save(ValueOutput output) {
+        return false;
+    }
+
+    @Override
+    public boolean saveAsPassenger(ValueOutput output) {
         return false;
     }
 
