@@ -221,7 +221,8 @@ public final class ColonyService {
                 v.board.getX() - v.center.getX(), v.board.getZ() - v.center.getZ(), tree, v.priority == null ? -1 : v.priority.ordinal(),
                 v.focus == null ? -1 : v.focus.ordinal(), center, queueRows(data, v), v.sub == null ? -1 : v.sub.ordinal(),
                 (float) v.ready, (float) VillageLife.readyGain(data, v, today), v.stored(), v.capacity(), got, spent,
-                Caravans.status(data, v), Caravans.wants(v, true), Caravans.wants(v, false), deals, VillageLife.queueSize(v)));
+                Harbour.ships(v) > 0 ? Caravans.status(data, v).copy().append(" ").append(Component.translatable("minecraftportsmod.sea.ships",
+                        Voyages.status(data, v))) : Caravans.status(data, v), Caravans.wants(v, true), Caravans.wants(v, false), deals, VillageLife.queueSize(v)));
     }
 
     /** The village's queue as the board shows it: the research in hand, the building sites in order, the trails being made. */

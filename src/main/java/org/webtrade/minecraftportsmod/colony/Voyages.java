@@ -313,6 +313,13 @@ public final class Voyages {
         }
         if (can.isEmpty()) {
             stayed++;
+            if (today % 10 == 0) {
+                int lanes = 0, spareAll = 0;
+                for (Village o : harbours(data)) if (o.id != v.id && lane(data, v.id, o.id) != null) lanes++;
+                for (int n : spare.values()) spareAll += n;
+                Minecraftportsmod.LOGGER.info("[sea] #{} {} ship {} stays: {} harbours in reach, {} to spare, {} emeralds", v.id, v.name, ship, lanes,
+                        spareAll, money);
+            }
             return;
         }
         can.sort((x, y) -> Double.compare(worth.get(y.id), worth.get(x.id)));

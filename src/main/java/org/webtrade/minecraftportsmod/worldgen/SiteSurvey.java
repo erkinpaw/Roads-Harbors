@@ -445,9 +445,12 @@ final class SiteSurvey {
         Map<Long, Boolean> water = new HashMap<>();
         int[] s = nearestWater(ax, az, water);
         int[] g = nearestWater(bx, bz, water);
-        if (s == null || g == null) return null;
-        int minX = Math.min(s[0], g[0]) - 500, maxX = Math.max(s[0], g[0]) + 500;
-        int minZ = Math.min(s[1], g[1]) - 500, maxZ = Math.max(s[1], g[1]) + 500;
+        if (s == null || g == null) {
+            org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("Lane {},{} -> {},{}: no water at {}", ax, az, bx, bz, s == null ? "the start" : "the end");
+            return null;
+        }
+        int minX = Math.min(s[0], g[0]) - 800, maxX = Math.max(s[0], g[0]) + 800;
+        int minZ = Math.min(s[1], g[1]) - 800, maxZ = Math.max(s[1], g[1]) + 800;
 
         record Node(int x, int z, double f) {
         }
@@ -463,7 +466,10 @@ final class SiteSurvey {
             Node n = open.poll();
             long k = key(n.x, n.z);
             if (k == goal) return simplify(rebuild(from, goal), water);
-            if (++expanded > LANE_MAX_NODES || (expanded & 1023) == 0 && cancelled.getAsBoolean()) return null;
+            if (++expanded > LANE_MAX_NODES || (expanded & 1023) == 0 && cancelled.getAsBoolean()) {
+                org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("Lane {},{} -> {},{}: given up after {} steps", ax, az, bx, bz, expanded);
+                return null;
+            }
             double c = cost.get(k);
             for (int[] d : dirs) {
                 int nx = n.x + d[0] * LANE_STEP, nz = n.z + d[1] * LANE_STEP;
@@ -479,11 +485,19 @@ final class SiteSurvey {
                 open.add(new Node(nx, nz, nc + Math.hypot(g[0] - nx, g[1] - nz)));
             }
         }
+        org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("Lane {},{} -> {},{}: the waters don't join ({} steps)", ax, az, bx, bz, expanded);
         return null;
     }
 
     private boolean isWater(int x, int z, Map<Long, Boolean> cache) {
-        return cache.computeIfAbsent(key(x, z), k -> waterBiome(x, z) && !RaisedIslands.land(x, z, sea));
+        // water deep enough for a ship, by the land's height (the sea, a river, a bay, a lake joined to the sea: the
+        // biomes alone took a river's banks for water, and missed bays); an island raised out of the sea is no water
+        // (a river narrower than the grid: its biome, with the land there at the water's level at most)
+        return cache.computeIfAbsent(key(x, z), k -> {
+            if (RaisedIslands.land(x, z, sea)) return false;
+            int f = floor(x, z);
+            return f <= sea - 2 || waterBiome(x, z) && f <= sea + 1;
+        });
     }
 
     private int[] nearestWater(int x, int z, Map<Long, Boolean> cache) {

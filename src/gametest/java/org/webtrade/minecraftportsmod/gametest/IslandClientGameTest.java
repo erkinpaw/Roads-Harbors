@@ -23,7 +23,7 @@ import org.webtrade.minecraftportsmod.worldgen.WorldPlan;
 public class IslandClientGameTest implements FabricClientGameTest {
 
     /** Worlds ("seed" or "seed:d150" for that many days). */
-    private static final String[] SEEDS = {"4242:d50:ships"};
+    private static final String[] SEEDS = {"4242:d60:ships"};
     private static final int VILLAGES = 10;
 
     private static void log(String seed, String fmt, Object... args) {
@@ -80,7 +80,7 @@ public class IslandClientGameTest implements FabricClientGameTest {
                 boolean ships = spec.contains(":ships");
                 for (int day = 1; day <= days; day++) {
                     // (":ships": the piers hurried along from day 20: opened and paid for everywhere)
-                    if (ships && day == 20) server.runOnServer(s -> {
+                    if (ships && day == 8) server.runOnServer(s -> {
                         for (Village v : VillageData.get(s).all()) Harbour.testReady(v);
                     });
                     server.runOnServer(s -> s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), "village day"));
@@ -120,13 +120,21 @@ public class IslandClientGameTest implements FabricClientGameTest {
                 sp.getConnection().waitForChunksRender();
                 context.waitTicks(100);
                 context.takeScreenshot("island_village");
-                // a ship at sea, from above
+                // a ship at sea, from above: a day or two more till one sets out, then the time for her to get away
+                for (int extra = 0; extra < 8; extra++) {
+                    boolean[] out = {false};
+                    server.runOnServer(s -> out[0] = !VillageData.get(s).voyages().isEmpty());
+                    if (out[0]) break;
+                    server.runOnServer(s -> s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), "village day"));
+                    context.waitTicks(20);
+                }
+                context.waitTicks(20 * 25);
                 double[] sea = new double[3];
                 server.runOnServer(s -> {
                     VillageData data = VillageData.get(s);
                     for (var t : data.voyages()) {
                         double[] w = Voyages.where(data, t);
-                        if (w == null || t.at() < 60) continue;
+                        if (w == null || t.at() < 40) continue;
                         sea[0] = w[0];
                         sea[1] = w[1];
                         sea[2] = 1;
@@ -136,8 +144,10 @@ public class IslandClientGameTest implements FabricClientGameTest {
                 if (sea[2] == 1) {
                     server.runCommand("tp @a " + (int) (sea[0] - 18) + " 82 " + (int) (sea[1] - 18) + " -45 35");
                     sp.getConnection().waitForChunksRender();
-                    context.waitTicks(120);
+                    context.waitTicks(100);
                     context.takeScreenshot("ship_at_sea");
+                    server.runOnServer(s -> log(spec, "ships in sight: {}", s.overworld().getEntitiesOfClass(
+                            org.webtrade.minecraftportsmod.vessel.TradeShipEntity.class, s.getPlayerList().getPlayers().getFirst().getBoundingBox().inflate(200)).size()));
                 }
                 if (pier[3] == 1) {
                     server.runCommand("tp @a " + (pier[0] - 14) + " " + (pier[1] + 10) + " " + (pier[2] - 14) + " -45 25");
