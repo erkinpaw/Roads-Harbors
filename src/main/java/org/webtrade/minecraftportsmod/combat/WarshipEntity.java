@@ -187,7 +187,7 @@ public class WarshipEntity extends Boat {
     /** A broadside to one side ({@code -1} port, {@code 1} starboard), the guns raised by {@code elevation} degrees. */
     public void fire(int side, float elevation) {
         if (sinking() > 0 || reload(side) > 0) return;
-        entityData.set(side < 0 ? DATA_RELOAD_LEFT : DATA_RELOAD_RIGHT, cls.reload);
+        entityData.set(side < 0 ? DATA_RELOAD_LEFT : DATA_RELOAD_RIGHT, reloadTime());
         // (the guns go off down the side one after another, the rows together)
         int n = cls.guns();
         for (int g = 0; g < n; g++) firing.add(new int[]{side, g, (g % 7) * 3 + random.nextInt(2) + 1, Math.round(elevation * 100)});
@@ -275,6 +275,7 @@ public class WarshipEntity extends Boat {
     @Override
     public InteractionResult interact(Player player, InteractionHand hand, Vec3 location) {
         if (isPirate() || sinking() > 0) return InteractionResult.PASS;
+        if (hire(player, hand)) return InteractionResult.SUCCESS;
         return super.interact(player, hand, location);
     }
 
@@ -404,7 +405,7 @@ public class WarshipEntity extends Boat {
     private void carryDeck(ServerLevel level) {
         if (!Double.isNaN(lastX) && (lastX != getX() || lastZ != getZ() || lastYaw != getYRot())) {
             var box = getBoundingBox().inflate(cls.halfLength + 2, cls.castle() + 3, cls.halfLength + 2);
-            for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, box, e -> !(e instanceof Player) && e.getVehicle() == null)) {
+            for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, box, e -> !(e instanceof Player) && !(e instanceof SailorEntity) && e.getVehicle() == null)) {
                 if (!onDeckFrom(e.position(), lastX, lastY, lastZ, lastYaw)) continue;
                 Vec3 to = carry(e.position(), lastX, lastY, lastZ, lastYaw);
                 e.setPos(to.x, to.y, to.z);
@@ -433,8 +434,172 @@ public class WarshipEntity extends Boat {
         return at(0.9, cls.wheel() + 1.2, cls.castle() + 0.05);
     }
 
+    /** The height of her deck at a place along her: her quarterdeck aft of the wheel, else her main deck. */
+    public double deckAt(double along) {
+        return along <= cls.wheel() + 1 + SLAB / 2 ? Math.max(cls.deck(), cls.castle()) : cls.deck();
+    }
+
+    // ------------------------------------------------------------------ her crew
+
+    /** Her crew by role (captain, gunners, marines, hands): how many she has; and how many she takes at most. */
+    private final int[] crew = new int[SailorEntity.Role.values().length];
+    private boolean crewSet;
+    private final java.util.List<SailorEntity> bodies = new java.util.ArrayList<>();
+
+    public int[] crewMax() {
+        return new int[]{1, Math.min(8, cls.guns()), cls == ShipClass.BRIG ? 2 : cls == ShipClass.GALLEON ? 3 : 4, 2};
+    }
+
+    public int crew(SailorEntity.Role r) {
+        if (!crewSet) {
+            System.arraycopy(crewMax(), 0, crew, 0, crew.length);
+            crewSet = true;
+        }
+        return crew[r.ordinal()];
+    }
+
+    public int crewTotal() {
+        int n = 0;
+        for (SailorEntity.Role r : SailorEntity.Role.values()) n += crew(r);
+        return n;
+    }
+
+    /** One of her hands lost (tests). */
+    public void crewLostForTest() {
+        crewLost(SailorEntity.Role.HAND);
+    }
+
+    /** One of her crew was killed. */
+    void crewLost(SailorEntity.Role r) {
+        crew(r);
+        crew[r.ordinal()] = Math.max(0, crew[r.ordinal()] - 1);
+    }
+
+    /** Her crew aboard in body: those missing come up on deck (amidships), each to his post. */
+    private void crewBodies(ServerLevel level) {
+        bodies.removeIf(b -> b.isRemoved() || b.ship() != this);
+        int[] have = new int[crew.length];
+        for (SailorEntity b : bodies) have[b.role().ordinal()]++;
+        for (SailorEntity.Role r : SailorEntity.Role.values()) {
+            for (int k = have[r.ordinal()]; k < crew(r); k++) {
+                SailorEntity s = org.webtrade.minecraftportsmod.registry.ModContent.SAILOR.create(level, net.minecraft.world.entity.EntitySpawnReason.EVENT);
+                if (s == null) return;
+                int n = bodies.size();
+                s.setup(this, r, (getId() * 7 + n * 3) % 9, 0, cls.middle);
+                if (r == SailorEntity.Role.GUNNER) {
+                    s.gunSide = n % 2 == 0 ? 1 : -1;
+                    s.gun = k % Math.max(1, cls.guns());
+                }
+                level.addFreshEntity(s);
+                bodies.add(s);
+            }
+        }
+    }
+
+    /** The nearest ship she is fighting (a pirate for a navy ship, a navy ship for a pirate) within reach, or null. */
+    WarshipEntity enemy(ServerLevel level, double reach) {
+        WarshipEntity best = null;
+        double bd = reach * reach;
+        for (WarshipEntity o : level.getEntitiesOfClass(WarshipEntity.class, getBoundingBox().inflate(reach))) {
+            if (o == this || o.isPirate() == isPirate() || o.sinking() > 0) continue;
+            double d = o.distanceToSqr(this);
+            if (d < bd) {
+                bd = d;
+                best = o;
+            }
+        }
+        return best;
+    }
+
+    /** What a sailor of hers does now (called from his tick). */
+    void crewTick(ServerLevel level, SailorEntity s) {
+        double rail = cls.halfBeam - 0.6;
+        WarshipEntity enemy = (s.tickCount + s.getId()) % 10 == 0 || s.role() == SailorEntity.Role.MARINE ? enemy(level, 64) : null;
+        switch (s.role()) {
+            case CAPTAIN -> {
+                // at the wheel; beside it while a player has the helm
+                double side = captain() != null ? 1.3 : 0;
+                s.runTo(side, cls.wheel() + 0.6, 0);
+            }
+            case GUNNER -> {
+                double along = cls.gun(s.gun)[0];
+                boolean action = reload(s.gunSide) > 0 || enemy != null || !firing.isEmpty();
+                if (action || s.wander <= 0) s.runTo(s.gunSide * rail, along + (action ? 0.6 : 0), action ? s.gunSide : 0);
+                if (!action && --s.wander <= 0) s.wander = 200 + random.nextInt(200);
+                if (reload(s.gunSide) > 0 && s.there()) s.work();
+            }
+            case MARINE -> {
+                if (enemy != null) {
+                    Vec3 d = enemy.position().subtract(position());
+                    int side = d.dot(starboard()) >= 0 ? 1 : -1;
+                    if (s.faces != side) s.runTo(side * rail, cls.middle + (random.nextDouble() - 0.5) * cls.halfLength, side);
+                    if (s.there() && enemy.distanceTo(this) < 30) {
+                        LivingEntity target = enemy.target(level, s);
+                        if (target != null) s.shoot(level, target);
+                    }
+                } else if (--s.wander <= 0) {
+                    s.wander = 120 + random.nextInt(160);
+                    s.runTo((random.nextDouble() - 0.5) * 2 * rail, cls.middle + (random.nextDouble() - 0.5) * 1.4 * cls.halfLength, 0);
+                }
+            }
+            case HAND -> {
+                if (--s.wander <= 0) {
+                    s.wander = 60 + random.nextInt(120);
+                    s.runTo((random.nextDouble() - 0.5) * 2 * rail, cls.middle + (random.nextDouble() - 0.5) * 1.6 * cls.halfLength, 0);
+                }
+            }
+        }
+    }
+
+    /** Someone on her deck to shoot at (one of her crew, a player aboard), the nearest to the marine. */
+    LivingEntity target(ServerLevel level, SailorEntity from) {
+        LivingEntity best = null;
+        double bd = Double.MAX_VALUE;
+        var box = getBoundingBox().inflate(cls.halfLength + 2, cls.castle() + 3, cls.halfLength + 2);
+        for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && !(e instanceof Player p && (p.isCreative() || p.isSpectator())))) {
+            boolean ours = e instanceof SailorEntity s ? s.ship == getId() : e.getVehicle() == this || onDeck(e.position());
+            if (!ours) continue;
+            double d = e.distanceToSqr(from);
+            if (d < bd) {
+                bd = d;
+                best = e;
+            }
+        }
+        return best;
+    }
+
+    /** Gunners short: her guns take longer to load (half as long again for each third of them missing). */
+    int reloadTime() {
+        double missing = 1 - crew(SailorEntity.Role.GUNNER) / (double) Math.max(1, crewMax()[SailorEntity.Role.GUNNER.ordinal()]);
+        return (int) Math.round(cls.reload * (1 + 1.5 * missing));
+    }
+
+    /** A player takes on a hand with an emerald (one more of whom she is shortest of), while she has room for him. */
+    private boolean hire(Player player, InteractionHand hand) {
+        ItemStack stack = player.getItemInHand(hand);
+        if (!stack.is(Items.EMERALD)) return false;
+        int[] max = crewMax();
+        SailorEntity.Role want = null;
+        int gap = 0;
+        for (SailorEntity.Role r : SailorEntity.Role.values()) {
+            int g = max[r.ordinal()] - crew(r);
+            if (g > gap) {
+                gap = g;
+                want = r;
+            }
+        }
+        if (want == null) return false;
+        if (!level().isClientSide()) {
+            crew[want.ordinal()]++;
+            if (!player.isCreative()) stack.shrink(1);
+            playSound(SoundEvents.VILLAGER_YES, 1F, 1F);
+        }
+        return true;
+    }
+
     @Override
     public void remove(Entity.RemovalReason reason) {
+        for (var b : bodies) if (!b.isRemoved() && reason.shouldDestroy()) b.discard();
         for (var d : decks) d.discard();
         decks.clear();
         super.remove(reason);
@@ -479,6 +644,7 @@ public class WarshipEntity extends Boat {
         if (level() instanceof ServerLevel level) {
             updateDecks(level);
             carryDeck(level);
+            if (sinking() == 0 && tickCount % 20 == 5) crewBodies(level);
         }
     }
 
@@ -531,6 +697,8 @@ public class WarshipEntity extends Boat {
         super.addAdditionalSaveData(output);
         output.putFloat("hull", hull());
         output.putBoolean("pirate", isPirate());
+        crew(SailorEntity.Role.HAND);
+        output.putIntArray("crew", crew.clone());
     }
 
     @Override
@@ -538,5 +706,9 @@ public class WarshipEntity extends Boat {
         super.readAdditionalSaveData(input);
         entityData.set(DATA_HULL, input.getFloatOr("hull", cls.hull));
         if (input.getBooleanOr("pirate", false)) makePirate();
+        input.getIntArray("crew").ifPresent(a -> {
+            for (int i = 0; i < Math.min(a.length, crew.length); i++) crew[i] = a[i];
+            crewSet = true;
+        });
     }
 }

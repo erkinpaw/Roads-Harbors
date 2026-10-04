@@ -961,5 +961,10 @@
   "item.minecraftportsmod.ship_of_the_line_spawn_egg": "Ship of the Line Spawn Egg",
   "entity.minecraftportsmod.galleon": "Galleon",
   "entity.minecraftportsmod.ship_of_the_line": "Ship of the Line",
-  "key.minecraftportsmod.broadside": "Switch broadside (warship)"
+  "key.minecraftportsmod.broadside": "Switch broadside (warship)",
+  "item.minecraftportsmod.musket": "Musket",
+  "entity.minecraftportsmod.sailor": "Sailor",
+  "entity.minecraftportsmod.sailor.captain": "Captain",
+  "entity.minecraftportsmod.sailor.pirate_captain": "Pirate Captain",
+  "entity.minecraftportsmod.musket_ball": "Musket Ball"
 }
