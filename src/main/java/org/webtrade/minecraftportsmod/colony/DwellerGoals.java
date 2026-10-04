@@ -299,7 +299,7 @@ public final class DwellerGoals {
         long now = level.getGameTime();
         if (f != null && now - f.time < 1200) return f.spots;
         List<BlockPos> out = new ArrayList<>();
-        int r = 60;
+        int r = logs ? 90 : 60;
         BlockPos hut = logs ? woodHut(v) : null;
         // (the woodcutters' grove may lie beyond the reach round the middle)
         int gx = hut == null ? 0 : hut.getX() - v.center.getX(), gz = hut == null ? 0 : hut.getZ() - v.center.getZ();

@@ -213,6 +213,11 @@ final class Construction {
                 if (!loaded(level, new BlockPos(px, 0, pz))) continue;
                 int top = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, px, pz) - 1;
                 BlockPos p = new BlockPos(px, top, pz);
+                // (a huge mushroom: all of it, nothing kept)
+                if (WorkGoal.fungus(level.getBlockState(p))) {
+                    for (BlockPos q : WorkGoal.mushroom(level, p)) level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);
+                    continue;
+                }
                 if (!level.getBlockState(p).is(BlockTags.LOGS)) continue;
                 while (level.getBlockState(p.below()).is(BlockTags.LOGS)) p = p.below();
                 List<BlockPos> tree = WorkGoal.tree(level, p, null);

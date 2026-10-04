@@ -103,10 +103,28 @@ public final class Tidy {
         reach = Math.min(reach, 90);
         for (int i = 0; i < tries && todo.size() < LIST; i++) {
             int x = v.center.getX() + rnd.nextInt(2 * reach + 1) - reach, z = v.center.getZ() + rnd.nextInt(2 * reach + 1) - reach;
-            if (!territory(v, x, z) || inPlot(v, x, z) || !Construction.loaded(level, new BlockPos(x, 0, z))) continue;
-            Job j = look(level, v, x, z);
+            if (!territory(v, x, z) || !Construction.loaded(level, new BlockPos(x, 0, z))) continue;
+            // (on a building's plot, outside its walls: only a tree, a mushroom, a bush grown up on it since)
+            Job j = !inPlot(v, x, z) ? look(level, v, x, z)
+                    : Plots.inside(v, x, z, 0) || DwellerGoals.inside(v, x, z) || Mine.inPit(v, x, z, 1) ? null : growth(level, v, x, z);
             if (j != null && listed.add(j.pos())) todo.add(j);
         }
+    }
+
+    /** A tree, a huge mushroom or a bush standing in a column (the woodcutters' grove aside), or null. */
+    private static Job growth(ServerLevel level, Village v, int x, int z) {
+        int ground = PlotFinder.floorAt(level, x, z) - 1;
+        BlockPos up = new BlockPos(x, ground + 1, z);
+        BlockState stand = level.getBlockState(up);
+        if (WorkGoal.fungus(stand)) return new Job(Kind.DEBRIS, up);
+        if (stand.is(BlockTags.LOGS) && !grove(v, x, z)) {
+            boolean crown = false;
+            for (int k = 1; k <= 12 && !crown; k++) crown = level.getBlockState(up.above(k)).is(BlockTags.LEAVES);
+            return new Job(crown ? Kind.TREE : Kind.POST, up);
+        }
+        // a bush: leaves on the ground with no trunk
+        if (stand.is(BlockTags.LEAVES) && !trunkNear(level, up)) return new Job(Kind.LEAVES, up);
+        return null;
     }
 
     /** What (if anything) needs doing in this column. */
@@ -120,12 +138,13 @@ public final class Tidy {
             BlockPos l = new BlockPos(x, leafTop, z);
             if (level.getBlockState(l).is(BlockTags.LEAVES) && !trunkNear(level, l)) return new Job(Kind.LEAVES, l);
         }
-        // up the column: what the wild left in the air (vines, cocoa pods, a branch of a felled tree)
+        // up the column: what the wild left in the air (vines, cocoa pods, a branch of a felled tree, snow on nothing)
         for (int y = ground + 1; y <= ground + 28; y++) {
             BlockPos q = new BlockPos(x, y, z);
             BlockState s = level.getBlockState(q);
             if (s.isAir()) continue;
-            if (WorkGoal.hangs(s)) return new Job(Kind.HANGING, q);
+            if (WorkGoal.hangs(s) || y > ground + 1 && WorkGoal.loftySnow(level, q)) return new Job(Kind.HANGING, q);
+            if (WorkGoal.fungus(s)) return new Job(Kind.DEBRIS, q);
             if (s.is(BlockTags.LOGS) && y > ground + 1 && !level.getBlockState(q.below()).is(BlockTags.LOGS) && !nearBuilding(v, x, z, 1)) {
                 return new Job(Kind.DEBRIS, q);
             }
@@ -136,6 +155,8 @@ public final class Tidy {
             return smallWater(level, w) ? new Job(Kind.PUDDLE, w) : null;
         }
         if (weed(above)) return new Job(Kind.WEED, g.above());
+        // a bush: leaves on the ground with no trunk
+        if (above.is(BlockTags.LEAVES) && !trunkNear(level, g.above())) return new Job(Kind.LEAVES, g.above());
         // a tree on the village's land (the woodcutters' grove aside): felled; a stump or a lone post: taken away
         BlockPos up = g.above();
         BlockState stand = level.getBlockState(up);
@@ -379,11 +400,19 @@ public final class Tidy {
                         if (level.getBlockState(t).is(BlockTags.LOGS)) logs++;
                         level.setBlock(t, Blocks.AIR.defaultBlockState(), FLAGS);
                     }
+                } else {
+                    // (a tree too odd to make out whole: its trunk at least, up from the foot)
+                    for (BlockPos t = foot; level.getBlockState(t).is(BlockTags.LOGS); t = t.above()) {
+                        level.setBlock(t, Blocks.AIR.defaultBlockState(), FLAGS);
+                        logs++;
+                    }
                 }
-                // (and what hangs round it: loose leaves, vines)
+                // (and what hangs round it: loose leaves, vines, the snow that lay on its crown)
                 for (BlockPos q : BlockPos.betweenClosed(foot.offset(-4, 0, -4), foot.offset(4, 16, 4))) {
                     BlockState s = level.getBlockState(q);
-                    if (s.is(Blocks.VINE) || s.is(BlockTags.LEAVES) && !trunkNear(level, q)) level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);
+                    if (s.is(Blocks.VINE) || s.is(BlockTags.LEAVES) && !trunkNear(level, q) || WorkGoal.loftySnow(level, q)) {
+                        level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);
+                    }
                 }
                 if (logs > 0) {
                     v.add(Res.WOOD, logs);
@@ -398,7 +427,7 @@ public final class Tidy {
                 seen.add(p);
                 while (!open.isEmpty() && seen.size() < 200) {
                     BlockPos q = open.poll();
-                    if (!WorkGoal.hangs(level.getBlockState(q))) continue;
+                    if (!WorkGoal.hangs(level.getBlockState(q)) && !level.getBlockState(q).is(Blocks.SNOW)) continue;
                     level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);
                     for (Direction d : Direction.values()) {
                         BlockPos n = q.relative(d);
@@ -417,7 +446,7 @@ public final class Tidy {
                     BlockPos q = open.poll();
                     BlockState s = level.getBlockState(q);
                     boolean log = s.is(BlockTags.LOGS);
-                    if (!log && !s.is(BlockTags.LEAVES) && !WorkGoal.hangs(s)) continue;
+                    if (!log && !s.is(BlockTags.LEAVES) && !WorkGoal.hangs(s) && !WorkGoal.fungus(s) && !s.is(Blocks.SNOW)) continue;
                     if (inPlot(v, q.getX(), q.getZ())) continue;
                     if (log) logs++;
                     level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);

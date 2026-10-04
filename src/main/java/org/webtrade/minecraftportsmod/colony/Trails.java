@@ -599,6 +599,9 @@ public final class Trails {
                 // (one search for a pair: the other one may have just set out for us)
                 Aim theirs = AIMS.get((int) w[2]);
                 if (theirs != null && theirs.other() == (int) w[1]) continue;
+                // (and one at a time in a part of the network: two worked out side by side, each not knowing of
+                // the other, ran the same way twice, one beside the other)
+                if (busyNear(data, (int) w[1], (int) w[2])) continue;
                 plan(level, data, data.get((int) w[1]), data.get((int) w[2]));
             }
         }
@@ -617,6 +620,21 @@ public final class Trails {
      * Starts working out the trail that joins village {@code v} to {@code o}: to the nearest point of the network that
      * leads to {@code o}, or to {@code o} itself (command, tests; else when a scout finds a village).
      */
+    /** Is a trail being worked out now from or to a village joined to either of these (or to them)? */
+    private static boolean busyNear(VillageData data, int a, int b) {
+        if (PLANNING.isEmpty()) return false;
+        java.util.Set<Integer> near = new java.util.HashSet<>(reach(data, a));
+        near.addAll(reach(data, b));
+        near.add(a);
+        near.add(b);
+        for (long k : PLANNING.keySet()) {
+            int u = (int) k;
+            Aim aim = AIMS.get(u);
+            if (near.contains(u) || aim != null && near.contains(aim.other())) return true;
+        }
+        return false;
+    }
+
     public static void plan(ServerLevel level, VillageData data, Village v, Village o) {
         if (PLANNING.containsKey((long) v.id)) return;
         // the goals: the village itself, then every point of every trail of the network that leads to it
@@ -1138,7 +1156,7 @@ public final class Trails {
         for (int i = i0 + 1; i <= i1; i++) cum[i - i0] = cum[i - i0 - 1] + Math.hypot(p[2 * i] - p[2 * i - 2], p[2 * i + 1] - p[2 * i - 1]);
         double total = Math.max(1e-6, cum[i1 - i0]);
         // a small, shallow hole is filled with earth; a long or deep one (a ravine, a quarry) gets a bridge
-        boolean fill = !wet && deepest <= FILL && total <= FILL_SPAN;
+        boolean fill = !wet && (deepest <= SHALLOW && total <= SHALLOW_SPAN || deepest <= FILL && total <= FILL_SPAN);
         double u0 = cum[s - i0] / total, u1 = cum[s + 1 - i0] / total;
         int ax = p[2 * i0], az = p[2 * i0 + 1], bx = p[2 * i1], bz = p[2 * i1 + 1];
         int sx0 = (int) Math.round(ax + (bx - ax) * u0), sz0 = (int) Math.round(az + (bz - az) * u0);
@@ -1149,6 +1167,8 @@ public final class Trails {
 
     /** A dry hole at most this deep and this long (edge to edge) is filled with earth; a deeper or longer one is bridged. */
     static final int FILL = 4, FILL_SPAN = 10;
+    /** A shallow dip (a hollow, a ditch) is filled even when it is long. */
+    static final int SHALLOW = 3, SHALLOW_SPAN = 30;
 
     /** No bridge at a point of a trail (the way follows the ground). */
     static final int NONE = Integer.MIN_VALUE;
@@ -1178,7 +1198,7 @@ public final class Trails {
     static int[] decks(ServerLevel level, VillageData data, Trail t) {
         int n = t.points.length / 2;
         int[] g = new int[n], deck = new int[n];
-        boolean[] ok = new boolean[n], wet = new boolean[n], town = new boolean[n];
+        boolean[] ok = new boolean[n], wet = new boolean[n], town = new boolean[n], grounds = new boolean[n];
         double[] cum = new double[n];
         for (int i = 0; i < n; i++) {
             int x = t.points[2 * i], z = t.points[2 * i + 1];
@@ -1186,6 +1206,8 @@ public final class Trails {
             ok[i] = level.hasChunkAt(new BlockPos(x, 0, z));
             // (in a village the way keeps to the ground: no bridges among the houses)
             town[i] = home(data, x, z);
+            // (and on a village's land, however far it has grown: no dry gap bridged among its houses, it is filled)
+            grounds[i] = town[i] || villageLand(data, x, z);
             if (ok[i]) {
                 g[i] = groundAt(level, x, z);
                 // (ice is water frozen over: bridged like water, not walked on)
@@ -1202,7 +1224,7 @@ public final class Trails {
                 i++;
                 continue;
             }
-            if (last >= 0 && g[i] <= g[last] - GAP && !town[i] && !town[last] && !wet[i]) {
+            if (last >= 0 && g[i] <= g[last] - GAP && !grounds[i] && !grounds[last] && !wet[i]) {
                 // the ground falls away: is there a far side within a bridge's length?
                 int j = i;
                 boolean known = true;
@@ -1243,7 +1265,14 @@ public final class Trails {
             }
             int j = i;
             boolean known = true;
-            while (j < n && (!ok[j] || wet[j]) && !town[j]) {
+            int surface = g[i];
+            while (j < n && !town[j]) {
+                if (ok[j] && wet[j]) surface = Math.max(surface, g[j]);
+                // (a sandbar, a shoal, an islet in the river: low land with water again just beyond it is crossed by
+                // the same bridge; else the bridge ended on it and the way went on in the water on a heap of earth)
+                boolean shoal = ok[j] && !wet[j] && g[j] <= surface + 1 && j + 1 < n
+                        && (ok[j + 1] && wet[j + 1] || j + 2 < n && ok[j + 2] && wet[j + 2] && g[j + 1] <= surface + 1);
+                if (!(!ok[j] || wet[j] || shoal)) break;
                 if (!ok[j]) known = false;
                 j++;
             }
@@ -1266,7 +1295,7 @@ public final class Trails {
         int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) - 1;
         while (y > level.getMinY()) {
             BlockState s = level.getBlockState(new BlockPos(x, y, z));
-            if (!(s.is(BlockTags.LOGS) || s.is(BlockTags.LEAVES) || s.is(Blocks.VINE) || s.is(Blocks.BAMBOO) || s.isAir()
+            if (!(s.is(BlockTags.LOGS) || s.is(BlockTags.LEAVES) || s.is(Blocks.VINE) || s.is(Blocks.BAMBOO) || s.isAir() || WorkGoal.fungus(s)
                     || s.canBeReplaced() && s.getFluidState().isEmpty())) break;
             y--;
         }
@@ -1291,6 +1320,15 @@ public final class Trails {
     }
 
     /** The village's own ground (near its middle): no trees are felled there for a trail. */
+    /** Is the point on the land of a village (its territory)? */
+    private static boolean villageLand(VillageData data, int x, int z) {
+        for (Village v : data.all()) {
+            double dx = x - v.center.getX(), dz = z - v.center.getZ();
+            if (dx * dx + dz * dz < 200 * 200 && Territory.contains(v, x, z)) return true;
+        }
+        return false;
+    }
+
     private static boolean home(VillageData data, int x, int z) {
         for (Village v : data.all()) {
             double dx = x - v.center.getX(), dz = z - v.center.getZ();
@@ -1309,7 +1347,7 @@ public final class Trails {
      */
     private static void line(ServerLevel level, VillageData data, Village a, int x0, int z0, int x1, int z1, int d0, int d1, boolean alongX, boolean fill) {
         double dx = x1 - x0, dz = z1 - z0, len = Math.max(1e-6, Math.hypot(dx, dz));
-        java.util.Set<Long> way = new java.util.LinkedHashSet<>(), cutting = new java.util.LinkedHashSet<>();
+        java.util.Set<Long> way = new java.util.LinkedHashSet<>(), cutting = new java.util.LinkedHashSet<>(), beside = new java.util.LinkedHashSet<>();
         for (double t = 0; t <= len + 1e-6; t += 0.5) {
             double cx = x0 + 0.5 + dx * t / len, cz = z0 + 0.5 + dz * t / len;
             for (int x = (int) Math.floor(cx - CUTTING); x <= (int) Math.floor(cx + CUTTING); x++) {
@@ -1317,8 +1355,19 @@ public final class Trails {
                     double ex = x + 0.5 - cx, ez = z + 0.5 - cz, d2 = ex * ex + ez * ez;
                     if (d2 <= WAY * WAY) way.add(pk(x, z));
                     if (d2 <= CUTTING * CUTTING) cutting.add(pk(x, z));
+                    else if (d2 <= (CUTTING + 3) * (CUTTING + 3)) beside.add(pk(x, z));
                 }
             }
+        }
+        // the trees right beside the cutting, whose crowns hang over it: felled whole too (cutting their crowns back
+        // left bare trunks standing along the way)
+        beside.removeAll(cutting);
+        for (long k : beside) {
+            int x = (int) (k >> 32), z = (int) k;
+            if (home(data, x, z) || !level.hasChunkAt(new BlockPos(x, 0, z))) continue;
+            int g = groundAt(level, x, z);
+            BlockState foot = level.getBlockState(new BlockPos(x, g + 1, z));
+            if (foot.is(BlockTags.LOGS) || WorkGoal.fungus(foot)) clear(level, x, z);
         }
         // the cutting: trees and bushes felled, whole; then what still hangs over it (a jungle's leaves and vines)
         for (long k : cutting) {
@@ -1368,7 +1417,10 @@ public final class Trails {
             BlockPos p = new BlockPos(x, y, z);
             BlockState st = level.getBlockState(p);
             // (the crowns of the trees beside the cutting are cut back over it too: vines would grow down from them again)
-            if (WorkGoal.hangs(st) || st.is(BlockTags.LEAVES)) level.setBlock(p, Blocks.AIR.defaultBlockState(), FLAGS);
+            if (WorkGoal.hangs(st) || st.is(BlockTags.LEAVES) || WorkGoal.fungus(st) || st.is(Blocks.SNOW) && y > ground + 1) {
+                level.setBlock(p, Blocks.AIR.defaultBlockState(), FLAGS);
+            }
+
         }
     }
 
@@ -1518,11 +1570,18 @@ public final class Trails {
         int ground = y;
         while (ground > level.getMinY()) {
             BlockState s = level.getBlockState(new BlockPos(x, ground, z));
-            if (!(s.is(BlockTags.LOGS) || s.is(BlockTags.LEAVES) || s.is(Blocks.VINE) || s.is(Blocks.BAMBOO) || s.isAir()
+            if (!(s.is(BlockTags.LOGS) || s.is(BlockTags.LEAVES) || s.is(Blocks.VINE) || s.is(Blocks.BAMBOO) || s.isAir() || WorkGoal.fungus(s)
                     || s.canBeReplaced() && s.getFluidState().isEmpty())) break;
             ground--;
         }
         if (y <= ground) return;
+        // a huge mushroom standing here: all of it
+        for (int k = ground + 1; k <= y; k++) {
+            BlockPos p = new BlockPos(x, k, z);
+            if (!WorkGoal.fungus(level.getBlockState(p))) continue;
+            for (BlockPos q : WorkGoal.mushroom(level, p)) level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);
+            break;
+        }
         // the lowest log above the ground: a tree stands here
         for (int k = ground + 1; k <= y; k++) {
             BlockPos p = new BlockPos(x, k, z);

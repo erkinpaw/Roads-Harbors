@@ -283,12 +283,13 @@ final class WorkGoal extends Goal {
                 Dweller me = dweller(v);
                 boolean onlyLand = v.full(Res.WOOD) || me != null && ahead(v, me, r.dayTime());
                 BlockPos hut = DwellerGoals.woodHut(v);
+                // the woodcutters fell by their hut, not all over the country; when the wood there is gone, farther out
+                for (int pass = 0; pass < 2 && target == null; pass++)
                 for (BlockPos base : DwellerGoals.trees(level, v)) {
                     if (bad.contains(base) || !level.getBlockState(base).is(BlockTags.LOGS)) continue;
                     boolean land = Tidy.territory(v, base.getX(), base.getZ());
                     if (onlyLand && !land) continue;
-                    // the woodcutters fell by their hut, not all over the country
-                    if (!land && hut != null && base.distSqr(hut) > (DwellerGoals.GROVE + 8) * (DwellerGoals.GROVE + 8)) continue;
+                    if (pass == 0 && !land && hut != null && base.distSqr(hut) > (DwellerGoals.GROVE + 8) * (DwellerGoals.GROVE + 8)) continue;
                     if (r.getRandom().nextInt(3) == 0) continue;   // not everyone at the same tree
                     // (none across the water or up a cliff: only what can be walked to)
                     if (!Reach.ok(level, v, base)) {
@@ -501,6 +502,8 @@ final class WorkGoal extends Goal {
             for (Direction dir : Direction.values()) {
                 BlockPos n = t.relative(dir);
                 if (seen.add(n) && hangs(level.getBlockState(n))) open.add(n);
+                // (the snow lying on the crown comes down with it)
+                else if (dir == Direction.UP && level.getBlockState(n).is(Blocks.SNOW) && seen.add(n)) out.add(n);
             }
         }
         while (!open.isEmpty() && out.size() < 600) {
@@ -515,6 +518,34 @@ final class WorkGoal extends Goal {
         }
         out.sort(Comparator.comparingInt((BlockPos p) -> -p.getY()));
         return out;
+    }
+
+    /** A block of a huge mushroom (its stem, its cap): felled like a tree, nothing of it kept. */
+    static boolean fungus(BlockState s) {
+        return s.is(Blocks.MUSHROOM_STEM) || s.is(Blocks.RED_MUSHROOM_BLOCK) || s.is(Blocks.BROWN_MUSHROOM_BLOCK);
+    }
+
+    /** The whole of a huge mushroom one of whose blocks is at {@code p}: stem and cap. */
+    static List<BlockPos> mushroom(ServerLevel level, BlockPos p) {
+        List<BlockPos> out = new ArrayList<>();
+        Set<BlockPos> seen = new HashSet<>(List.of(p));
+        Deque<BlockPos> open = new ArrayDeque<>(List.of(p));
+        while (!open.isEmpty() && out.size() < 300) {
+            BlockPos q = open.poll();
+            if (!fungus(level.getBlockState(q))) continue;
+            out.add(q);
+            for (BlockPos n : BlockPos.betweenClosed(q.offset(-1, -1, -1), q.offset(1, 1, 1))) {
+                BlockPos m = n.immutable();
+                if (Math.abs(m.getX() - p.getX()) <= 5 && Math.abs(m.getZ() - p.getZ()) <= 5 && seen.add(m)) open.add(m);
+            }
+        }
+        out.sort(Comparator.comparingInt((BlockPos q) -> -q.getY()));
+        return out;
+    }
+
+    /** Snow lying on what is gone (a crown felled from under it): it can't stay up in the air. */
+    static boolean loftySnow(ServerLevel level, BlockPos p) {
+        return level.getBlockState(p).is(Blocks.SNOW) && level.getBlockState(p.below()).isAir();
     }
 
     static boolean hangs(BlockState s) {
@@ -1122,10 +1153,17 @@ final class WorkGoal extends Goal {
     /** Nothing to work at: walk about the edge of the village looking. */
     /** Waits about the hut: a few steps round it now and then. */
     private void waitBy(ServerLevel level, BlockPos hut) {
-        if (stand == null || stand.distSqr(hut) > 144 || walk(stand, 2.0) || ++timer > GIVE_UP) {
-            int x = hut.getX() + r.getRandom().nextInt(11) - 5, z = hut.getZ() + r.getRandom().nextInt(11) - 5;
-            stand = new BlockPos(x, PlotFinder.floorAt(level, x, z), z);
-            if (DwellerGoals.inPlot(village(), x, z, 0) || !level.getBlockState(stand.below()).getFluidState().isEmpty()) stand = hut;
+        if (stand == null || stand.distSqr(hut) > 400 || walk(stand, 2.0) || ++timer > GIVE_UP) {
+            // somewhere round the hut, each of them a spot of their own (not all in a heap at its door)
+            stand = null;
+            for (int k = 0; k < 8 && stand == null; k++) {
+                double a = r.getRandom().nextDouble() * Math.PI * 2, d = 6 + r.getRandom().nextInt(9);
+                int x = hut.getX() + (int) Math.round(Math.cos(a) * d), z = hut.getZ() + (int) Math.round(Math.sin(a) * d);
+                BlockPos p = new BlockPos(x, PlotFinder.floorAt(level, x, z), z);
+                if (DwellerGoals.inPlot(village(), x, z, 0) || !level.getBlockState(p.below()).getFluidState().isEmpty()) continue;
+                stand = p;
+            }
+            if (stand == null) stand = hut;
             timer = 0;
             if (ticks % 400 == 0) {
                 DwellerGoals.forgetTrees(village());

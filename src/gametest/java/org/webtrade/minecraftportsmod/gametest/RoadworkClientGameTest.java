@@ -20,6 +20,7 @@ import org.webtrade.minecraftportsmod.colony.Res;
 import org.webtrade.minecraftportsmod.colony.Roadworks;
 import org.webtrade.minecraftportsmod.colony.Scouting;
 import org.webtrade.minecraftportsmod.colony.Trails;
+import org.webtrade.minecraftportsmod.colony.Building;
 import org.webtrade.minecraftportsmod.colony.Village;
 import org.webtrade.minecraftportsmod.colony.VillageData;
 import org.webtrade.minecraftportsmod.village.ResidentEntity;
@@ -139,12 +140,14 @@ public class RoadworkClientGameTest implements FabricClientGameTest {
             server.runCommand("gamerule advance_time false");
             server.runCommand("gamerule spawn_mobs false");
             server.runCommand("time set 6000");
-            server.waitFor(s -> VillageData.get(s).all().size() >= 1, 20 * 600);
+            // (a village on the mainland: an island's has no way by land to anywhere)
+            server.waitFor(s -> VillageData.get(s).all().stream().anyMatch(v -> !v.island()), 20 * 600);
             int[] a = {-1}, spot = {0, 0};
             server.runOnServer(s -> {
                 var p = s.getPlayerList().getPlayers().getFirst();
                 Village best = null;
                 for (Village v : VillageData.get(s).all()) {
+                    if (v.island()) continue;
                     if (best == null || v.center.distSqr(p.blockPosition()) < best.center.distSqr(p.blockPosition())) best = v;
                 }
                 a[0] = best.id;
@@ -361,6 +364,17 @@ public class RoadworkClientGameTest implements FabricClientGameTest {
                     for (int k = 1; k <= 12 && !pile; k++) pile = l.getBlockState(q.above(k)).is(BlockTags.PLANKS);
                     if (pile) {
                         log("bridge pile at {}", q.toShortString());
+                        continue;
+                    }
+                    // (on the plot of a building put up there since: its timber, not a tree)
+                    boolean onPlot = false;
+                    for (Village vv : VillageData.get(s).all()) {
+                        for (Building bb : vv.buildings()) {
+                            if (Math.abs(q.getX() - bb.origin.getX()) <= bb.type.half + 1 && Math.abs(q.getZ() - bb.origin.getZ()) <= bb.type.half + 1) onPlot = true;
+                        }
+                    }
+                    if (onPlot) {
+                        log("timber of a building at {}", q.toShortString());
                         continue;
                     }
                     // (a post of a house the village has put up there since: not a tree)
