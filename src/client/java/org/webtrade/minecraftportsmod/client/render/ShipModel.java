@@ -31,7 +31,7 @@ import java.util.Map;
 public class ShipModel extends EntityModel<VesselRenderState> {
 
     /** A loaded model file: the layer to bake plus which top-level parts are animated how. */
-    public record Spec(LayerDefinition layer, Map<String, String> animated, float scale) {
+    public record Spec(LayerDefinition layer, Map<String, String> animated, float scale, List<Cloth> cloths) {
 
         public static Spec load(String name) {
             String path = "/assets/minecraftportsmod/ship_models/" + name + ".json";
@@ -49,7 +49,19 @@ public class ShipModel extends EntityModel<VesselRenderState> {
                     }
                 }
                 float scale = json.has("scale") ? json.get("scale").getAsFloat() : 1F;
-                return new Spec(LayerDefinition.create(mesh, size.get(0).getAsInt(), size.get(1).getAsInt()), animated, scale);
+                List<Cloth> cloths = new ArrayList<>();
+                if (json.has("sails")) {
+                    for (JsonElement e : json.getAsJsonArray("sails")) {
+                        JsonObject o = e.getAsJsonObject();
+                        float[][] pts = new float[4][3];
+                        JsonArray a = o.getAsJsonArray("pts");
+                        for (int i = 0; i < 4; i++) for (int k = 0; k < 3; k++) pts[i][k] = a.get(i).getAsJsonArray().get(k).getAsFloat() / 16F;
+                        JsonArray b = o.getAsJsonArray("belly");
+                        float[] belly = {b.get(0).getAsFloat() / 16F, b.get(1).getAsFloat() / 16F, b.get(2).getAsFloat() / 16F};
+                        cloths.add(new Cloth(pts, belly, "top".equals(o.get("furl").getAsString()), o.get("emblem").getAsBoolean()));
+                    }
+                }
+                return new Spec(LayerDefinition.create(mesh, size.get(0).getAsInt(), size.get(1).getAsInt()), animated, scale, cloths);
             } catch (Exception ex) {
                 throw new IllegalStateException("Could not load ship model " + name, ex);
             }
@@ -60,9 +72,12 @@ public class ShipModel extends EntityModel<VesselRenderState> {
             for (JsonElement e : json.getAsJsonArray("boxes")) {
                 JsonObject b = e.getAsJsonObject();
                 JsonArray uv = b.getAsJsonArray("uv"), from = b.getAsJsonArray("from"), s = b.getAsJsonArray("size");
+                // (a box grown a hair all round, so that its faces don't flicker against another's in the same plane)
+                float grow = b.has("grow") ? b.get("grow").getAsFloat() : 0F;
                 cubes.texOffs(uv.get(0).getAsInt(), uv.get(1).getAsInt())
                         .addBox(from.get(0).getAsFloat(), from.get(1).getAsFloat(), from.get(2).getAsFloat(),
-                                s.get(0).getAsFloat(), s.get(1).getAsFloat(), s.get(2).getAsFloat());
+                                s.get(0).getAsFloat(), s.get(1).getAsFloat(), s.get(2).getAsFloat(),
+                                new net.minecraft.client.model.geom.builders.CubeDeformation(grow));
             }
             JsonArray p = json.getAsJsonArray("pivot"), r = json.getAsJsonArray("rotation");
             PartDefinition part = parent.addOrReplaceChild(json.get("name").getAsString(), cubes,
@@ -75,6 +90,85 @@ public class ShipModel extends EntityModel<VesselRenderState> {
     private record Sail(ModelPart part, boolean foreAndAft, float baseX, float baseY) {
     }
 
+    /**
+     * A sail drawn as smooth cloth: its corners (head left, head right, foot right, foot left; a triangle's head
+     * twice), in model units; how far its middle bellies out and which way; whether it furls up to its yard (else down);
+     * whether it bears the ship's emblem.
+     */
+    public record Cloth(float[][] pts, float[] belly, boolean furlsUp, boolean emblem) {
+    }
+
+    /** Cells of a sail's cloth across and down. */
+    private static final int CELLS = 10;
+
+    /**
+     * Draws the sails as smooth cloth, full of wind (or furled), in the model's frame (the pose the model is drawn
+     * with). {@code emblem} draws on the sails that bear the emblem (null: the plain cloth for all).
+     */
+    public void drawSails(com.mojang.blaze3d.vertex.PoseStack.Pose pose, com.mojang.blaze3d.vertex.VertexConsumer vc, int light,
+                          boolean sailing, float t, boolean emblems) {
+        for (Cloth c : cloths) {
+            if (c.emblem != emblems) continue;
+            float billow = sailing ? 0.85F + 0.15F * Mth.sin(t * 0.07F + c.pts[0][2] * 2F) : 0.1F;
+            // furled: the cloth gathered in a narrow band at its yard (or its boom)
+            float v0 = 0, v1 = 1;
+            if (!sailing) {
+                if (c.furlsUp) v1 = 0.12F;
+                else v0 = 0.88F;
+            }
+            float[][][] grid = new float[CELLS + 1][CELLS + 1][];
+            for (int i = 0; i <= CELLS; i++) {
+                for (int j = 0; j <= CELLS; j++) {
+                    float u = i / (float) CELLS, v = v0 + (v1 - v0) * j / (float) CELLS;
+                    grid[i][j] = point(c, u, v, billow);
+                }
+            }
+            for (int i = 0; i < CELLS; i++) {
+                for (int j = 0; j < CELLS; j++) {
+                    float[] a = grid[i][j], b = grid[i + 1][j], d = grid[i + 1][j + 1], e = grid[i][j + 1];
+                    // the normal of the cell (for the light), and its shade: the cloth darker where it bellies away
+                    float ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2], vx = e[0] - a[0], vy = e[1] - a[1], vz = e[2] - a[2];
+                    float nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+                    float len = Mth.sqrt(nx * nx + ny * ny + nz * nz);
+                    if (len < 1e-6F) {
+                        nx = 0;
+                        ny = 1;
+                        nz = 0;
+                    } else {
+                        nx /= len;
+                        ny /= len;
+                        nz /= len;
+                    }
+                    float u0 = i / (float) CELLS, u1 = (i + 1) / (float) CELLS, w0 = j / (float) CELLS, w1 = (j + 1) / (float) CELLS;
+                    vertex(pose, vc, a, u0, w0, light, nx, ny, nz);
+                    vertex(pose, vc, b, u1, w0, light, nx, ny, nz);
+                    vertex(pose, vc, d, u1, w1, light, nx, ny, nz);
+                    vertex(pose, vc, e, u0, w1, light, nx, ny, nz);
+                }
+            }
+        }
+    }
+
+    /** A point of a sail's cloth: across (u) and down (v) its corners, bellied out the most in the middle and low down. */
+    private static float[] point(Cloth c, float u, float v, float billow) {
+        float[][] p = c.pts;
+        float[] out = new float[3];
+        float bulge = billow * (float) (Math.sin(Math.PI * u) * Math.sin(Math.PI * Math.min(1.0, v * 1.15)));
+        for (int k = 0; k < 3; k++) {
+            float top = p[0][k] + (p[1][k] - p[0][k]) * u, bot = p[3][k] + (p[2][k] - p[3][k]) * u;
+            out[k] = top + (bot - top) * v + c.belly[k] * bulge;
+        }
+        return out;
+    }
+
+    private static void vertex(com.mojang.blaze3d.vertex.PoseStack.Pose pose, com.mojang.blaze3d.vertex.VertexConsumer vc, float[] p, float u, float v,
+                               int light, float nx, float ny, float nz) {
+        vc.addVertex(pose, p[0], p[1], p[2]).setColor(255, 255, 255, 255).setUv(u, v)
+                .setOverlay(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, nx, ny, nz);
+    }
+
+    private final List<Cloth> cloths;
+
     private final List<Sail> sails = new ArrayList<>();
     private final List<ModelPart> flags = new ArrayList<>();
     private final float scale;
@@ -82,6 +176,7 @@ public class ShipModel extends EntityModel<VesselRenderState> {
     public ShipModel(ModelPart root, Spec spec) {
         super(root, RenderTypes::entityCutout);
         this.scale = spec.scale();
+        this.cloths = spec.cloths();
         for (Map.Entry<String, String> e : spec.animated().entrySet()) {
             ModelPart part = root.getChild(e.getKey());
             switch (e.getValue()) {

@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraftportsmod:item/ship_of_the_line_spawn_egg"
+  }
+}

@@ -53,6 +53,11 @@ public class VesselRenderer extends EntityRenderer<VesselEntity, VesselRenderSta
     private static ShipModel.Spec sloopSpec;
     private static ShipModel.Spec brigSpec;
 
+    /** The brig's model file (for the warships, drawn bigger). */
+    public static ShipModel.Spec brigSpec() {
+        return brigSpec;
+    }
+
     public static void registerLayers() {
         sloopSpec = ShipModel.Spec.load("sloop");
         brigSpec = ShipModel.Spec.load("brig");
@@ -126,6 +131,14 @@ public class VesselRenderer extends EntityRenderer<VesselEntity, VesselRenderSta
         pose.mulPose(Axis.YP.rotationDegrees(180.0F));
         pose.scale(model.scale(), model.scale(), model.scale());
         collector.submitModel(model, state, pose, texture, state.lightCoords, OverlayTexture.NO_OVERLAY, state.outlineColor, null);
+        // the sails: smooth cloth
+        boolean sailing = state.sailing;
+        int light = state.lightCoords;
+        float age = state.ageInTicks;
+        collector.submitCustomGeometry(pose, net.minecraft.client.renderer.rendertype.RenderTypes.entityCutout(WarshipRenderer.SAIL),
+                (p, vc) -> model.drawSails(p, vc, light, sailing, age, false));
+        collector.submitCustomGeometry(pose, net.minecraft.client.renderer.rendertype.RenderTypes.entityCutout(WarshipRenderer.SAIL),
+                (p, vc) -> model.drawSails(p, vc, light, sailing, age, true));
         pose.popPose();
         if (!state.cargo.isEmpty()) {
             // goods lashed on deck, abaft the mast
