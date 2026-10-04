@@ -1145,8 +1145,8 @@ public final class Trails {
         line(level, data, a, sx0, sz0, sx1, sz1, decks[s], decks[s + 1], alongX, fill);
     }
 
-    /** A dry gap at most this deep is filled with earth rather than bridged. */
-    static final int FILL = 8;
+    /** A dry dip at most this deep is filled with earth; a deeper one (a pit, a ravine) is bridged like water. */
+    static final int FILL = 3;
 
     /** No bridge at a point of a trail (the way follows the ground). */
     static final int NONE = Integer.MIN_VALUE;
