@@ -109,6 +109,7 @@ public final class Harbour {
     /** The same, unloaded land read off what was read round the village (see {@link VillageTerrain}) where it can be. */
     static int depth(ServerLevel level, Village v, int x, int z) {
         int sea = level.getSeaLevel();
+        if (!Construction.loaded(level, new BlockPos(x, 0, z)) && frozen(level, x, z)) return 0;
         if (v != null && !Construction.loaded(level, new BlockPos(x, 0, z))) {
             VillageTerrain.Grid g = VillageTerrain.grid(level, v);
             Integer d = g == null ? null : g.depth(x, z);
@@ -129,6 +130,13 @@ public final class Harbour {
                 level.getChunkSource().randomState());
         return Math.max(0, sea - floor);
 
+    }
+
+    /** Frozen water by the world's biomes (ice over it, where the land is not loaded yet: no way for a ship). */
+    static boolean frozen(ServerLevel level, int x, int z) {
+        var gen = level.getChunkSource().getGenerator();
+        var b = gen.getBiomeSource().getNoiseBiome(x >> 2, level.getSeaLevel() >> 2, z >> 2, level.getChunkSource().randomState().sampler());
+        return b.unwrapKey().map(k -> k.identifier().getPath().contains("frozen")).orElse(false);
     }
 
     /**
