@@ -46,6 +46,10 @@ public class WarshipEntity extends Boat {
     private static final EntityDataAccessor<Integer> DATA_SINK = SynchedEntityData.defineId(WarshipEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_RELOAD_LEFT = SynchedEntityData.defineId(WarshipEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_RELOAD_RIGHT = SynchedEntityData.defineId(WarshipEntity.class, EntityDataSerializers.INT);
+    /** How long the reloading under way takes in all (it is longer with gunners lost): for the bar of it. */
+    /** How far her helm is laid over (-1 .. 1): she heels in her turn by it. */
+    private static final EntityDataAccessor<Float> DATA_HELM = SynchedEntityData.defineId(WarshipEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Integer> DATA_RELOAD_FULL = SynchedEntityData.defineId(WarshipEntity.class, EntityDataSerializers.INT);
 
     /** The captain's rudder: -1 to port (left), 1 to starboard, 0 amidships. */
     private int rudder;
@@ -66,7 +70,7 @@ public class WarshipEntity extends Boat {
         entityData.set(DATA_HULL, cls.hull);
         // (on a client she follows the server's word closely: whoever stands on her deck is carried by her moves there,
         // and a ship drawn ticks behind the server's would leave them behind)
-        if (getInterpolation() != null) getInterpolation().setInterpolationLength(1);
+        if (getInterpolation() != null) getInterpolation().setInterpolationLength(3);
     }
 
     /** What kind of warship she is (by her entity type: a brig, a galleon, a ship of the line). */
@@ -87,6 +91,8 @@ public class WarshipEntity extends Boat {
         builder.define(DATA_SINK, 0);
         builder.define(DATA_RELOAD_LEFT, 0);
         builder.define(DATA_RELOAD_RIGHT, 0);
+        builder.define(DATA_RELOAD_FULL, 1);
+        builder.define(DATA_HELM, 0F);
     }
 
     public float hull() {
@@ -125,8 +131,27 @@ public class WarshipEntity extends Boat {
         return entityData.get(side < 0 ? DATA_RELOAD_LEFT : DATA_RELOAD_RIGHT);
     }
 
+    /** How far a side's guns are loaded (0 just fired .. 1 loaded). */
+    public float loaded(int side) {
+        return Mth.clamp(1F - reload(side) / (float) Math.max(1, Math.max(entityData.get(DATA_RELOAD_FULL), reload(side))), 0F, 1F);
+    }
+
     public double speed() {
         return speed;
+    }
+
+    /** Her heel (degrees, to starboard +): by her helm and her way, eased (a client keeps it). */
+    private float heel;
+
+    public float heel(float partial) {
+        return heel;
+    }
+
+    /** On a client: her heel follows her helm and her speed slowly (a big hull leans over and rights herself slowly). */
+    private void heelTick() {
+        float way = (float) Math.min(1, Math.hypot(getX() - xo, getZ() - zo) / 0.15);
+        float want = Mth.clamp(entityData.get(DATA_HELM) * way * 6F, -6F, 6F);
+        heel += (want - heel) * 0.05F;
     }
 
     public void setSails(int s) {
@@ -190,7 +215,9 @@ public class WarshipEntity extends Boat {
     /** A broadside to one side ({@code -1} port, {@code 1} starboard), the guns raised by {@code elevation} degrees. */
     public void fire(int side, float elevation) {
         if (sinking() > 0 || reload(side) > 0) return;
-        entityData.set(side < 0 ? DATA_RELOAD_LEFT : DATA_RELOAD_RIGHT, reloadTime());
+        int time = reloadTime();
+        entityData.set(DATA_RELOAD_FULL, time);
+        entityData.set(side < 0 ? DATA_RELOAD_LEFT : DATA_RELOAD_RIGHT, time);
         // (the guns go off down the side one after another, the rows together)
         int n = cls.guns();
         for (int g = 0; g < n; g++) firing.add(new int[]{side, g, (g % 7) * 3 + random.nextInt(2) + 1, Math.round(elevation * 100)});
@@ -468,6 +495,11 @@ public class WarshipEntity extends Boat {
         return n;
     }
 
+    /** One of her crew of a role lost (tests). */
+    public void crewLostForTestRole(SailorEntity.Role r) {
+        crewLost(r);
+    }
+
     /** One of her hands lost (tests). */
     public void crewLostForTest() {
         crewLost(SailorEntity.Role.HAND);
@@ -515,10 +547,18 @@ public class WarshipEntity extends Boat {
         return best;
     }
 
+    private WarshipEntity enemyNow;
+    private int enemySeen = -100;
+
     /** What a sailor of hers does now (called from his tick). */
     void crewTick(ServerLevel level, SailorEntity s) {
         double rail = cls.halfBeam - 0.6;
-        WarshipEntity enemy = (s.tickCount + s.getId()) % 10 == 0 || s.role() == SailorEntity.Role.MARINE ? enemy(level, 64) : null;
+        // (the enemy looked for once in a while for the whole crew, not by every man every tick)
+        if (tickCount - enemySeen >= 10) {
+            enemySeen = tickCount;
+            enemyNow = enemy(level, 64);
+        }
+        WarshipEntity enemy = enemyNow != null && !enemyNow.isRemoved() ? enemyNow : null;
         switch (s.role()) {
             case CAPTAIN -> {
                 // at the wheel; beside it while a player has the helm
@@ -537,7 +577,7 @@ public class WarshipEntity extends Boat {
                     Vec3 d = enemy.position().subtract(position());
                     int side = d.dot(starboard()) >= 0 ? 1 : -1;
                     if (s.faces != side) s.runTo(side * rail, cls.middle + (random.nextDouble() - 0.5) * cls.halfLength, side);
-                    if (s.there() && enemy.distanceTo(this) < 30) {
+                    if (s.there() && s.musket == 0 && enemy.distanceTo(this) < 30) {
                         LivingEntity target = enemy.target(level, s);
                         if (target != null) s.shoot(level, target);
                     }
@@ -628,6 +668,7 @@ public class WarshipEntity extends Boat {
 
     @Override
     public void tick() {
+        if (level().isClientSide()) heelTick();
         if (level() instanceof ServerLevel level) {
             if (sinking() > 0) {
                 sink(level);
@@ -662,6 +703,7 @@ public class WarshipEntity extends Boat {
         // (a heavy ship gathers way slowly, and loses it slowly)
         speed += Mth.clamp(want - speed, -0.003, 0.0015);
         helm += Mth.clamp(rudder - helm, -0.04F, 0.04F);
+        if (Math.abs(entityData.get(DATA_HELM) - helm) > 0.01F) entityData.set(DATA_HELM, helm);
         // she turns only with way on her: the more, the faster, but never fast
         float turn = (float) (helm * (0.12 + speed * 3.0) * cls.turn);
         setYRot(getYRot() + turn);
