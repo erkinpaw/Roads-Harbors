@@ -60,6 +60,10 @@ public class WarshipRenderer extends EntityRenderer<WarshipEntity, WarshipRender
         for (var e : LAYERS.entrySet()) models.put(e.getKey(), new ShipModel(ctx.bakeLayer(e.getValue()), SPECS.get(e.getKey())));
     }
 
+    static final Identifier SAIL = Minecraftportsmod.id("textures/entity/ship/sail.png"), SAIL_CROSS = Minecraftportsmod.id("textures/entity/ship/sail_cross.png"),
+            SAIL_PIRATE = Minecraftportsmod.id("textures/entity/ship/sail_pirate.png"),
+            SAIL_SKULL = Minecraftportsmod.id("textures/entity/ship/sail_pirate_skull.png");
+
     private static Identifier texture(ShipClass c, boolean pirate) {
         return Minecraftportsmod.id("textures/entity/ship/" + c.model + (pirate ? "_pirate" : "") + ".png");
     }
@@ -110,6 +114,13 @@ public class WarshipRenderer extends EntityRenderer<WarshipEntity, WarshipRender
         float s = model.scale() * ShipClass.SCALE;
         pose.scale(s, s, s);
         collector.submitModel(model, state, pose, texture(state.cls, state.pirate), state.lightCoords, OverlayTexture.NO_OVERLAY, state.outlineColor, null);
+        // the sails: smooth cloth, the courses with the ship's emblem (the pirates' skull)
+        boolean sailing = state.sailing && state.sinking == 0;
+        int light = state.lightCoords;
+        collector.submitCustomGeometry(pose, net.minecraft.client.renderer.rendertype.RenderTypes.entityCutout(state.pirate ? SAIL_PIRATE : SAIL),
+                (p, vc) -> model.drawSails(p, vc, light, sailing, t, false));
+        collector.submitCustomGeometry(pose, net.minecraft.client.renderer.rendertype.RenderTypes.entityCutout(state.pirate ? SAIL_SKULL : SAIL_CROSS),
+                (p, vc) -> model.drawSails(p, vc, light, sailing, t, true));
         pose.popPose();
         super.submit(state, pose, collector, camera);
     }

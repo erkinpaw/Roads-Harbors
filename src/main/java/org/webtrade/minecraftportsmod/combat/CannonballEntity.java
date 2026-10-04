@@ -68,7 +68,16 @@ public class CannonballEntity extends Entity {
                 return;
             }
         } else {
-            level().addParticle(ParticleTypes.SMOKE, from.x, from.y, from.z, 0, 0.01, 0);
+            // its trail: smoke, and sparks of the charge for the first moments
+            for (int i = 0; i < 3; i++) {
+                Vec3 q = from.add(v.scale(i / 3.0));
+                level().addParticle(ParticleTypes.SMOKE, q.x, q.y, q.z, 0, 0.01, 0);
+            }
+            if (tickCount < 12) level().addParticle(ParticleTypes.SMALL_FLAME, from.x, from.y, from.z, 0, 0, 0);
+            if (tickCount % 3 == 0) level().addParticle(ParticleTypes.CAMPFIRE_COSY_SMOKE, from.x, from.y, from.z, 0, 0.005, 0);
+            // the whistle of it going by
+            if (tickCount == 2) level().playLocalSound(from.x, from.y, from.z, net.minecraft.sounds.SoundEvents.ARROW_SHOOT, SoundSource.NEUTRAL,
+                    3F, 0.4F + random.nextFloat() * 0.2F, false);
         }
         setPos(to);
         setDeltaMovement(v.x * DRAG, (v.y - GRAVITY) * DRAG, v.z * DRAG);
@@ -80,6 +89,13 @@ public class CannonballEntity extends Entity {
         int steps = Math.max(1, (int) Math.ceil(len / 0.5));
         for (int i = 1; i <= steps; i++) {
             Vec3 p = from.lerp(to, i / (double) steps);
+            // another ball in the air: both burst
+            for (CannonballEntity o : level.getEntitiesOfClass(CannonballEntity.class, new AABB(p, p).inflate(0.7))) {
+                if (o == this || o.isRemoved() || o.ship == ship) continue;
+                Fx.clash(level, p, random);
+                o.discard();
+                return true;
+            }
             // a ship
             for (WarshipEntity s : level.getEntitiesOfClass(WarshipEntity.class, new AABB(p, p).inflate(12))) {
                 if (s.getId() == ship || s.sinking() > 0 || !s.hits(p)) continue;
@@ -93,24 +109,22 @@ public class CannonballEntity extends Entity {
                 DamageSource src = shooter instanceof WarshipEntity w && w.captain() != null
                         ? level.damageSources().explosion(this, w.captain()) : level.damageSources().explosion(this, null);
                 e.hurtServer(level, src, BODY_DAMAGE);
-                level.sendParticles(ParticleTypes.EXPLOSION, p.x, p.y, p.z, 1, 0, 0, 0, 0);
+                Fx.hit(level, p, random);
                 return true;
             }
             BlockPos b = BlockPos.containing(p);
             BlockState st = level.getBlockState(b);
             // the sea: a fountain
             if (!st.getFluidState().isEmpty()) {
-                level.sendParticles(ParticleTypes.SPLASH, p.x, b.getY() + 1, p.z, 40, 0.4, 0.1, 0.4, 0.3);
-                level.sendParticles(ParticleTypes.BUBBLE, p.x, b.getY() + 0.5, p.z, 15, 0.3, 0.3, 0.3, 0.1);
-                level.sendParticles(ParticleTypes.CLOUD, p.x, b.getY() + 1.5, p.z, 6, 0.3, 0.8, 0.3, 0.02);
-                level.playSound(null, p.x, p.y, p.z, SoundEvents.GENERIC_SPLASH, SoundSource.NEUTRAL, 1.4F, 0.8F + random.nextFloat() * 0.3F);
+                Fx.splash(level, new Vec3(p.x, b.getY(), p.z), random);
                 return true;
             }
             // the land: it stops dead (nothing is broken)
             if (!st.getCollisionShape(level, b).isEmpty()) {
                 level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, st), p.x, p.y, p.z, 20, 0.3, 0.3, 0.3, 0.15);
                 level.sendParticles(ParticleTypes.POOF, p.x, p.y, p.z, 4, 0.2, 0.2, 0.2, 0.02);
-                level.playSound(null, p.x, p.y, p.z, st.getSoundType().getBreakSound(), SoundSource.BLOCKS, 1.0F, 0.6F);
+                level.playSound(null, p.x, p.y, p.z, st.getSoundType().getBreakSound(), SoundSource.BLOCKS, Fx.SPLASH, 0.6F);
+                level.sendParticles(ParticleTypes.EXPLOSION, p.x, p.y, p.z, 1, 0, 0, 0, 0);
                 return true;
             }
         }

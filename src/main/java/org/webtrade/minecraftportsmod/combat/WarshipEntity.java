@@ -196,11 +196,7 @@ public class WarshipEntity extends Boat {
         ball.setDeltaMovement(dir.scale(SHOT_SPEED).add(getDeltaMovement()));
         ball.ship = getId();
         level.addFreshEntity(ball);
-        level.sendParticles(ParticleTypes.LARGE_SMOKE, muzzle.x, muzzle.y, muzzle.z, 8, 0.35, 0.25, 0.35, 0.04);
-        level.sendParticles(ParticleTypes.FLAME, muzzle.x + out.x * 0.5, muzzle.y, muzzle.z + out.z * 0.5, 5, 0.1, 0.1, 0.1, 0.03);
-        level.sendParticles(ParticleTypes.CLOUD, muzzle.x + out.x, muzzle.y, muzzle.z + out.z, 6, 0.4, 0.2, 0.4, 0.02);
-        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.NEUTRAL, 1.6F,
-                0.75F + random.nextFloat() * 0.15F);
+        Fx.gun(level, muzzle, out, random);
     }
 
     /** Elevation (degrees) that drops a ball {@code range} blocks out, at sea level. */
@@ -218,10 +214,7 @@ public class WarshipEntity extends Boat {
         sinceHit = 0;
         float hull = Math.max(0, hull() - damage);
         entityData.set(DATA_HULL, hull);
-        level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, net.minecraft.world.level.block.Blocks.DARK_OAK_PLANKS.defaultBlockState()),
-                where.x, where.y, where.z, 30, 0.5, 0.5, 0.5, 0.2);
-        level.sendParticles(ParticleTypes.EXPLOSION, where.x, where.y, where.z, 1, 0, 0, 0, 0);
-        level.playSound(null, where.x, where.y, where.z, SoundEvents.ZOMBIE_BREAK_WOODEN_DOOR, SoundSource.NEUTRAL, 1.2F, 0.7F);
+        Fx.hit(level, where, random);
         if (brain != null && by instanceof WarshipEntity enemy) brain.attackedBy(enemy);
         if (hull <= 0) startSinking(level, by);
     }
@@ -229,7 +222,8 @@ public class WarshipEntity extends Boat {
     private void startSinking(ServerLevel level, Entity by) {
         entityData.set(DATA_SINK, 1);
         firing.clear();
-        level.playSound(null, getX(), getY(), getZ(), SoundEvents.WOOD_BREAK, SoundSource.NEUTRAL, 2.0F, 0.5F);
+        Fx.sound(level, position(), SoundEvents.WOOD_BREAK, Fx.HIT, 0.5F);
+        Fx.sound(level, position(), SoundEvents.GENERIC_EXPLODE, Fx.HIT, 0.5F);
         // what a pirate carried floats up for whoever sank her
         if (isPirate()) {
             int emeralds = 3 + random.nextInt(6), gold = 1 + random.nextInt(4);
@@ -347,6 +341,7 @@ public class WarshipEntity extends Boat {
             sail();
             guns(level);
             if (++sinceHit > 600 && hull() < maxHull() && tickCount % 20 == 0) entityData.set(DATA_HULL, Math.min(maxHull(), hull() + 1));
+            if (tickCount % 3 == 0) Fx.damage(level, this, random);
         }
         super.tick();
         setPaddleState(false, false);
@@ -385,6 +380,7 @@ public class WarshipEntity extends Boat {
         if (t == 2) ejectPassengers();
         speed = 0;
         setPos(getX(), getY() - 0.035, getZ());
+        Fx.sinking(level, position(), random);
         if (t % 4 == 0) {
             Vec3 p = at((random.nextDouble() - 0.5) * 2 * cls.halfBeam, cls.middle + (random.nextDouble() - 0.5) * 2 * cls.halfLength, 0.4);
             level.sendParticles(ParticleTypes.BUBBLE_COLUMN_UP, p.x, p.y, p.z, 6, 0.6, 0.2, 0.6, 0.1);

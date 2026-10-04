@@ -198,41 +198,32 @@ def build_sloop():
 
 # ---------------------------------------------------------------------------- brig
 
+SAILS = []
+
+
 def square_sail(root, name, x_top, x_bot, y_top, height, z):
     """A square sail hanging from its yard at (y_top, z), slightly wider at the foot, full of wind: its belly bulges
-    forward, most in the middle and low down, the head (at the yard) and the leeches (the sides) straight; furls up."""
+    forward, most in the middle and low down; furls up to the yard. Drawn by the game as smooth cloth (its corners
+    and belly are exported, see SAILS)."""
     p = root.child(name, pivot=(0, y_top, z), anim="square")
-    rows = max(1, height // 8)
-    belly = max(3.0, height * 0.24)
-    for i in range(rows):
-        t = (i + 0.5) / rows
-        half = x_top + (x_bot - x_top) * t
-        cols = max(3, int(round(half * 2 / 12)))
-        y0, hh = i * height / rows, math.ceil(height / rows)
-        for k in range(cols):
-            x0 = -half + k * half * 2 / cols
-            x1 = -half + (k + 1) * half * 2 / cols
-            u = ((x0 + x1) / 2) / half
-            dz = round(belly * (1 - u * u) * math.sin(math.pi * min(1.0, t * 1.15)))
-            p.box("sail_square", x0, y0, -1 + dz, max(1, x1 - x0), hh, 2,
-                  emblem=name.endswith("course"), mid=y_top + height / 2, half=half)
+    SAILS.append({"pts": [[-x_top, y_top, z], [x_top, y_top, z], [x_bot, y_top + height, z], [-x_bot, y_top + height, z]],
+                  "belly": [0, 0, max(3.0, height * 0.24)], "furl": "top", "emblem": name.endswith("course")})
     return p
 
 
 def fore_and_aft(part, poly, step, y_shift, belly=5.0):
-    """A fore-and-aft sail (a gaff sail, a jib, a lateen) in bands, full of wind: bellied out to one side (to leeward),
-    most in the middle, straight along its edges."""
-    belly *= 2.0
-    bs = bands(poly, step)
-    for n, (y0, hh, z0, z1) in enumerate(bs):
-        t = (n + 0.5) / len(bs)
-        cols = max(1, int(round((z1 - z0) / 12)))
-        for k in range(cols):
-            a0 = z0 + k * (z1 - z0) / cols
-            a1 = z0 + (k + 1) * (z1 - z0) / cols
-            u = ((a0 + a1) / 2 - (z0 + z1) / 2) / max(1.0, (z1 - z0) / 2)
-            dx = round(belly * (1 - u * u) * math.sin(math.pi * t))
-            part.box("sail", -1 + dx, y0 + y_shift, a0, 2, hh, max(1, a1 - a0))
+    """A fore-and-aft sail (a gaff sail, a jib, a lateen) full of wind: bellied out to one side (to leeward), most in
+    the middle; furls down. Drawn by the game as smooth cloth: its corners (the highest at the head) are exported."""
+    px, py, pz = part.pivot
+    pts = [[px, py + y + y_shift, pz + z] for (z, y) in poly]
+    pts.sort(key=lambda q: q[1])
+    if len(pts) == 3:
+        top = [pts[0], pts[0]]
+        bot = sorted(pts[1:], key=lambda q: q[2])
+    else:
+        top = sorted(pts[:2], key=lambda q: q[2])
+        bot = sorted(pts[2:], key=lambda q: q[2])
+    SAILS.append({"pts": [top[0], top[1], bot[1], bot[0]], "belly": [belly * 2.0, 0, 0], "furl": "bottom", "emblem": False})
 
 
 def build_brig():
@@ -410,8 +401,11 @@ def build_galleon():
     mz = masts["mizzen"]
     rig.box("mast", -3, -190, mz - 3, 6, 160, 6)
     rig.box("dark", -12, -130, mz - 10, 24, 4, 20)
-    lat = root.child("lateen_yard", pivot=(0, -60, mz + 30), rot=(-0.55, 0, 0))
-    lat.box("spar", -2, -2, -110, 4, 4, 110)
+    # the lateen yard: along the sail's leading edge, from its tack to its head at the masthead
+    ya, yb = (mz + 28, -62), (mz - 2, -180)
+    ylen = math.hypot(yb[0] - ya[0], yb[1] - ya[1])
+    lat = root.child("lateen_yard", pivot=(0, ya[1], ya[0]), rot=(math.atan2(-(yb[1] - ya[1]), -(yb[0] - ya[0])) * -1, 0, 0))
+    lat.box("spar", -2, -2, -ylen, 4, 4, ylen)
     lateen(root, "sail_mizzen", mz, -176, -66, mz + 24, mz - 72)
     for side in (-1, 1):
         for i, dz in enumerate((-10, 6)):
@@ -424,9 +418,7 @@ def build_galleon():
     bowsprit = root.child("bowsprit", pivot=(0, -18, bow_end - 8), rot=(bs_rot, 0, 0))
     bowsprit.box("spar", -3, -3, 0, 6, 6, bs_len)
     tip = (0, -18 - bs_len * math.sin(bs_rot), bow_end - 8 + bs_len * math.cos(bs_rot))
-    spritsail = root.child("sail_sprit", pivot=(0, tip[1] + 6, tip[2] - 20), anim="square")
-    for i in range(3):
-        spritsail.box("sail_square", -26 + i * 2, i * 10, -1, 52 - i * 4, 10, 2, emblem=False, mid=tip[1] + 20)
+    square_sail(root, "sail_sprit", 26, 22, tip[1] + 6, 30, tip[2] - 20)
     rope(root, "forestay", tip, (0, -196, masts["fore"]))
     rope(root, "stay_main", (0, -130, masts["fore"]), (0, -242, masts["main"]))
     root.child("flagstaff").box("dark", -1, -106, -hl - 8, 2, 46, 2)
@@ -799,7 +791,60 @@ def pirate(img):
     return out
 
 
-def export(name, root, pal, width=1024):
+def sail_textures():
+    """The sails' cloth: canvas with its seams (vertical cloths) and reef bands; a navy course's red cross; the
+    pirates' black cloth, patched, with a skull on the courses."""
+    import random
+    random.seed(7)
+    n = 64
+
+    def cloth(base, seam, band, extra=None):
+        img = Image.new("RGBA", (n, n))
+        px = img.load()
+        for y in range(n):
+            for x in range(n):
+                c = base
+                v = random.randint(-5, 5)
+                if x % 8 == 0:
+                    c = seam
+                if y in (12, 13, 26, 27):
+                    c = band
+                c = tuple(max(0, min(255, ch + v)) for ch in c[:3]) + (255,)
+                if extra:
+                    c = extra(x, y, c)
+                px[x, y] = c
+        return img
+
+    canvas, seam, band = (241, 234, 215), (214, 204, 182), (225, 216, 196)
+    cloth(canvas, seam, band).save(os.path.join(TEXTURES, "sail.png"))
+
+    def cross(x, y, c):
+        if abs(x - 32) <= 4 or abs(y - 36) <= 4:
+            return (178, 34, 34, 255)
+        return c
+    cloth(canvas, seam, band, cross).save(os.path.join(TEXTURES, "sail_cross.png"))
+    black, bseam, bband = (38, 36, 36), (24, 22, 22), (30, 28, 28)
+    patches = [(random.randint(2, 54), random.randint(2, 54), random.randint(5, 9)) for _ in range(5)]
+
+    def patched(x, y, c):
+        for (px0, py0, sz) in patches:
+            if px0 <= x < px0 + sz and py0 <= y < py0 + sz:
+                return (58, 52, 48, 255)
+        return c
+    cloth(black, bseam, bband, patched).save(os.path.join(TEXTURES, "sail_pirate.png"))
+    skull = ["..XXXXXX..", ".XXXXXXXX.", "XXXXXXXXXX", "XX..XX..XX", "XX..XX..XX", "XXXXXXXXXX", ".XXXX.XXX.",
+             "..XXXXXX..", "..X.XX.X..", "..........", "X........X", ".XX....XX.", "...XXXX...", ".XX....XX.", "X........X"]
+
+    def skulled(x, y, c):
+        c = patched(x, y, c)
+        sx, sy = (x - 22) // 2, (y - 18) // 2
+        if 0 <= sy < len(skull) and 0 <= sx < len(skull[sy]) and skull[sy][sx] == "X":
+            return (226, 222, 210, 255)
+        return c
+    cloth(black, bseam, bband, skulled).save(os.path.join(TEXTURES, "sail_pirate_skull.png"))
+
+
+def export(name, root, pal, width=1024, sails=None):
     fixed = unfight(root)
     boxes = [b for b, _ in root.all_boxes()]
     height = pack(boxes, width)
@@ -829,7 +874,7 @@ def export(name, root, pal, width=1024):
     os.makedirs(TEXTURES, exist_ok=True)
     with open(os.path.join(MODELS, name + ".json"), "w", encoding="utf-8") as f:
         json.dump({"texture_size": [width, height], "scale": 0.5,
-                   "parts": [part_json(c) for c in root.children]}, f)
+                   "parts": [part_json(c) for c in root.children], "sails": sails or []}, f)
     img.save(os.path.join(TEXTURES, name + ".png"))
     if name != "sloop":
         pirate(img).save(os.path.join(TEXTURES, name + "_pirate.png"))
@@ -837,7 +882,9 @@ def export(name, root, pal, width=1024):
 
 
 if __name__ == "__main__":
-    export("sloop", build_sloop(), SLOOP)
-    export("brig", build_brig(), BRIG)
-    export("galleon", build_galleon(), GALLEON)
-    export("ship_of_the_line", build_line(), LINE, width=2048)
+    for name, build, pal, width in (("sloop", build_sloop, SLOOP, 1024), ("brig", build_brig, BRIG, 1024),
+                                    ("galleon", build_galleon, GALLEON, 1024), ("ship_of_the_line", build_line, LINE, 2048)):
+        SAILS.clear()
+        root = build()
+        export(name, root, pal, width=width, sails=[dict(x) for x in SAILS])
+    sail_textures()
