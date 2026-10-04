@@ -64,6 +64,9 @@ public class WarshipEntity extends Boat {
         super(type, level, () -> Items.OAK_BOAT);
         cls = org.webtrade.minecraftportsmod.registry.ModContent.shipClass(type);
         entityData.set(DATA_HULL, cls.hull);
+        // (on a client she follows the server's word closely: whoever stands on her deck is carried by her moves there,
+        // and a ship drawn ticks behind the server's would leave them behind)
+        if (getInterpolation() != null) getInterpolation().setInterpolationLength(1);
     }
 
     /** What kind of warship she is (by her entity type: a brig, a galleon, a ship of the line). */
@@ -396,7 +399,8 @@ public class WarshipEntity extends Boat {
     public Vec3 carry(Vec3 p, double fromX, double fromY, double fromZ, float fromYaw) {
         float turn = (getYRot() - fromYaw) * Mth.DEG_TO_RAD;
         double ox = p.x - fromX, oz = p.z - fromZ;
-        double c = Math.cos(-turn), s = Math.sin(-turn);
+        // (turned the way she turned: her bow (-sin yaw, cos yaw) goes round with her)
+        double c = Math.cos(turn), s = Math.sin(turn);
         double rx = ox * c - oz * s, rz = ox * s + oz * c;
         return new Vec3(getX() + rx, p.y + (getY() - fromY), getZ() + rz);
     }
@@ -649,15 +653,29 @@ public class WarshipEntity extends Boat {
     }
 
     /** Way on her and her turning, by the sails and the rudder: she turns only while she moves, the faster the more. */
+    /** The rudder as it is laid over now (it goes over and comes back slowly: a big ship answers her helm late). */
+    private float helm;
+
     private void sail() {
-        double want = brain == null && captain() == null && cruise == 0 ? 0 : cls.speeds[sails()];
-        speed += Mth.clamp(want - speed, -0.006, 0.004);
-        float turn = (float) (rudder * (0.35 + speed * 7.0) * cls.turn);
+        boolean underWay = brain != null || captain() != null || cruise != 0;
+        double want = underWay ? cls.speeds[sails()] : 0;
+        // (a heavy ship gathers way slowly, and loses it slowly)
+        speed += Mth.clamp(want - speed, -0.003, 0.0015);
+        helm += Mth.clamp(rudder - helm, -0.04F, 0.04F);
+        // she turns only with way on her: the more, the faster, but never fast
+        float turn = (float) (helm * (0.12 + speed * 3.0) * cls.turn);
         setYRot(getYRot() + turn);
         Vec3 v = getDeltaMovement();
         Vec3 f = forward();
+        // the current carries her along under way: with it she makes more, against it less, across it she is set aside
+        double cx = 0, cz = 0;
+        if (underWay && sinking() == 0) {
+            double[] c = Currents.at(getX(), getZ());
+            cx = c[0];
+            cz = c[1];
+        }
         // (the water's drag on a boat is 0.9 a tick: the velocity is set so that what is left is the speed)
-        setDeltaMovement(f.x * speed / 0.9, v.y, f.z * speed / 0.9);
+        setDeltaMovement((f.x * speed + cx) / 0.9, v.y, (f.z * speed + cz) / 0.9);
         if (horizontalCollision) speed *= 0.5;
     }
 

@@ -7,11 +7,11 @@ package org.webtrade.minecraftportsmod.combat;
  */
 public enum ShipClass {
     //    model               hull reload  speeds (furled, reefed, half, full)     turn  lift   beam  middle half  deck castle  guns' rows (y, units)  ports along (z, units)
-    BRIG("brig", 100, 70, new double[]{0, 0.1, 0.2, 0.32}, 1.0, 0.9, 2.25, 1.1, 6.8, 2, -28, new int[]{3},
+    BRIG("brig", 100, 70, new double[]{0, 0.06, 0.13, 0.21}, 1.0, 0.9, 2.25, 1.1, 6.8, 2, -28, new int[]{3},
             new int[]{-50, -18, 14, 46}, -76),
-    GALLEON("galleon", 160, 90, new double[]{0, 0.09, 0.17, 0.27}, 0.8, 1.0, 2.6, 0.82, 7.7, 2, -50, new int[]{3},
+    GALLEON("galleon", 160, 90, new double[]{0, 0.05, 0.11, 0.18}, 0.8, 1.0, 2.6, 0.82, 7.7, 2, -50, new int[]{3},
             new int[]{-64, -32, 0, 32, 64}, -86),
-    LINE("ship_of_the_line", 260, 110, new double[]{0, 0.08, 0.15, 0.24}, 0.6, 1.9, 2.95, 0.82, 9.6, 2, -26, new int[]{3, 19},
+    LINE("ship_of_the_line", 260, 110, new double[]{0, 0.045, 0.1, 0.16}, 0.6, 1.9, 2.95, 0.82, 9.6, 2, -26, new int[]{3, 19},
             new int[]{-112, -80, -48, -16, 16, 48, 80}, -104);
 
     /** How much bigger than the fleet's ships the warships are drawn; one model unit in blocks then. */

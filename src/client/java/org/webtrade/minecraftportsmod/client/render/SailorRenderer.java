@@ -26,6 +26,10 @@ public class SailorRenderer extends HumanoidMobRenderer<SailorEntity, AvatarRend
 
     public SailorRenderer(EntityRendererProvider.Context context) {
         super(context, new PlayerModel(context.bakeLayer(ModelLayers.PLAYER), false), 0.5F);
+        // what they wear: the captain's coat and hat, the marines' red coats, the pirates' kerchiefs
+        addLayer(new net.minecraft.client.renderer.entity.layers.HumanoidArmorLayer<>(this,
+                net.minecraft.client.renderer.entity.ArmorModelSet.bake(ModelLayers.PLAYER_ARMOR, context.getModelSet(),
+                        part -> new net.minecraft.client.model.HumanoidModel<AvatarRenderState>(part)), context.getEquipmentRenderer()));
     }
 
     @Override

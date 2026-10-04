@@ -80,6 +80,7 @@ public final class CombatClient {
         ClientTickEvents.START_CLIENT_TICK.register(CombatClient::tick);
         // (after the world's tick: the ships have moved, the player too; he is moved on with his ship)
         ClientTickEvents.END_CLIENT_TICK.register(CombatClient::carryPlayer);
+        ClientTickEvents.END_CLIENT_TICK.register(SeaSounds::tick);
         HudElementRegistry.addLast(Minecraftportsmod.id("warship"), (g, delta) -> hud(Minecraft.getInstance(), g));
     }
 
@@ -211,6 +212,7 @@ public final class CombatClient {
 
     private static void hud(Minecraft mc, GuiGraphicsExtractor g) {
         if (mc.gui.hud.isHidden() || mc.player == null) return;
+        ShipMinimap.draw(mc, g);
         WarshipEntity ship = helm(mc);
         int w = mc.getWindow().getGuiScaledWidth(), h = mc.getWindow().getGuiScaledHeight();
         if (ship != null) {
