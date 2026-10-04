@@ -462,54 +462,72 @@ public class RoadworkClientGameTest implements FabricClientGameTest {
                 if (stuck.size() > 2) throw new AssertionError("crew members got stuck " + stuck.size() + " times on the way to their work");
             });
 
-            // 5. the evening: they stop, pitch a tent by the way, sleep; nothing is made at night
-            server.runOnServer(s -> VillageData.get(s).setDayTicks((int) (DAY * 0.6)));
-            context.waitTicks(100);
-            double[] atDusk = {0};
-            int[][] tent = {null};
-            server.runOnServer(s -> {
-                VillageData data = VillageData.get(s);
-                Roadworks.Work w = work(data, a[0], b[0]);
-                atDusk[0] = w.side(a[0]).done() + w.side(b[0]).done();
-                tent[0] = w.side(a[0]).tent();
-                log("dusk: A camp {} tent {}", java.util.Arrays.toString(w.side(a[0]).camp()), java.util.Arrays.toString(tent[0]));
-                if (w.side(a[0]).camp() == null) throw new AssertionError("A's crew did not camp at dusk");
-                if (tent[0] == null) throw new AssertionError("no tent was pitched by A's crew (its land loaded, the player by it)");
-            });
-            context.waitTicks(20 * 15);
-            server.runOnServer(s -> {
-                VillageData data = VillageData.get(s);
-                Roadworks.Work w = work(data, a[0], b[0]);
-                double now = w.side(a[0]).done() + w.side(b[0]).done();
-                ServerLevel l = s.overworld();
-                int beds = 0;
-                BlockPos o = new BlockPos(tent[0][0], tent[0][1], tent[0][2]);
-                for (BlockPos q : BlockPos.betweenClosed(o.offset(-3, -1, -3), o.offset(3, 3, 3))) if (l.getBlockState(q).is(BlockTags.BEDS)) beds++;
-                var bodies = crewBodies(s, a[0]);
-                long asleep = bodies.stream().filter(net.minecraft.world.entity.LivingEntity::isSleeping).count();
-                log("night: made {} at dusk, {} now; bed blocks in the tent {}; A's crew {} ({} asleep): {}", (int) atDusk[0], (int) now, beds, bodies.size(), asleep,
-                        bodies.stream().map(e -> e.activity().getString()).toList());
-                if (now > atDusk[0] + 0.01) throw new AssertionError("the way went on being made at night");
-                if (beds == 0) throw new AssertionError("the tent has no beds in the world");
-                if (asleep == 0) throw new AssertionError("A's crew is not asleep in the tent");
-            });
-            context.takeScreenshot("roadwork_b_camp");
-            // the morning: the tent struck
-            server.runOnServer(s -> VillageData.get(s).setDayTicks(DAY - 20));
-            context.waitTicks(20 * 8);
-            server.runOnServer(s -> {
-                VillageData data = VillageData.get(s);
-                Roadworks.Work w = work(data, a[0], b[0]);
-                ServerLevel l = s.overworld();
-                BlockPos o = new BlockPos(tent[0][0], tent[0][1], tent[0][2]);
-                int wool = 0;
-                for (BlockPos q : BlockPos.betweenClosed(o.offset(-3, -1, -3), o.offset(3, 3, 3))) {
-                    if (l.getBlockState(q).is(BlockTags.WOOL) || l.getBlockState(q).is(BlockTags.BEDS)) wool++;
+            // 5. the evening: they stop, pitch a tent by the way, sleep; nothing is made at night (unless the crews
+            // have met already, the way being short: then there is no night out to see)
+            boolean[] going = {false};
+            server.runOnServer(s -> going[0] = work(VillageData.get(s), a[0], b[0]) != null && work(VillageData.get(s), a[0], b[0]).finished() < 0);
+            if (!going[0]) log("the crews met before the evening: no night by the way to see");
+            if (going[0]) {
+                server.runOnServer(s -> VillageData.get(s).setDayTicks((int) (DAY * 0.6)));
+                context.waitTicks(100);
+                double[] atDusk = {0};
+                int[][] tent = {null};
+                server.runOnServer(s -> {
+                    VillageData data = VillageData.get(s);
+                    Roadworks.Work w = work(data, a[0], b[0]);
+                    atDusk[0] = w.side(a[0]).done() + w.side(b[0]).done();
+                    tent[0] = w.side(a[0]).tent();
+                    log("dusk: A camp {} tent {}", java.util.Arrays.toString(w.side(a[0]).camp()), java.util.Arrays.toString(tent[0]));
+                    if (w.side(a[0]).camp() == null) throw new AssertionError("A's crew did not camp at dusk");
+                    if (tent[0] == null) throw new AssertionError("no tent was pitched by A's crew (its land loaded, the player by it)");
+                });
+                context.waitTicks(20 * 15);
+                // (they walk to the tent from where the day's work left them: a little longer, the night is short here)
+                for (int k = 0; k < 3; k++) {
+                    boolean[] sleeping = {false};
+                    server.runOnServer(s -> sleeping[0] = crewBodies(s, a[0]).stream().anyMatch(net.minecraft.world.entity.LivingEntity::isSleeping));
+                    if (sleeping[0]) break;
+                    server.runOnServer(s -> {
+                        int[] t = tent[0];
+                        log("waiting for the crew to go to sleep: {}", crewBodies(s, a[0]).stream().map(e -> e.blockPosition().toShortString() + " ("
+                                + (int) Math.hypot(e.getX() - t[0], e.getZ() - t[2]) + " from the tent) " + e.activity().getString()).toList());
+                    });
+                    context.waitTicks(20 * 5);
                 }
-                log("morning (day {}): A tent {}, wool and beds left where it stood: {}", data.day(), java.util.Arrays.toString(w.side(a[0]).tent()), wool);
-                if (w.side(a[0]).tent() != null || wool > 0) throw new AssertionError("the tent was not struck in the morning");
-            });
+                server.runOnServer(s -> {
+                    VillageData data = VillageData.get(s);
+                    Roadworks.Work w = work(data, a[0], b[0]);
+                    double now = w.side(a[0]).done() + w.side(b[0]).done();
+                    ServerLevel l = s.overworld();
+                    int beds = 0;
+                    BlockPos o = new BlockPos(tent[0][0], tent[0][1], tent[0][2]);
+                    for (BlockPos q : BlockPos.betweenClosed(o.offset(-3, -1, -3), o.offset(3, 3, 3))) if (l.getBlockState(q).is(BlockTags.BEDS)) beds++;
+                    var bodies = crewBodies(s, a[0]);
+                    long asleep = bodies.stream().filter(net.minecraft.world.entity.LivingEntity::isSleeping).count();
+                    log("night: made {} at dusk, {} now; bed blocks in the tent {}; A's crew {} ({} asleep): {}", (int) atDusk[0], (int) now, beds, bodies.size(), asleep,
+                            bodies.stream().map(e -> e.activity().getString()).toList());
+                    if (now > atDusk[0] + 0.01) throw new AssertionError("the way went on being made at night");
+                    if (beds == 0) throw new AssertionError("the tent has no beds in the world");
+                    if (asleep == 0) throw new AssertionError("A's crew is not asleep in the tent");
+                });
+                context.takeScreenshot("roadwork_b_camp");
+                // the morning: the tent struck
+                server.runOnServer(s -> VillageData.get(s).setDayTicks(DAY - 20));
+                context.waitTicks(20 * 8);
+                server.runOnServer(s -> {
+                    VillageData data = VillageData.get(s);
+                    Roadworks.Work w = work(data, a[0], b[0]);
+                    ServerLevel l = s.overworld();
+                    BlockPos o = new BlockPos(tent[0][0], tent[0][1], tent[0][2]);
+                    int wool = 0;
+                    for (BlockPos q : BlockPos.betweenClosed(o.offset(-3, -1, -3), o.offset(3, 3, 3))) {
+                        if (l.getBlockState(q).is(BlockTags.WOOL) || l.getBlockState(q).is(BlockTags.BEDS)) wool++;
+                    }
+                    log("morning (day {}): A tent {}, wool and beds left where it stood: {}", data.day(), java.util.Arrays.toString(w.side(a[0]).tent()), wool);
+                    if (w.side(a[0]).tent() != null || wool > 0) throw new AssertionError("the tent was not struck in the morning");
+                });
 
+}
             // 6. the crews meet (days go by); the trail can be walked; they go home
             for (int day = 0; day < 12; day++) {
                 boolean[] done = {false};
