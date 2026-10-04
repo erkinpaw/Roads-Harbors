@@ -65,6 +65,15 @@ public class PersonScreen extends UiScreen {
                 send(ColonyPayloads.VillageAction.HIRE, view.person());
             });
         }
+        // a skipper: a passage on his ship to one of the harbours his ways go to
+        for (ColonyPayloads.Passage p : view.passages()) {
+            labels.add(Component.translatable("minecraftportsmod.person.passage", p.name(), p.price()));
+            actions.add(() -> {
+                Minecraft.getInstance().gui.setScreen(null);
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
+                        new ColonyPayloads.VillageAction(view.village(), ColonyPayloads.VillageAction.PASSAGE, view.person(), p.village()));
+            });
+        }
         if (view.plotPrice() >= 0) {
             labels.add(Component.translatable("minecraftportsmod.person.plot", view.plotPrice()));
             actions.add(() -> {

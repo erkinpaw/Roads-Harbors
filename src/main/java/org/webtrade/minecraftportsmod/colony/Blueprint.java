@@ -113,6 +113,9 @@ public final class Blueprint {
             case LOCKSMITH -> b.locksmith();
             case WEAVER, SMELTER, GLASSWORKS -> b.craftHouse();
             case PIER -> b.pier(jetty);
+            case SHIP -> {
+                // (the ship itself is no blocks: she is on the stocks by the jetty, the post at the jetty's foot)
+            }
         }
         b.upTo[1] = b.pieces.size();
         // the additions draw on their own dice: the building under them stays the same

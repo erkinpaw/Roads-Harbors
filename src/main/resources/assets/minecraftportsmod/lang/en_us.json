@@ -1081,8 +1081,8 @@
   "entity.minecraftportsmod.sailor.pirate_captain": "Pirate Captain",
   "entity.minecraftportsmod.musket_ball": "Musket Ball",
   "minecraftportsmod.building.pier": "Pier",
-  "minecraftportsmod.tree.desc.pier": "The skipper's house on the shore and a jetty out to deep water. The village's ships trade over the sea with the other harbours: a sloop, then a brig, then two brigs.",
-  "minecraftportsmod.bmenu.level_gives.pier": "Level %s: a bigger ship, then a second one.",
+  "minecraftportsmod.tree.desc.pier": "The skipper's house on the shore and a jetty out to deep water. The village builds its ships itself, at great cost: a sloop, then brigs; they trade over the sea with the other harbours.",
+  "minecraftportsmod.bmenu.level_gives.pier": "Level %s: one more berth at the jetty for a ship.",
   "minecraftportsmod.job.sailor": "Skipper",
   "minecraftportsmod.profession.sailor": "Skipper",
   "minecraftportsmod.act.at_pier": "On the jetty, by the ships",
@@ -1097,5 +1097,17 @@
   "minecraftportsmod.sea.at_pier": "at the pier",
   "minecraftportsmod.sea.bound": "bound for %s with %s and %s emeralds",
   "minecraftportsmod.sea.coming_home": "coming home with %s and %s emeralds",
-  "minecraftportsmod.sea.ships": "Ships: %s."
+  "minecraftportsmod.sea.ships": "Ships: %s.",
+  "minecraftportsmod.sea.sloop": "sloop",
+  "minecraftportsmod.sea.brig": "brig",
+  "minecraftportsmod.vlog.ship_laid": "A %s is laid down by the pier: her materials are being gathered.",
+  "minecraftportsmod.vlog.ship_stocks": "All is brought for the ship: the %s is on the stocks, launching soon.",
+  "minecraftportsmod.building.ship": "Ship",
+
+  "minecraftportsmod.vlog.ship_launched": "A new %s is launched!",
+  "minecraftportsmod.person.passage": "To %s — %s emeralds",
+  "minecraftportsmod.sea.no_passage": "Not now: the ship is busy, or you are short of emeralds.",
+  "minecraftportsmod.vlog.passage": "%s took passage to %s for %s emeralds."
+
+
 }

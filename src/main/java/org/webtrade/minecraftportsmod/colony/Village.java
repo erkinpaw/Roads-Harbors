@@ -114,7 +114,7 @@ public final class Village {
             Orders.Order.CODEC.listOf().optionalFieldOf("orders", List.of()).forGetter(v -> v.orders),
             Economy.CODEC.optionalFieldOf("economy", Economy.NONE).forGetter(v -> new Economy(v.rewarded, v.mined, v.dig, v.ready, v.traded)),
             Plans.CODEC.optionalFieldOf("plans", Plans.NONE).forGetter(v -> new Plans(List.copyOf(v.order), v.research == null ? "" : v.research.id(),
-                    v.sub == null ? "" : v.sub.id(), v.style, v.island)),
+                    v.sub == null ? "" : v.sub.id(), v.style, v.island, v.ships, v.shipWork)),
             Quests.Board.CODEC.optionalFieldOf("tasks").forGetter(v -> java.util.Optional.of(v.tasks))
     ).apply(i, (core, life, dwellers, buildings, log, chart, orders, eco, plans, tasks) -> {
         Village v = new Village(core.id, core.name, core.center, core.front, core.wood, core.board, core.russian);
@@ -155,6 +155,8 @@ public final class Village {
         v.sub = BuildingType.Sub.byId(plans.sub());
         v.style = plans.style();
         v.island = plans.island();
+        v.ships = plans.ships();
+        v.shipWork = plans.shipWork();
         v.dwellers.addAll(dwellers);
         v.buildings.addAll(buildings);
         v.log.addAll(log);
@@ -175,14 +177,16 @@ public final class Village {
     }));
 
     /** The village's queue: the order its building sites are worked in (building ids), and the research in hand. */
-    private record Plans(List<Integer> order, String research, String sub, int style, boolean island) {
-        static final Plans NONE = new Plans(List.of(), "", "", -1, false);
+    private record Plans(List<Integer> order, String research, String sub, int style, boolean island, int ships, int shipWork) {
+        static final Plans NONE = new Plans(List.of(), "", "", -1, false, 0, 0);
         static final Codec<Plans> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.INT.listOf().optionalFieldOf("order", List.of()).forGetter(Plans::order),
                 Codec.STRING.optionalFieldOf("research", "").forGetter(Plans::research),
                 Codec.STRING.optionalFieldOf("sub", "").forGetter(Plans::sub),
                 Codec.INT.optionalFieldOf("style", -1).forGetter(Plans::style),
-                Codec.BOOL.optionalFieldOf("island", false).forGetter(Plans::island)
+                Codec.BOOL.optionalFieldOf("island", false).forGetter(Plans::island),
+                Codec.INT.optionalFieldOf("ships", 0).forGetter(Plans::ships),
+                Codec.INT.optionalFieldOf("ship_work", 0).forGetter(Plans::shipWork)
         ).apply(i, Plans::new));
     }
 
@@ -308,6 +312,8 @@ public final class Village {
     int style = -1;
     /** It stands on an island: no trail reaches it, its trade goes by sea once it has a harbour. */
     boolean island;
+    /** The ships the village has built (see {@link Harbour}), and the days of work left on the one on the stocks (0: none). */
+    int ships, shipWork;
 
     public boolean island() {
         return island;

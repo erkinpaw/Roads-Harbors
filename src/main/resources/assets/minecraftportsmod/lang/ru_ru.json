@@ -1081,8 +1081,8 @@
   "entity.minecraftportsmod.sailor.pirate_captain": "Капитан пиратов",
   "entity.minecraftportsmod.musket_ball": "Мушкетная пуля",
   "minecraftportsmod.building.pier": "Пристань",
-  "minecraftportsmod.tree.desc.pier": "Дом шкипера на берегу и причал до глубокой воды. Корабли деревни торгуют по морю с другими гаванями: шлюп, потом бриг, потом два брига.",
-  "minecraftportsmod.bmenu.level_gives.pier": "Уровень %s: корабль больше, потом второй корабль.",
+  "minecraftportsmod.tree.desc.pier": "Дом шкипера на берегу и причал до глубокой воды. Корабли деревня строит сама, дорого: шлюп, потом бриги; они торгуют по морю с другими гаванями.",
+  "minecraftportsmod.bmenu.level_gives.pier": "Уровень %s: ещё одно место у причала для корабля.",
   "minecraftportsmod.job.sailor": "Шкипер",
   "minecraftportsmod.profession.sailor": "Шкипер",
   "minecraftportsmod.act.at_pier": "На причале, у кораблей",
@@ -1097,5 +1097,14 @@
   "minecraftportsmod.sea.at_pier": "у причала",
   "minecraftportsmod.sea.bound": "идёт в %s: везёт %s, в кошельке %s изумр.",
   "minecraftportsmod.sea.coming_home": "возвращается домой: везёт %s, в кошельке %s изумр.",
-  "minecraftportsmod.sea.ships": "Корабли: %s."
+  "minecraftportsmod.sea.ships": "Корабли: %s.",
+  "minecraftportsmod.sea.sloop": "шлюп",
+  "minecraftportsmod.sea.brig": "бриг",
+  "minecraftportsmod.vlog.ship_laid": "У пристани заложен %s: собирают материалы.",
+  "minecraftportsmod.vlog.ship_stocks": "Всё для корабля собрано: %s на стапеле, скоро спуск.",
+  "minecraftportsmod.building.ship": "Корабль",
+  "minecraftportsmod.vlog.ship_launched": "Спущен на воду новый %s!",
+  "minecraftportsmod.person.passage": "В %s — %s изумр.",
+  "minecraftportsmod.sea.no_passage": "Не выйдет: корабль занят или не хватает изумрудов.",
+  "minecraftportsmod.vlog.passage": "%s нанял корабль до %s за %s изумрудов."
 }

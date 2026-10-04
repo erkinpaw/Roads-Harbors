@@ -77,6 +77,7 @@ public final class VillageLife {
         if (!watched) workOffline(level, data, v, false);
         else workOffline(level, data, v, true);
         for (Building b : new ArrayList<>(v.buildings)) progress(level, data, v, b);
+        Harbour.shipyard(v, today);
         merchant(v, today);
         specialists(v, today);
         Scouting.day(level, v, today);
@@ -458,6 +459,13 @@ public final class VillageLife {
             if (b.state != Building.State.PLANNED && !b.upgrading()) continue;
             for (Res r : Res.values()) {
                 int give = Math.min(b.missing(r), v.stock(r));
+                // (a ship gets what is left over, the other sites and the reserve first; an island, building its first
+                // ship, its only way out, eats into the reserve by half)
+                if (b.type == BuildingType.SHIP && b.missing(r) > 0) {
+                    int keep = Math.max(0, target(v, r) - b.missing(r));
+                    if (v.island && v.ships == 0) keep /= 2;
+                    give = Math.min(b.missing(r), v.stock(r) - keep);
+                }
                 if (give > 0) deliver(v, b, r, give);
             }
         }
@@ -1761,7 +1769,7 @@ public final class VillageLife {
     }
 
     /** What to spend on raising a level: materials over what the village wants to keep in store. */
-    private static boolean spare(Village v, java.util.Map<Res, Integer> cost) {
+    static boolean spare(Village v, java.util.Map<Res, Integer> cost) {
         for (var e : cost.entrySet()) {
             // (planks and sticks are made to be used: no reserve of them is kept back)
             int keep = e.getKey() == Res.PLANKS || e.getKey() == Res.STICKS || e.getKey() == Res.COAL || e.getKey().optional() ? 0 : target(v, e.getKey()) / 4;
@@ -2075,7 +2083,7 @@ public final class VillageLife {
         return true;
     }
 
-    private static void add(Village v, Building b, long today) {
+    static void add(Village v, Building b, long today) {
         b.created = today;
         v.order.add(b.id);
         b.price.putAll(Tree.price(v, b.type));

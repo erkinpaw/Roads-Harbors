@@ -778,6 +778,14 @@ public final class Roadworks {
     }
 
     /** Are a side's people in the world now? */
+    /** A crew member in the world on his way out to the end of the way (no farther from it than the village he left). */
+    private static boolean walkingOut(ResidentEntity e, int[] where) {
+        return Math.hypot(e.getX() - where[0], e.getZ() - where[1]) < MAX_WALK_OUT;
+    }
+
+    /** How far from the end of the way a crew member walking out to it is still followed in the world. */
+    private static final int MAX_WALK_OUT = 400;
+
     private static boolean present(Work w, Side s) {
         for (int id : s.crew) {
             ResidentEntity e = BODIES.get(key(s.village, id));
@@ -865,7 +873,10 @@ public final class Roadworks {
             if (e != null) {
                 // (a copy of him saved with the world: there is only one of him)
                 Caravans.single(level, e, s.village, id);
-                if (where == null || !level.isPositionEntityTicking(e.blockPosition()) || !playerNear(level, e.getBlockX(), e.getBlockZ(), SEEN + 32)) {
+                // (one walking out from home to the end of the way is theirs as long as the world about him goes on: the work
+                // waits for him to get there, it is not done by nobody meanwhile)
+                if (where == null || !level.isPositionEntityTicking(e.blockPosition())
+                        || !playerNear(level, e.getBlockX(), e.getBlockZ(), SEEN + 32) && !walkingOut(e, where)) {
                     e.discard();
                     BODIES.remove(k);
                     HELD.remove(k);
@@ -898,7 +909,8 @@ public final class Roadworks {
             }
             if (where == null || !playerNear(level, where[0], where[1], SEEN)) continue;
             // (still in the world from home: the end of the way is by the village; that body is theirs)
-            if (d.body != null && level.getEntity(d.body) instanceof ResidentEntity mine && mine.isAlive()) {
+            if (d.body != null && level.getEntity(d.body) instanceof ResidentEntity mine && mine.isAlive()
+                    && level.isPositionEntityTicking(mine.blockPosition())) {
                 BODIES.put(k, mine);
                 continue;
             }

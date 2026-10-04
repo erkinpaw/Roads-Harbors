@@ -114,7 +114,7 @@ public final class ModContent {
     public static final EntityType<org.webtrade.minecraftportsmod.vessel.TradeShipEntity> TRADE_SHIP = entity("trade_ship",
             EntityType.Builder.<org.webtrade.minecraftportsmod.vessel.TradeShipEntity>of(org.webtrade.minecraftportsmod.vessel.TradeShipEntity::new, MobCategory.MISC)
                     .noLootTable()
-                    .noSave()
+                    // (not saved all the same, see the entity; but a type that can't be saved can't be ridden)
                     .noSummon()
                     .sized(2.5F, 1.0F)
                     .clientTrackingRange(16)
