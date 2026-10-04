@@ -1133,10 +1133,11 @@ public final class Trails {
             if (!level.getBlockState(new BlockPos(p[2 * i], g, p[2 * i + 1])).getFluidState().isEmpty()) wet = true;
             deepest = Math.max(deepest, Math.max(decks[i], decks[s]) - g);
         }
-        boolean fill = !wet && deepest <= FILL;
         double[] cum = new double[i1 - i0 + 1];
         for (int i = i0 + 1; i <= i1; i++) cum[i - i0] = cum[i - i0 - 1] + Math.hypot(p[2 * i] - p[2 * i - 2], p[2 * i + 1] - p[2 * i - 1]);
         double total = Math.max(1e-6, cum[i1 - i0]);
+        // a small, shallow hole is filled with earth; a long or deep one (a ravine, a quarry) gets a bridge
+        boolean fill = !wet && deepest <= FILL && total <= FILL_SPAN;
         double u0 = cum[s - i0] / total, u1 = cum[s + 1 - i0] / total;
         int ax = p[2 * i0], az = p[2 * i0 + 1], bx = p[2 * i1], bz = p[2 * i1 + 1];
         int sx0 = (int) Math.round(ax + (bx - ax) * u0), sz0 = (int) Math.round(az + (bz - az) * u0);
@@ -1145,8 +1146,8 @@ public final class Trails {
         line(level, data, a, sx0, sz0, sx1, sz1, decks[s], decks[s + 1], alongX, fill);
     }
 
-    /** A dry dip at most this deep is filled with earth; a deeper one (a pit, a ravine) is bridged like water. */
-    static final int FILL = 3;
+    /** A dry hole at most this deep and this long (edge to edge) is filled with earth; a deeper or longer one is bridged. */
+    static final int FILL = 4, FILL_SPAN = 10;
 
     /** No bridge at a point of a trail (the way follows the ground). */
     static final int NONE = Integer.MIN_VALUE;
