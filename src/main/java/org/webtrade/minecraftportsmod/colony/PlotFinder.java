@@ -64,7 +64,7 @@ final class PlotFinder {
 
     private static boolean isPlant(BlockState s) {
         return s.is(BlockTags.LOGS) || s.is(BlockTags.LEAVES) || s.is(net.minecraft.world.level.block.Blocks.BAMBOO)
-                || s.is(net.minecraft.world.level.block.Blocks.CACTUS);
+                || s.is(net.minecraft.world.level.block.Blocks.CACTUS) || WorkGoal.fungus(s);
     }
 
     /**
