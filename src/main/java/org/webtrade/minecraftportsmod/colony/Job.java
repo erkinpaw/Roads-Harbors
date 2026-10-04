@@ -40,7 +40,9 @@ public enum Job {
     /** Works the smelter: the miners' ore smelted, more iron of it than the miners get by themselves. */
     SMELTER(null, 0, Items.RAW_IRON, Items.RAW_IRON, Items.RAW_IRON, Items.RAW_IRON),
     /** Works the glassworks: sand and fire into glass. */
-    GLASSBLOWER(null, 0, Items.GLASS_BOTTLE, Items.GLASS_BOTTLE, Items.GLASS_BOTTLE, Items.GLASS_BOTTLE);
+    GLASSBLOWER(null, 0, Items.GLASS_BOTTLE, Items.GLASS_BOTTLE, Items.GLASS_BOTTLE, Items.GLASS_BOTTLE),
+    /** Sails one of the village's ships from its pier to the other harbours and trades there (see {@link Voyages}). */
+    SAILOR(null, 0, Items.SPYGLASS, Items.SPYGLASS, Items.SPYGLASS, Items.SPYGLASS);
 
     /** How fast the work goes: bare hands (no smithy), then the smithy's levels: wooden, stone, iron tools. */
     public static final double[] TOOL_SPEED = {0.6, 1.0, 1.3, 1.6};

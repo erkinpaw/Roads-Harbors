@@ -69,7 +69,10 @@ final class SiteSurvey {
     // ------------------------------------------------------------------ sites
 
     /** A chosen site: stand-on-ground point by the water. */
-    record Found(int x, int z, boolean river) {
+    record Found(int x, int z, boolean river, boolean island, int[] isle) {
+        Found(int x, int z, boolean river, boolean island) {
+            this(x, z, river, island, null);
+        }
     }
 
     /**
@@ -101,7 +104,203 @@ final class SiteSurvey {
                 score -= Math.hypot(x - ccx, z - ccz) / 250.0;
                 if (score > bestScore) {
                     bestScore = score;
-                    best = new Found(x, z, riverNearby(x, z));
+                    best = new Found(x, z, riverNearby(x, z), false);
+                }
+            }
+        }
+        if (best != null && island(best.x(), best.z()) != null) best = new Found(best.x(), best.z(), false, true);
+        return best;
+    }
+
+    // ------------------------------------------------------------------ islands
+
+    /** How far from a spot on an island its shore may be, every way (a land bigger than this is no island). */
+    static final int ISLAND_REACH = 360;
+    /** Open sea beyond the shore of an island, every way: no trail bridges it (see the trails' longest bridge). */
+    static final int ISLAND_SEA = 56;
+    /** An island big enough for a village: its shore this far from the middle on average, at least. */
+    static final int ISLAND_SIZE = 34;
+
+    /** Frozen sea: ice on it, icebergs. */
+    private boolean frozen(int x, int z) {
+        return biome(x, z).unwrapKey().map(k -> k.identifier().getPath().contains("frozen")).orElse(false);
+    }
+
+    private boolean ocean(int x, int z) {
+        return biome(x, z).is(BiomeTags.IS_OCEAN);
+    }
+
+    /**
+     * Is the land at (x, z) an island: going any of sixteen ways, the shore comes within {@link #ISLAND_REACH} and
+     * open sea lies beyond it ({@link #ISLAND_SEA} blocks of it, ocean at its end)? Returns {middle x, middle z, mean
+     * distance to the shore, farthest} of the island, or null. The cheap test (the biomes) first.
+     */
+    int[] island(int x, int z) {
+        if (waterBiome(x, z) || floor(x, z) < sea) return null;
+        for (int a = 0; a < 16; a++) {
+            double c = Math.cos(a * Math.PI / 8), s = Math.sin(a * Math.PI / 8);
+            boolean hit = false;
+            for (int d = 16; d <= ISLAND_REACH && !hit; d += 16) hit = ocean(x + (int) Math.round(c * d), z + (int) Math.round(s * d));
+            if (!hit) return null;
+        }
+        long sx = 0, sz = 0;
+        int sum = 0, far = 0;
+        for (int a = 0; a < 16; a++) {
+            double c = Math.cos(a * Math.PI / 8), s = Math.sin(a * Math.PI / 8);
+            int shore = -1;
+            for (int d = 4; d <= ISLAND_REACH; d += 4) {
+                if (floor(x + (int) Math.round(c * d), z + (int) Math.round(s * d)) < sea) {
+                    shore = d;
+                    break;
+                }
+            }
+            if (shore < 0) return null;
+            for (int d = shore + 8; d <= shore + ISLAND_SEA; d += 8) {
+                if (floor(x + (int) Math.round(c * d), z + (int) Math.round(s * d)) >= sea) return null;
+            }
+            if (!ocean(x + (int) Math.round(c * (shore + ISLAND_SEA)), z + (int) Math.round(s * (shore + ISLAND_SEA)))) return null;
+            sx += Math.round(c * shore / 2.0);
+            sz += Math.round(s * shore / 2.0);
+            sum += shore;
+            far = Math.max(far, shore);
+        }
+        return new int[]{x + (int) (sx / 16), z + (int) (sz / 16), sum / 16, far};
+    }
+
+    /**
+     * Islands to settle round a point: up to {@code want} of them within {@code range}, the nearest first, each big
+     * enough for a village ({@link #ISLAND_SIZE}) and well away from the others; on each, the best spot by the water
+     * (as {@link #planCell} judges spots, or failing that any low ground by deep water).
+     */
+    List<Found> islands(int ox, int oz, int range, int want, List<int[]> existing, BooleanSupplier cancelled) {
+        List<int[]> spots = new ArrayList<>();
+        int step = 48;
+        for (int x = ox - range; x <= ox + range; x += step) {
+            for (int z = oz - range; z <= oz + range; z += step) {
+                if (Math.hypot(x - ox, z - oz) <= range) spots.add(new int[]{x, z});
+            }
+        }
+        spots.sort(java.util.Comparator.comparingDouble(p -> Math.hypot(p[0] - ox, p[1] - oz)));
+        List<Found> out = new ArrayList<>();
+        List<int[]> seen = new ArrayList<>();
+        RandomSource rnd = RandomSource.create(seed ^ 0x15A1D5L);
+        int tested = 0;
+        for (int[] p : spots) {
+            if (out.size() >= want || cancelled.getAsBoolean()) break;
+            boolean near = false;
+            for (int[] s : seen) if (Math.hypot(s[0] - p[0], s[1] - p[1]) < Math.max(200, s[2] * 2)) near = true;
+            if (near) continue;
+            int[] isl = island(p[0], p[1]);
+            tested++;
+            if (isl == null) continue;
+            seen.add(new int[]{isl[0], isl[1], isl[3]});
+            if (isl[2] < ISLAND_SIZE) {
+                org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("Island at {}, {}: too small ({} across)", isl[0], isl[1], isl[2] * 2);
+                continue;
+            }
+            boolean spaced = true;
+            for (int[] e : existing) if (Math.hypot(e[0] - isl[0], e[1] - isl[1]) < 400) spaced = false;
+            if (!spaced) continue;
+            Found f = islandSpot(isl, rnd);
+            org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("Island at {}, {}: about {} across (farthest shore {}), village spot {}",
+                    isl[0], isl[1], isl[2] * 2, isl[3], f == null ? "none" : f.x() + ", " + f.z());
+            if (f != null) out.add(f);
+        }
+        org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("Islands searched round {}, {} ({} blocks): {} spots tested, {} islands to settle",
+                ox, oz, range, tested, out.size());
+        // too few: islands raised out of the open sea, as near the spawn as there is room (see RaisedIslands)
+        List<int[]> taken = new ArrayList<>(existing);
+        for (Found f : out) taken.add(new int[]{f.x(), f.z()});
+        for (int k = out.size(); k < want && !cancelled.getAsBoolean(); k++) {
+            Found f = openSea(ox, oz, range, taken, rnd);
+            if (f == null) break;
+            out.add(f);
+            taken.add(new int[]{f.x(), f.z()});
+        }
+        return out;
+    }
+
+    /** Open sea, this far round a raised island's middle, every way: no land near (and no trail could bridge to it). */
+    private static final int OPEN = (int) (RaisedIslands.SIZE * 1.3) + RaisedIslands.SKIRT + 70;
+
+    /**
+     * A spot of open sea for a raised island: not too deep, no land within {@link #OPEN} every way, well away from
+     * the other sites, nearest to some 1200 blocks from the spawn. Its village's site: on its shore, the side towards
+     * the spawn.
+     */
+    private Found openSea(int ox, int oz, int range, List<int[]> taken, RandomSource rnd) {
+        int[] best = null;
+        double bestScore = Double.MAX_VALUE;
+        for (int x = ox - range; x <= ox + range; x += 64) {
+            for (int z = oz - range; z <= oz + range; z += 64) {
+                double dist = Math.hypot(x - ox, z - oz);
+                if (dist < 700 || dist > range) continue;
+                double score = Math.abs(dist - 1200);
+                if (score >= bestScore) continue;
+                boolean spaced = true;
+                for (int[] e : taken) if (Math.hypot(e[0] - x, e[1] - z) < 650) spaced = false;
+                if (!spaced || !ocean(x, z) || frozen(x, z)) continue;
+                int f = floor(x, z);
+                if (f > sea - 4 || f < sea - 30) continue;
+                boolean open = true;
+                for (int a = 0; a < 16 && open; a++) {
+                    double c = Math.cos(a * Math.PI / 8), s = Math.sin(a * Math.PI / 8);
+                    for (int d = 24; d <= OPEN && open; d += 24) {
+                        int px = x + (int) Math.round(c * d), pz = z + (int) Math.round(s * d);
+                        open = floor(px, pz) < sea - 1 && waterBiome(px, pz) && !frozen(px, pz);
+                    }
+                }
+                if (!open) continue;
+                bestScore = score;
+                best = new int[]{x, z};
+            }
+        }
+        if (best == null) {
+            org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("No open sea for an island round {}, {}", ox, oz);
+            return null;
+        }
+        long mix = this.seed ^ ((long) best[0] * 341873128712L + (long) best[1] * 132897987541L);
+        int seed = (int) (mix ^ (mix >>> 32));
+        RaisedIslands.Isle isle = new RaisedIslands.Isle(best[0], best[1], RaisedIslands.SIZE, seed);
+        double a = Math.atan2(oz - best[1], ox - best[0]);
+        double e = isle.edge(a) - 4;
+        int sx = best[0] + (int) Math.round(Math.cos(a) * e), sz = best[1] + (int) Math.round(Math.sin(a) * e);
+        org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("An island to raise at {}, {} (its village by {}, {})", best[0], best[1], sx, sz);
+        return new Found(sx, sz, false, true, new int[]{best[0], best[1], RaisedIslands.SIZE, seed});
+    }
+
+    /** The village spot on an island. */
+    private Found islandSpot(int[] isl, RandomSource rnd) {
+        Found best = null;
+        double bestScore = -1e9;
+        int r = isl[3];
+        for (int x = isl[0] - r; x <= isl[0] + r; x += 8) {
+            for (int z = isl[1] - r; z <= isl[1] + r; z += 8) {
+                double sc = score(x, z, rnd);
+                if (sc <= -1e8) continue;
+                // the island's middle is better than its far tip: room to grow
+                sc -= Math.hypot(x - isl[0], z - isl[1]) / 40.0;
+                if (sc > bestScore) {
+                    bestScore = sc;
+                    best = new Found(x, z, false, true);
+                }
+            }
+        }
+        if (best != null) return best;
+        // any low ground right by deep water
+        double nearest = Double.MAX_VALUE;
+        for (int x = isl[0] - r; x <= isl[0] + r; x += 8) {
+            for (int z = isl[1] - r; z <= isl[1] + r; z += 8) {
+                int g = floor(x, z);
+                if (g < sea || g > sea + 8) continue;
+                boolean deep = false;
+                for (int a = 0; a < 8 && !deep; a++) {
+                    deep = floor(x + (int) Math.round(Math.cos(a * Math.PI / 4) * 14), z + (int) Math.round(Math.sin(a * Math.PI / 4) * 14)) <= sea - 3;
+                }
+                double d = Math.hypot(x - isl[0], z - isl[1]);
+                if (deep && d < nearest) {
+                    nearest = d;
+                    best = new Found(x, z, false, true);
                 }
             }
         }
@@ -284,7 +483,7 @@ final class SiteSurvey {
     }
 
     private boolean isWater(int x, int z, Map<Long, Boolean> cache) {
-        return cache.computeIfAbsent(key(x, z), k -> waterBiome(x, z));
+        return cache.computeIfAbsent(key(x, z), k -> waterBiome(x, z) && !RaisedIslands.land(x, z, sea));
     }
 
     private int[] nearestWater(int x, int z, Map<Long, Boolean> cache) {

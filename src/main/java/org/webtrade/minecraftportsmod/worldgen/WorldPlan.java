@@ -58,11 +58,17 @@ public final class WorldPlan extends SavedData {
                 Codec.STRING.fieldOf("name").forGetter(s -> s.name),
                 Codec.BOOL.optionalFieldOf("river", false).forGetter(s -> s.river),
                 State.CODEC.fieldOf("state").forGetter(s -> s.state),
-                Codec.INT.optionalFieldOf("port", -1).forGetter(s -> s.portId)
-        ).apply(i, (id, x, z, name, river, state, port) -> {
+                Codec.INT.optionalFieldOf("port", -1).forGetter(s -> s.portId),
+                Codec.BOOL.optionalFieldOf("island", false).forGetter(s -> s.island),
+                Codec.INT.listOf().optionalFieldOf("isle", List.of()).forGetter(s -> s.isle == null ? List.of() : List.of(s.isle[0], s.isle[1], s.isle[2], s.isle[3])),
+                Codec.BOOL.optionalFieldOf("raised", false).forGetter(s -> s.raised)
+        ).apply(i, (id, x, z, name, river, state, port, island, isle, raised) -> {
             Site s = new Site(id, x, z, name, river);
             s.state = state;
             s.portId = port;
+            s.island = island;
+            if (isle.size() == 4) s.isle = new int[]{isle.get(0), isle.get(1), isle.get(2), isle.get(3)};
+            s.raised = raised;
             return s;
         }));
 
@@ -71,6 +77,16 @@ public final class WorldPlan extends SavedData {
         public final String name;
         /** By a river rather than the sea. */
         public final boolean river;
+        /** On an island: the sea all round it. */
+        public boolean island;
+        /** An island to be raised out of the sea for it: {middle x, z, size, seed}; null for any other site. */
+        int[] isle;
+        /** Its island has been raised. */
+        boolean raised;
+
+        RaisedIslands.Isle isle() {
+            return isle == null ? null : new RaisedIslands.Isle(isle[0], isle[1], isle[2], isle[3]);
+        }
         State state = State.PLANNED;
         int portId = -1;
 
@@ -120,8 +136,9 @@ public final class WorldPlan extends SavedData {
             Codec.LONG.listOf().optionalFieldOf("no_lane", List.of()).forGetter(p -> new ArrayList<>(p.noLane)),
             Codec.STRING.optionalFieldOf("lang", "en").forGetter(p -> p.lang),
             Codec.INT.optionalFieldOf("mode", 0).forGetter(p -> p.mode),
-            Codec.LONG.listOf().optionalFieldOf("predicted", List.of()).forGetter(p -> new ArrayList<>(p.predicted))
-    ).apply(i, (sites, cells, lanes, noLane, lang, mode, predicted) -> {
+            Codec.LONG.listOf().optionalFieldOf("predicted", List.of()).forGetter(p -> new ArrayList<>(p.predicted)),
+            Codec.BOOL.optionalFieldOf("islands", false).forGetter(p -> p.islandsSearched)
+    ).apply(i, (sites, cells, lanes, noLane, lang, mode, predicted, islands) -> {
         WorldPlan p = new WorldPlan();
         sites.forEach(s -> p.sites.put(s.id, s));
         p.cells.addAll(cells);
@@ -130,6 +147,7 @@ public final class WorldPlan extends SavedData {
         p.lang = lang;
         p.mode = mode;
         p.predicted.addAll(predicted);
+        p.islandsSearched = islands;
         return p;
     }));
 
@@ -137,6 +155,12 @@ public final class WorldPlan extends SavedData {
             Minecraftportsmod.id("world_plan"), WorldPlan::new, CODEC, null);
 
     private final Map<Integer, Site> sites = new LinkedHashMap<>();
+    /** The sea round the spawn has been searched for islands to settle. */
+    boolean islandsSearched;
+
+    public boolean islandsSearched() {
+        return islandsSearched;
+    }
     private final Set<Long> cells = new HashSet<>();
     private final Map<Long, Lane> lanes = new LinkedHashMap<>();
     /** Lanes whose waters have been predicted into the navigation cache. */

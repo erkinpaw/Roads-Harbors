@@ -59,7 +59,15 @@ final class VillageTerrain {
             int i = Math.floorDiv(x - x0 + STEP / 2, STEP), j = Math.floorDiv(z - z0 + STEP / 2, STEP);
             if (i < 0 || j < 0 || i >= size || j >= size) return null;
             short f = floor[i * size + j];
-            return f == WATER ? -1 : (int) f;
+            return f <= WATER + 64 ? -1 : (int) f;
+        }
+
+        /** How deep the water is over a column (0: land; null: outside what was read). */
+        Integer depth(int x, int z) {
+            int i = Math.floorDiv(x - x0 + STEP / 2, STEP), j = Math.floorDiv(z - z0 + STEP / 2, STEP);
+            if (i < 0 || j < 0 || i >= size || j >= size) return null;
+            short f = floor[i * size + j];
+            return f <= WATER + 64 ? f - WATER : 0;
         }
     }
 
@@ -110,11 +118,18 @@ final class VillageTerrain {
      */
     private static short read(net.minecraft.world.level.chunk.ChunkGenerator gen, net.minecraft.world.level.levelgen.RandomState rs,
                               net.minecraft.world.level.LevelHeightAccessor level, int x, int z) {
+        // (an island raised out of the sea: its land as it was raised)
+        Integer isle = org.webtrade.minecraftportsmod.worldgen.RaisedIslands.floor(x, z, gen.getSeaLevel());
+        if (isle != null) return isle < gen.getSeaLevel() ? (short) (WATER + Math.min(63, gen.getSeaLevel() - isle)) : (short) (int) isle;
         var column = gen.getBaseColumn(x, z, level, rs);
         for (int y = level.getMaxY(); y >= level.getMinY(); y--) {
             var st = column.getBlock(y);
             if (st.isAir()) continue;
-            return st.getFluidState().isEmpty() ? (short) (y + 1) : WATER;
+            if (st.getFluidState().isEmpty()) return (short) (y + 1);
+            // water: how deep it is kept with it
+            int d = 0;
+            while (d < 63 && y - d - 1 >= level.getMinY() && !column.getBlock(y - d - 1).getFluidState().isEmpty()) d++;
+            return (short) (WATER + d + 1);
         }
         return WATER;
     }

@@ -633,6 +633,14 @@ public final class DwellerGoals {
             to = Construction.loaded((ServerLevel) r.level(), new BlockPos(x, 0, z))
                     ? new BlockPos(x, PlotFinder.floorAt((ServerLevel) r.level(), x, z), z) : v.center;
             r.hold(new ItemStack(net.minecraft.world.item.Items.COMPASS));
+            // a skipper goes aboard: down the jetty to the end of it
+            Building pier = d.job == Job.SAILOR ? Harbour.pier(v) : null;
+            if (pier != null) {
+                net.minecraft.core.Direction out = Harbour.out(pier);
+                int k = pier.type.half + pier.jetty[1];
+                to = new BlockPos(pier.origin.getX() + out.getStepX() * k, pier.origin.getY(), pier.origin.getZ() + out.getStepZ() * k);
+                r.hold(new ItemStack(net.minecraft.world.item.Items.SPYGLASS));
+            }
         }
 
         @Override
@@ -941,7 +949,8 @@ public final class DwellerGoals {
         private static BuildingType placeOf(Job j) {
             return j == Job.MERCHANT ? BuildingType.MARKET : j == Job.SAWYER ? BuildingType.SAWMILL : j == Job.SCOUT ? BuildingType.CARTOGRAPHER
                     : j == Job.SMITH ? BuildingType.SMITHY : j == Job.JOINER ? BuildingType.CARPENTER : j == Job.LOCKSMITH ? BuildingType.LOCKSMITH
-                    : j == Job.WEAVER ? BuildingType.WEAVER : j == Job.SMELTER ? BuildingType.SMELTER : j == Job.GLASSBLOWER ? BuildingType.GLASSWORKS : null;
+                    : j == Job.WEAVER ? BuildingType.WEAVER : j == Job.SMELTER ? BuildingType.SMELTER : j == Job.GLASSBLOWER ? BuildingType.GLASSWORKS
+                    : j == Job.SAILOR ? BuildingType.PIER : null;
         }
 
         private Building stall() {
@@ -1017,6 +1026,21 @@ public final class DwellerGoals {
                                 : job == Job.SMELTER ? net.minecraft.sounds.SoundEvents.BLASTFURNACE_FIRE_CRACKLE : net.minecraft.sounds.SoundEvents.FURNACE_FIRE_CRACKLE;
                         r.level().playSound(null, bench, sound, net.minecraft.sounds.SoundSource.BLOCKS, 0.5F, 0.9F + r.getRandom().nextFloat() * 0.2F);
                     }
+                }
+                return;
+            }
+            if (job == Job.SAILOR) {
+                // on the jetty by the ships: looking out to sea, seeing to the ropes now and then
+                r.hold(new ItemStack(net.minecraft.world.item.Items.SPYGLASS));
+                r.setActivity(act("at_pier"));
+                if (b.jetty == null) return;
+                net.minecraft.core.Direction out = Harbour.out(b);
+                int k = b.type.half + Math.max(1, b.jetty[1] - 2);
+                BlockPos end = new BlockPos(b.origin.getX() + out.getStepX() * k, b.origin.getY(), b.origin.getZ() + out.getStepZ() * k);
+                if (walk(r, end, 1.5, repath)) {
+                    BlockPos sea = end.relative(out, 12);
+                    r.getLookControl().setLookAt(sea.getX() + 0.5, sea.getY() + 1.0, sea.getZ() + 0.5);
+                    if (++ticks % 80 == 0) r.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
                 }
                 return;
             }

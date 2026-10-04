@@ -110,6 +110,16 @@ public final class ModContent {
                     .sized(0.15F, 0.15F).noSave().noSummon().noLootTable().clientTrackingRange(8).updateInterval(1));
     public static final Item MUSKET_ITEM = item("musket", p -> new org.webtrade.minecraftportsmod.combat.MusketItem(p.stacksTo(1)));
 
+    /** A village's trade ship as seen at sea or at her pier (the voyage itself is the village's). */
+    public static final EntityType<org.webtrade.minecraftportsmod.vessel.TradeShipEntity> TRADE_SHIP = entity("trade_ship",
+            EntityType.Builder.<org.webtrade.minecraftportsmod.vessel.TradeShipEntity>of(org.webtrade.minecraftportsmod.vessel.TradeShipEntity::new, MobCategory.MISC)
+                    .noLootTable()
+                    .noSave()
+                    .noSummon()
+                    .sized(2.5F, 1.0F)
+                    .clientTrackingRange(16)
+                    .updateInterval(1));
+
     public static final EntityType<org.webtrade.minecraftportsmod.combat.CannonballEntity> CANNONBALL = entity("cannonball",
             EntityType.Builder.<org.webtrade.minecraftportsmod.combat.CannonballEntity>of(org.webtrade.minecraftportsmod.combat.CannonballEntity::new, MobCategory.MISC)
                     .noLootTable()

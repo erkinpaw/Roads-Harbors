@@ -1079,5 +1079,22 @@
   "entity.minecraftportsmod.sailor": "Sailor",
   "entity.minecraftportsmod.sailor.captain": "Captain",
   "entity.minecraftportsmod.sailor.pirate_captain": "Pirate Captain",
-  "entity.minecraftportsmod.musket_ball": "Musket Ball"
+  "entity.minecraftportsmod.musket_ball": "Musket Ball",
+  "minecraftportsmod.building.pier": "Pier",
+  "minecraftportsmod.tree.desc.pier": "The skipper's house on the shore and a jetty out to deep water. The village's ships trade over the sea with the other harbours: a sloop, then a brig, then two brigs.",
+  "minecraftportsmod.bmenu.level_gives.pier": "Level %s: a bigger ship, then a second one.",
+  "minecraftportsmod.job.sailor": "Skipper",
+  "minecraftportsmod.profession.sailor": "Skipper",
+  "minecraftportsmod.act.at_pier": "On the jetty, by the ships",
+  "entity.minecraftportsmod.trade_ship": "Trade Ship",
+  "minecraftportsmod.vlog.ship_round": "%s put to sea (%s) with %s, and %s emeralds to buy with.",
+  "minecraftportsmod.vlog.ship_round_buy": "%s put to sea to buy (%s), with %s emeralds.",
+  "minecraftportsmod.vlog.ship_at": "%s's ship at %s: sold %s for %s emeralds, bought %s for %s.",
+  "minecraftportsmod.vlog.ship_sold": "%s, the skipper from %s, sold us %s %s off the ship for %s emeralds.",
+  "minecraftportsmod.vlog.ship_bought": "%s loaded %s from us %s %s for %s emeralds.",
+  "minecraftportsmod.vlog.ship_home": "%s's ship is back with %s and %s emeralds.",
+  "minecraftportsmod.vlog.ship_home_empty": "%s's ship is back with no cargo, and %s emeralds.",
+  "minecraftportsmod.sea.at_pier": "at the pier",
+  "minecraftportsmod.sea.bound": "bound for %s with %s and %s emeralds",
+  "minecraftportsmod.sea.coming_home": "coming home with %s and %s emeralds"
 }
