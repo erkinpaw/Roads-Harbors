@@ -563,7 +563,9 @@ public class RoadworkClientGameTest implements FabricClientGameTest {
                         for (int i = 0; i + 1 < p.length; i += 2) near = Math.min(near, Math.hypot(e.getX() - p[i], e.getZ() - p[i + 1]));
                         if (kk % 5 == 0) log("merchant {} at {} ({} blocks off the trail): {}", e.getName().getString(), e.blockPosition().toShortString(), (int) near,
                                 e.activity().getString());
-                        if (near < 8) onTrail[0] = true;
+                        // (out on the trail: away from his village, where the trail starts by his stall)
+                        var home = data.get(a[0]);
+                        if (near < 8 && home != null && Math.hypot(e.getX() - home.center.getX(), e.getZ() - home.center.getZ()) > 40) onTrail[0] = true;
                     }
                     if (kk % 10 == 0) for (var t : data.trips()) log("trip {}->{} {} {} at {} purse {}", t.from, t.to(), t.amount(), t.res() == null ? "-" : t.res().id(),
                             (int) t.at(), t.purse());

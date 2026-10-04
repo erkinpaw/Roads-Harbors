@@ -484,6 +484,7 @@ public final class Caravans {
         stayedNothing = 0;
         BODIES.clear();
         MULES.clear();
+        HELD.clear();
         enabled = true;
     }
 
@@ -567,6 +568,9 @@ public final class Caravans {
             }
         }
     }
+
+    /** Seconds a merchant seen on the road has got no farther along it. */
+    private static final java.util.Map<Long, Integer> HELD = new java.util.HashMap<>();
 
     private static long key(Trip t) {
         return t.from * 1_000_000L + t.merchant;
@@ -711,7 +715,20 @@ public final class Caravans {
                     dropMules(k);
                 } else {
                     single(level, body, home.id, m.id);
+                    double was = t.at;
                     t.at = Math.max(t.at, project(p, body.getX(), body.getZ(), t.at));
+                    // (held up on the way, a fence, a ledge his feet can't find a way over: a few steps on, along the trail)
+                    int held = t.at > was + 0.5 ? 0 : HELD.merge(k, 1, Integer::sum);
+                    if (held == 0) HELD.remove(k);
+                    if (held >= 15) {
+                        HELD.remove(k);
+                        t.at = Math.min(length(p), t.at + 6);
+                        int[] on = along(p, t.at);
+                        net.minecraft.core.BlockPos stand = PlotFinder.ground(level, on[0], on[1]);
+                        body.snapTo(stand.getX() + 0.5, stand.getY(), stand.getZ() + 0.5, body.getYRot(), 0);
+                        body.getNavigation().stop();
+                        org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("Merchant of #{} held up on the trail: on to {} blocks along", home.id, (int) t.at);
+                    }
                     mules(level, t, body);
                     keepMules(level, data, t, home, body);
                 }
