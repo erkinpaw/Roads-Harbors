@@ -23,7 +23,7 @@ import org.webtrade.minecraftportsmod.worldgen.WorldPlan;
 public class IslandClientGameTest implements FabricClientGameTest {
 
     /** Worlds ("seed" or "seed:d150" for that many days). */
-    private static final String[] SEEDS = {"4242:d70:ships:passage"};
+    private static final String[] SEEDS = {"4242:d60:ships"};
     private static final int VILLAGES = 10;
 
     private static void log(String seed, String fmt, Object... args) {

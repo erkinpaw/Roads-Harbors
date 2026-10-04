@@ -188,7 +188,8 @@ public final class Harbour {
         Direction out = out(pier), side = out.getClockWise();
         // two alongside the jetty's head, one each side; the third out beyond it
         int k = pier.type.half + pier.jetty[1] - 1 + (i == 2 ? 9 : 0);
-        double s = i == 0 ? 3.5 : i == 1 ? -3.5 : 0;
+        // (clear of the jetty's head, five planks wide: a brig is broad in the beam)
+        double s = i == 0 ? 4.5 : i == 1 ? -4.5 : 0;
         return new Vec3(pier.origin.getX() + 0.5 + out.getStepX() * k + side.getStepX() * s, pier.jetty[2] - 0.45,
                 pier.origin.getZ() + 0.5 + out.getStepZ() * k + side.getStepZ() * s);
     }
