@@ -206,6 +206,16 @@ final class Paths {
         int start = (from.getX() - x0) * h + (from.getZ() - z0), goal = (to.getX() - x0) * h + (to.getZ() - z0);
         if (kind[start] == 2) kind[start] = 0;
         if (kind[goal] == 2) kind[goal] = 0;
+        // right beside a path already there (not on it): dear. A new way joins the street, or keeps a little away
+        // from it; else they ran side by side into the square, one broad trodden band
+        boolean[] beside = new boolean[n];
+        for (int i = 0; i < w; i++) {
+            for (int j = 0; j < h; j++) {
+                int k = i * h + j;
+                if (kind[k] == 1 || kind[k] == 2) continue;
+                if (i > 0 && kind[k - h] == 1 || i + 1 < w && kind[k + h] == 1 || j > 0 && kind[k - 1] == 1 || j + 1 < h && kind[k + 1] == 1) beside[k] = true;
+            }
+        }
         double[] cost = new double[n];
         java.util.Arrays.fill(cost, Double.MAX_VALUE);
         int[] prev = new int[n];
@@ -230,6 +240,9 @@ final class Paths {
                 // along a path already there is easiest; steep ground is hard (and will be dug or built up); over water
                 // only if there is no way round (a bridge is a lot of work)
                 double step = (kind[m] == 1 ? 0.35 : kind[m] == 3 ? water : 1.0) + (dy == 0 ? 0 : dy == 1 ? 0.6 : dy * 4.0);
+                // (the doorstep and the goal aside: a way has to come off and on to the street somewhere)
+                if (beside[m] && kind[k] != 1 && Math.abs(nx - from.getX() + x0) + Math.abs(nz - from.getZ() + z0) > 2
+                        && Math.abs(nx - gx) + Math.abs(nz - gz) > 3) step += 2.5;
                 double g = cost[k] + step;
                 if (g < cost[m]) {
                     cost[m] = g;
