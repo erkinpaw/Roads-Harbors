@@ -446,8 +446,11 @@ public final class VillageManager {
             // (a crew at the end of a trail, or a merchant on the road, near the village: theirs to look after, not the village's)
             if (d.away && (Roadworks.onCrew(data, v, d) || d.job == Job.MERCHANT)) continue;
             // stuck in the rock (a slip on a stair, a block put where they stood): up to the ground above
+            // (really inside it: on a path or farmland, a block lower than a full one, the feet are "in" that block
+            // and were taken for stuck, and put somewhere else every two seconds)
             BlockPos at = e.blockPosition();
-            if (level.getBlockState(at).isSuffocating(level, at) || level.getBlockState(at.above()).isSuffocating(level, at.above())) {
+            if (!level.noCollision(e, e.getBoundingBox().deflate(0.08))
+                    && (level.getBlockState(at).isSuffocating(level, at) || level.getBlockState(at.above()).isSuffocating(level, at.above()))) {
                 BlockPos to = PlotFinder.standAt(level, at.getX(), at.getZ(), at.getY());
                 if (to == null) to = hop(level, v, at);
                 if (to != null) snap(level, e, to, "stuck in a block");
