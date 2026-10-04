@@ -130,6 +130,15 @@ public class WarshipEntity extends Boat {
         entityData.set(DATA_SAILS, Mth.clamp(s, 0, cls.speeds.length - 1));
     }
 
+    /** Sailing on by herself with nobody at the helm (a crew's captain, tests): the rudder held as given. */
+    private int cruise;
+
+    public void cruise(int sails, int rudder) {
+        cruise = 1;
+        setSails(sails);
+        this.rudder = Mth.clamp(rudder, -1, 1);
+    }
+
     void setRudder(int r) {
         rudder = Mth.clamp(r, -1, 1);
     }
@@ -306,7 +315,129 @@ public class WarshipEntity extends Boat {
 
     @Override
     public boolean canCollideWith(Entity other) {
-        return !(other instanceof WarshipEntity) && super.canCollideWith(other);
+        return !(other instanceof WarshipEntity) && !(other instanceof org.webtrade.minecraftportsmod.vessel.VesselDeckEntity) && super.canCollideWith(other);
+    }
+
+    // ------------------------------------------------------------------ her deck, to walk on
+
+    /** The slabs of her deck (solid, invisible: one walks on them), each {side, along, height} on her. */
+    private final java.util.List<org.webtrade.minecraftportsmod.vessel.VesselDeckEntity> decks = new java.util.ArrayList<>();
+    private double[][] deckLayout;
+    /** Where she was and which way she looked a tick ago (whoever stands on her deck goes along with her). */
+    private double lastX = Double.NaN, lastZ, lastY;
+    private float lastYaw;
+
+    static final float SLAB = 2.0F;
+
+    /**
+     * Her deck as slabs: rows along her, two blocks apart, as many across as her beam takes; aft of her wheel at the
+     * height of her quarterdeck, then down to her main deck by half a block a row (a slope one walks up).
+     */
+    double[][] deckLayout() {
+        if (deckLayout != null) return deckLayout;
+        java.util.List<double[]> out = new java.util.ArrayList<>();
+        double deck = cls.deck(), castle = Math.max(deck, cls.castle()), wheel = cls.wheel();
+        int across = Math.max(1, (int) Math.round(cls.halfBeam * 2 / SLAB));
+        double stern = cls.middle - cls.halfLength + SLAB / 2, bow = cls.middle + cls.halfLength - SLAB / 2;
+        double edge = stern;
+        for (double a = stern; a <= bow + 1e-6; a += SLAB) {
+            // aft of the wheel: the quarterdeck; forward of it, the main deck
+            boolean aft = a <= wheel + 1;
+            if (aft) edge = a + SLAB / 2;
+            // (each slab bigger than the step between them: turned at an angle, they still cover her deck without gaps)
+            for (int k = 0; k < across; k++) out.add(new double[]{(k - (across - 1) / 2.0) * SLAB, a, aft ? castle : deck, SLAB * 1.45});
+        }
+        // a stair down from the quarterdeck's edge to the main deck, a step of half a block a block, up the middle
+        int steps = (int) Math.ceil((castle - deck) / 0.5) - 1;
+        for (int k = 0; k < steps; k++) out.add(new double[]{0, edge + 0.5 + k, castle - 0.5 * (k + 1), 1.3});
+        deckLayout = out.toArray(new double[0][]);
+        return deckLayout;
+    }
+
+    private void updateDecks(ServerLevel level) {
+        if (sinking() > 0) {
+            for (var d : decks) d.discard();
+            decks.clear();
+            return;
+        }
+        double[][] layout = deckLayout();
+        decks.removeIf(Entity::isRemoved);
+        while (decks.size() < layout.length) {
+            var deck = org.webtrade.minecraftportsmod.registry.ModContent.VESSEL_DECK.create(level, net.minecraft.world.entity.EntitySpawnReason.EVENT);
+            if (deck == null) break;
+            double[] l = layout[decks.size()];
+            deck.attach(this, (float) l[3]);
+            Vec3 p = at(l[0], l[1], l[2] - org.webtrade.minecraftportsmod.vessel.VesselDeckEntity.HEIGHT);
+            deck.setPos(p.x, p.y, p.z);
+            level.addFreshEntity(deck);
+            decks.add(deck);
+        }
+        for (int i = 0; i < decks.size() && i < layout.length; i++) {
+            double[] l = layout[i];
+            Vec3 p = at(l[0], l[1], l[2] - org.webtrade.minecraftportsmod.vessel.VesselDeckEntity.HEIGHT);
+            decks.get(i).setPos(p.x, p.y, p.z);
+        }
+    }
+
+    /** The slabs of her deck now (tests). */
+    public java.util.List<org.webtrade.minecraftportsmod.vessel.VesselDeckEntity> deckSlabs() {
+        return decks;
+    }
+
+    /** Is a point over her deck (within her length and beam, from her main deck to a little over her highest)? */
+    public boolean onDeck(Vec3 p) {
+        Vec3 d = p.subtract(position());
+        double side = d.dot(starboard()), along = d.dot(forward()) - cls.middle;
+        return Math.abs(side) <= cls.halfBeam + 0.3 && Math.abs(along) <= cls.halfLength + 0.3 && d.y >= cls.deck() - 0.8 && d.y <= cls.castle() + 2.5;
+    }
+
+    /** Moves a point standing on her as she moved since her last tick (along, and round as she turned). */
+    public Vec3 carry(Vec3 p, double fromX, double fromY, double fromZ, float fromYaw) {
+        float turn = (getYRot() - fromYaw) * Mth.DEG_TO_RAD;
+        double ox = p.x - fromX, oz = p.z - fromZ;
+        double c = Math.cos(-turn), s = Math.sin(-turn);
+        double rx = ox * c - oz * s, rz = ox * s + oz * c;
+        return new Vec3(getX() + rx, p.y + (getY() - fromY), getZ() + rz);
+    }
+
+    /** The people on her deck (not the players: each moves himself, see CombatClient) go along with her. */
+    private void carryDeck(ServerLevel level) {
+        if (!Double.isNaN(lastX) && (lastX != getX() || lastZ != getZ() || lastYaw != getYRot())) {
+            var box = getBoundingBox().inflate(cls.halfLength + 2, cls.castle() + 3, cls.halfLength + 2);
+            for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, box, e -> !(e instanceof Player) && e.getVehicle() == null)) {
+                if (!onDeckFrom(e.position(), lastX, lastY, lastZ, lastYaw)) continue;
+                Vec3 to = carry(e.position(), lastX, lastY, lastZ, lastYaw);
+                e.setPos(to.x, to.y, to.z);
+                e.setYRot(e.getYRot() + (getYRot() - lastYaw));
+                e.setYBodyRot(e.getYRot());
+            }
+        }
+        lastX = getX();
+        lastY = getY();
+        lastZ = getZ();
+        lastYaw = getYRot();
+    }
+
+    /** Was a point over her deck where she stood a tick ago? */
+    public boolean onDeckFrom(Vec3 p, double x, double y, double z, float yaw) {
+        float r = yaw * Mth.DEG_TO_RAD;
+        Vec3 f = new Vec3(-Mth.sin(r), 0, Mth.cos(r)), st = new Vec3(-f.z, 0, f.x);
+        Vec3 d = p.subtract(x, y, z);
+        double side = d.dot(st), along = d.dot(f) - cls.middle;
+        return Math.abs(side) <= cls.halfBeam + 0.3 && Math.abs(along) <= cls.halfLength + 0.3 && d.y >= cls.deck() - 0.8 && d.y <= cls.castle() + 2.5;
+    }
+
+    /** Off the helm (or a seat): onto her deck, by the wheel (not into the sea). */
+    @Override
+    public Vec3 getDismountLocationForPassenger(LivingEntity passenger) {
+        return at(0.9, cls.wheel() + 1.2, cls.castle() + 0.05);
+    }
+
+    @Override
+    public void remove(Entity.RemovalReason reason) {
+        for (var d : decks) d.discard();
+        decks.clear();
+        super.remove(reason);
     }
 
     @Override
@@ -334,7 +465,7 @@ public class WarshipEntity extends Boat {
                 return;
             }
             if (brain != null) brain.tick(level);
-            else if (captain() == null) {
+            else if (captain() == null && cruise == 0) {
                 // nobody at the helm: she lies to (her sails as they were, backed: no way on her)
                 rudder = 0;
             }
@@ -345,11 +476,15 @@ public class WarshipEntity extends Boat {
         }
         super.tick();
         setPaddleState(false, false);
+        if (level() instanceof ServerLevel level) {
+            updateDecks(level);
+            carryDeck(level);
+        }
     }
 
     /** Way on her and her turning, by the sails and the rudder: she turns only while she moves, the faster the more. */
     private void sail() {
-        double want = brain == null && captain() == null ? 0 : cls.speeds[sails()];
+        double want = brain == null && captain() == null && cruise == 0 ? 0 : cls.speeds[sails()];
         speed += Mth.clamp(want - speed, -0.006, 0.004);
         float turn = (float) (rudder * (0.35 + speed * 7.0) * cls.turn);
         setYRot(getYRot() + turn);

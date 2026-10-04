@@ -6,7 +6,7 @@
   "environment": "client",
   "entrypoints": {
     "fabric-client-gametest": [
-      "org.webtrade.minecraftportsmod.gametest.ShipLookClientGameTest"
+      "org.webtrade.minecraftportsmod.gametest.ShipDeckClientGameTest"
     ]
   }
 }

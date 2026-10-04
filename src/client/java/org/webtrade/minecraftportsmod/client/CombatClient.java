@@ -78,7 +78,38 @@ public final class CombatClient {
         net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.registerKeyMapping(FIGHT);
         net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.registerKeyMapping(SIDE);
         ClientTickEvents.START_CLIENT_TICK.register(CombatClient::tick);
+        // (after the world's tick: the ships have moved, the player too; he is moved on with his ship)
+        ClientTickEvents.END_CLIENT_TICK.register(CombatClient::carryPlayer);
         HudElementRegistry.addLast(Minecraftportsmod.id("warship"), (g, delta) -> hud(Minecraft.getInstance(), g));
+    }
+
+    /**
+     * The player standing on a warship's deck goes along with her (forward, and round as she turns): the game moves
+     * nobody with the entity he stands on, and the player moves himself.
+     */
+    public static boolean DEBUG = false;
+
+    private static void carryPlayer(Minecraft mc) {
+        var p = mc.player;
+        if (p == null || p.getVehicle() != null || mc.level == null) return;
+        for (WarshipEntity w : mc.level.getEntitiesOfClass(WarshipEntity.class, p.getBoundingBox().inflate(16))) {
+            if (DEBUG && w.tickCount % 10 == 0) Minecraftportsmod.LOGGER.info("[deck client] ship z {} old {} | player z {} old {} ground {}", w.getZ(),
+                    w.zo, p.getZ(), p.zo, p.onGround());
+            if (w.sinking() > 0 || !w.onDeckFrom(p.position(), w.xo, w.yo, w.zo, w.yRotO)) continue;
+            net.minecraft.world.phys.Vec3 to = w.carry(p.position(), w.xo, w.yo, w.zo, w.yRotO);
+            // (where he was is moved along too: the frames between ticks show no jump)
+            p.xo += to.x - p.getX();
+            p.yo += to.y - p.getY();
+            p.zo += to.z - p.getZ();
+            p.xOld = p.xo;
+            p.yOld = p.yo;
+            p.zOld = p.zo;
+            p.setPos(to.x, to.y, to.z);
+            float turn = w.getYRot() - w.yRotO;
+            p.setYRot(p.getYRot() + turn);
+            p.yRotO += turn;
+            return;
+        }
     }
 
     private static void tick(Minecraft mc) {

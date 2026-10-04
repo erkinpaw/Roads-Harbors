@@ -25,7 +25,8 @@ public class VesselDeckEntity extends Entity {
     private static final EntityDataAccessor<Float> DATA_SIZE =
             SynchedEntityData.defineId(VesselDeckEntity.class, EntityDataSerializers.FLOAT);
 
-    private VesselEntity ship;
+    /** The ship it belongs to (a fleet's vessel, a warship). */
+    private Entity ship;
 
     public VesselDeckEntity(EntityType<?> type, Level level) {
         super(type, level);
@@ -33,7 +34,7 @@ public class VesselDeckEntity extends Entity {
         setNoGravity(true);
     }
 
-    void attach(VesselEntity ship, float size) {
+    public void attach(Entity ship, float size) {
         this.ship = ship;
         entityData.set(DATA_SIZE, size);
         refreshDimensions();
@@ -64,7 +65,8 @@ public class VesselDeckEntity extends Entity {
     /** Solid for everyone except ships and other deck slabs. */
     @Override
     public boolean canBeCollidedWith(Entity other) {
-        return !(other instanceof VesselEntity) && !(other instanceof VesselDeckEntity);
+        return !(other instanceof VesselEntity) && !(other instanceof VesselDeckEntity)
+                && !(other instanceof org.webtrade.minecraftportsmod.combat.WarshipEntity) && !(other instanceof org.webtrade.minecraftportsmod.combat.CannonballEntity);
     }
 
     @Override
