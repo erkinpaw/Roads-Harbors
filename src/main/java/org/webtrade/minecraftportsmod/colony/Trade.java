@@ -167,11 +167,10 @@ public final class Trade {
         return w.res() == null ? 0 : carried(p, w.res()) / units(w);
     }
 
+    /** The emeralds a player has: in the purse (see {@link Wallet}). */
     public static int emeralds(ServerPlayer p) {
-        int n = 0;
-        var inv = p.getInventory();
-        for (int i = 0; i < inv.getContainerSize(); i++) if (inv.getItem(i).is(Items.EMERALD)) n += inv.getItem(i).getCount();
-        return n;
+        Wallet.absorb(p);
+        return Wallet.balance(p);
     }
 
     /** The most pieces the player can sell the village in one deal (goods, room, the village's purse). */
@@ -210,7 +209,7 @@ public final class Trade {
         inv.setChanged();
         v.add(w.res(), n * units(w));
         v.emeralds -= price;
-        give(p, new ItemStack(Items.EMERALD, price));
+        Wallet.add(p, price);
         return price;
     }
 
@@ -219,16 +218,7 @@ public final class Trade {
         n = Math.min(n, maxBuy(p, v, w));
         if (n <= 0) return 0;
         int price = total(sellCents(v, w), n);
-        int need = price;
-        var inv = p.getInventory();
-        for (int i = 0; i < inv.getContainerSize() && need > 0; i++) {
-            ItemStack s = inv.getItem(i);
-            if (!s.is(Items.EMERALD)) continue;
-            int take = Math.min(need, s.getCount());
-            inv.removeItem(i, take);
-            need -= take;
-        }
-        inv.setChanged();
+        if (!Wallet.pay(p, price)) return 0;
         if (w.res() != null) v.add(w.res(), -n * units(w));
         else for (var e : materials(w).entrySet()) v.add(e.getKey(), -e.getValue() * n);
         v.emeralds += price;

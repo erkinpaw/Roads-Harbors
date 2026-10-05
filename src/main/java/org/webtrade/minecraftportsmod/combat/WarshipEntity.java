@@ -618,10 +618,13 @@ public class WarshipEntity extends Boat {
         return (int) Math.round(cls.reload * (1 + 1.5 * missing));
     }
 
-    /** A player takes on a hand with an emerald (one more of whom she is shortest of), while she has room for him. */
+    /**
+     * A player takes on a hand for an emerald out of the purse (crouching, empty-handed, at her), one more of whom she is
+     * shortest of, while she has room for him.
+     */
     private boolean hire(Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        if (!stack.is(Items.EMERALD)) return false;
+        if (!player.isShiftKeyDown() || !stack.isEmpty() || hand != InteractionHand.MAIN_HAND) return false;
         int[] max = crewMax();
         SailorEntity.Role want = null;
         int gap = 0;
@@ -634,8 +637,9 @@ public class WarshipEntity extends Boat {
         }
         if (want == null) return false;
         if (!level().isClientSide()) {
+            if (!player.isCreative() && player instanceof net.minecraft.server.level.ServerPlayer sp
+                    && !org.webtrade.minecraftportsmod.colony.Wallet.pay(sp, 1)) return false;
             crew[want.ordinal()]++;
-            if (!player.isCreative()) stack.shrink(1);
             playSound(SoundEvents.VILLAGER_YES, 1F, 1F);
         }
         return true;

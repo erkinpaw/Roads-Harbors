@@ -172,16 +172,7 @@ public final class Orders {
     }
 
     private static void pay(ServerPlayer p, int price) {
-        int need = price;
-        var inv = p.getInventory();
-        for (int i = 0; i < inv.getContainerSize() && need > 0; i++) {
-            ItemStack s = inv.getItem(i);
-            if (!s.is(Items.EMERALD)) continue;
-            int take = Math.min(need, s.getCount());
-            inv.removeItem(i, take);
-            need -= take;
-        }
-        inv.setChanged();
+        Wallet.pay(p, price);
     }
 
     private static void give(ServerPlayer p, Village v, Res r, int n) {

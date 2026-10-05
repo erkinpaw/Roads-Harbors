@@ -40,6 +40,10 @@ public final class ModNetworking {
         PayloadTypeRegistry.serverboundPlay().register(WorldMapPayloads.ShotRequest.TYPE, WorldMapPayloads.ShotRequest.CODEC);
         PayloadTypeRegistry.clientboundPlay().registerLarge(WorldMapPayloads.ShotData.TYPE, WorldMapPayloads.ShotData.CODEC, 2 * 1024 * 1024);
 
+        PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.PanelView.TYPE, ColonyPayloads.PanelView.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ColonyPayloads.RequestPanel.TYPE, ColonyPayloads.RequestPanel.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(ColonyPayloads.RequestPanel.TYPE,
+                (payload, ctx) -> org.webtrade.minecraftportsmod.colony.Wallet.panel(ctx.player()));
         PayloadTypeRegistry.serverboundPlay().register(CombatPayloads.ShipOrder.TYPE, CombatPayloads.ShipOrder.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(CombatPayloads.ShipOrder.TYPE, (payload, ctx) -> {
             if (ctx.player().getVehicle() instanceof org.webtrade.minecraftportsmod.combat.WarshipEntity ship) {
