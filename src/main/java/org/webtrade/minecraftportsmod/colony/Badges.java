@@ -101,14 +101,15 @@ public final class Badges {
                 }
             }
         }
-        return new ColonyPayloads.Badge(top[0] + 0.5F, top[1] + 1.2F, top[2] + 0.5F, icon, progress, doing, title);
+        return new ColonyPayloads.Badge(top[0] + 0.5F, top[1] + 1.2F, top[2] + 0.5F, new int[]{top[3], top[4], top[5], top[6], top[7], top[8]}, icon,
+                progress, doing, title);
     }
 
-    /** The middle of a building's top (worked out once for a blueprint). */
+    /** The middle of a building's top, and its box (worked out once for a blueprint). */
     private static int[] top(Building b, Blueprint bp) {
         if (b.badgeAt != null && b.badgeOf == bp) return b.badgeAt;
         if (bp.pieces.isEmpty()) return null;
-        int x0 = Integer.MAX_VALUE, z0 = Integer.MAX_VALUE, x1 = Integer.MIN_VALUE, z1 = Integer.MIN_VALUE, y1 = Integer.MIN_VALUE;
+        int x0 = Integer.MAX_VALUE, z0 = Integer.MAX_VALUE, x1 = Integer.MIN_VALUE, z1 = Integer.MIN_VALUE, y1 = Integer.MIN_VALUE, y0 = Integer.MAX_VALUE;
         for (Blueprint.Piece pc : bp.pieces) {
             BlockPos p = pc.pos();
             x0 = Math.min(x0, p.getX());
@@ -116,8 +117,10 @@ public final class Badges {
             z0 = Math.min(z0, p.getZ());
             z1 = Math.max(z1, p.getZ());
             y1 = Math.max(y1, p.getY());
+            y0 = Math.min(y0, p.getY());
         }
-        b.badgeAt = new int[]{(x0 + x1) / 2, y1 + 1, (z0 + z1) / 2};
+        // (and the building's box, for the badge to show while it is looked at)
+        b.badgeAt = new int[]{(x0 + x1) / 2, y1 + 1, (z0 + z1) / 2, x0, y0, z0, x1 + 1, y1 + 1, z1 + 1};
         b.badgeOf = bp;
         return b.badgeAt;
     }
