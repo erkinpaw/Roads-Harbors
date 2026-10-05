@@ -123,8 +123,8 @@ public final class Trade {
         if (available(v, w) <= 0) return -1;
         if (w.res() != null) {
             int spare = v.stock(w.res()) - VillageLife.target(v, w.res());
-            // the more it has, the cheaper it lets it go
-            double glut = Math.min(0.4, spare / (double) Math.max(1, v.capacity(w.res())));
+            // the more it has over what it keeps, the cheaper it lets it go (twice what it keeps over: a little over half the price)
+            double glut = Math.min(0.7, 0.35 * spare / (double) Math.max(10, VillageLife.target(v, w.res())));
             return Math.max(1, (int) Math.round(base(w.res()) * units(w) * (1.3 - glut) * 100));
         }
         // a tool: its materials, and the work

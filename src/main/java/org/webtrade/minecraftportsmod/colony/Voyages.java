@@ -71,8 +71,9 @@ public final class Voyages {
                 }),
                 Codec.BOOL.optionalFieldOf("back", false).forGetter(t -> t.back),
                 Codec.DOUBLE.optionalFieldOf("at", 0.0).forGetter(t -> t.at),
-                Codec.INT.optionalFieldOf("purse", 0).forGetter(t -> t.purse)
-        ).apply(i, (from, ship, sailor, to, node, stops, cargo, back, at, purse) -> {
+                Codec.INT.optionalFieldOf("purse", 0).forGetter(t -> t.purse),
+                Codec.unboundedMap(Codec.STRING, Codec.INT).optionalFieldOf("cost", Map.of()).forGetter(t -> Dealing.save(t.cost))
+        ).apply(i, (from, ship, sailor, to, node, stops, cargo, back, at, purse, cost) -> {
             Voyage v = new Voyage(from, ship, sailor, to);
             v.node = node;
             v.stops.addAll(stops);
@@ -83,6 +84,7 @@ public final class Voyages {
             v.back = back;
             v.at = at;
             v.purse = purse;
+            Dealing.load(cost, v.cost);
             return v;
         }));
 
@@ -91,6 +93,8 @@ public final class Voyages {
         int to, node;
         final List<Integer> stops = new ArrayList<>();
         final EnumMap<Res, Integer> cargo = new EnumMap<>(Res.class);
+        /** What each unit of it cost (see {@link Dealing#cost}). */
+        final EnumMap<Res, Integer> cost = new EnumMap<>(Res.class);
         boolean back;
         /** Blocks along this leg. */
         double at;
@@ -372,15 +376,13 @@ public final class Voyages {
             load.put(r, n);
             total += n;
         }
-        double buy = 0;
         int toBuy = 0;
         for (Res r : Caravans.GOODS) {
             int there = 0;
             for (Village o : round) there += Caravans.spare(o, r);
-            buy += Math.min(Caravans.short_(v, r), there) * Trade.base(r);
             toBuy += Math.min(Caravans.short_(v, r), there);
         }
-        int purse = Math.min(v.emeralds, (int) Math.ceil(buy * 1.2));
+        int purse = Dealing.purse(v, round);
         if (total + (purse > 0 ? toBuy : 0) < MIN_DEAL && first == null) {
             stayed++;
             return null;
@@ -390,6 +392,7 @@ public final class Voyages {
         s.away = true;
         Voyage t = new Voyage(v.id, ship, s.id, round.getFirst().id);
         t.cargo.putAll(load);
+        Dealing.homeCost(v, load, t.cost);
         t.purse = purse;
         for (int k = 1; k < round.size(); k++) t.stops.add(round.get(k).id);
         data.voyages.add(t);
@@ -489,40 +492,17 @@ public final class Voyages {
     private static void arrive(VillageData data, Voyage t, Village home, Village there, Dweller s, long today) {
         arrivals++;
         int cap = Math.max(Harbour.load(home, t.ship), t.amount());
-        EnumMap<Res, Integer> sold = new EnumMap<>(Res.class), bought = new EnumMap<>(Res.class);
-        int earned = 0, paid = 0;
-        for (Res r : Caravans.GOODS) {
-            int n = Math.min(t.cargo.getOrDefault(r, 0), Caravans.short_(there, r));
-            while (n > 0 && Trade.total(Caravans.cents(r), n) > there.emeralds) n -= Math.max(1, n / 8);
-            if (n <= 0) continue;
-            int price = Trade.total(Caravans.cents(r), n);
-            there.add(r, n);
-            there.emeralds -= price;
-            t.purse += price;
-            earned += price;
-            t.cargo.merge(r, -n, Integer::sum);
-            sold.put(r, n);
-            there.log(today, Component.translatable("minecraftportsmod.vlog.ship_sold", s.name, home.name, n, r.displayName(), price)
-                    .withStyle(ChatFormatting.GOLD));
-        }
-        t.cargo.values().removeIf(n -> n <= 0);
-        List<Res> byWorth = new ArrayList<>(List.of(Caravans.GOODS));
-        byWorth.sort((x, y) -> Double.compare(Trade.base(y), Trade.base(x)));
-        for (Res r : byWorth) {
-            int n = Math.min(Caravans.short_(home, r) - t.cargo.getOrDefault(r, 0), Caravans.spare(there, r));
-            n = Math.min(n, cap - t.amount());
-            while (n > 0 && Trade.total(Caravans.cents(r), n) > t.purse) n -= Math.max(1, n / 8);
-            if (n <= 0) continue;
-            int price = Trade.total(Caravans.cents(r), n);
-            there.add(r, -n);
-            there.emeralds += price;
-            t.purse -= price;
-            paid += price;
-            t.cargo.merge(r, n, Integer::sum);
-            bought.put(r, n);
-            there.log(today, Component.translatable("minecraftportsmod.vlog.ship_bought", s.name, home.name, n, r.displayName(), price)
-                    .withStyle(ChatFormatting.GOLD));
-        }
+        List<Village> ahead = new ArrayList<>();
+        for (int id : t.stops) if (data.get(id) != null) ahead.add(data.get(id));
+        int[] purse = {t.purse};
+        Dealing.Stop deal = Dealing.deal(home, there, ahead, t.cargo, t.cost, purse, cap);
+        t.purse = purse[0];
+        EnumMap<Res, Integer> sold = deal.sold(), bought = deal.bought();
+        int earned = deal.earned(), paid = deal.paid();
+        sold.forEach((r, n) -> there.log(today, Component.translatable("minecraftportsmod.vlog.ship_sold", s.name, home.name, n, r.displayName(),
+                deal.soldFor().get(r)).withStyle(ChatFormatting.GOLD)));
+        bought.forEach((r, n) -> there.log(today, Component.translatable("minecraftportsmod.vlog.ship_bought", s.name, home.name, n, r.displayName(),
+                deal.boughtFor().get(r)).withStyle(ChatFormatting.GOLD)));
         if (!sold.isEmpty() || !bought.isEmpty()) home.traded = today;
         sold.forEach((r, n) -> SOLD.merge(r, n, Integer::sum));
         bought.forEach((r, n) -> BOUGHT.merge(r, n, Integer::sum));
