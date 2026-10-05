@@ -216,6 +216,40 @@ final class Paths {
                 if (i > 0 && kind[k - h] == 1 || i + 1 < w && kind[k + h] == 1 || j > 0 && kind[k - 1] == 1 || j + 1 < h && kind[k + 1] == 1) beside[k] = true;
             }
         }
+        // the network: the paths that lead to the square (from its edge, over trodden ground). Walking one is cheap:
+        // a new way to the square goes along it where it leads that way (a branch of a street, not a street of its
+        // own beside it: two tents side by side had two paths side by side), and makes its own only where the square
+        // is nearer the other way
+        boolean[] net = new boolean[n];
+        {
+            java.util.ArrayDeque<Integer> q = new java.util.ArrayDeque<>();
+            Building center = null;
+            for (Building b : v.buildings) if (b.type.isCenter()) center = b;
+            int reach = (center == null ? 2 : center.type.half) + 3;
+            for (int i = 0; i < w; i++) {
+                for (int j = 0; j < h; j++) {
+                    int k = i * h + j, x = x0 + i, z = z0 + j;
+                    if (kind[k] == 1 && Math.abs(x - v.center.getX()) <= reach && Math.abs(z - v.center.getZ()) <= reach) {
+                        net[k] = true;
+                        q.add(k);
+                    }
+                }
+            }
+            while (!q.isEmpty()) {
+                int k = q.poll(), i = k / h, j = k % h;
+                for (int di = -1; di <= 1; di++) {
+                    for (int dj = -1; dj <= 1; dj++) {
+                        int ni = i + di, nj = j + dj;
+                        if (ni < 0 || nj < 0 || ni >= w || nj >= h) continue;
+                        int m = ni * h + nj;
+                        if (kind[m] == 1 && !net[m]) {
+                            net[m] = true;
+                            q.add(m);
+                        }
+                    }
+                }
+            }
+        }
         double[] cost = new double[n];
         java.util.Arrays.fill(cost, Double.MAX_VALUE);
         int[] prev = new int[n];
@@ -225,12 +259,15 @@ final class Paths {
         open.add(new Cell(start / h, start % h, 0));
         int gx = goal / h, gz = goal % h;
         int[][] steps = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-        int visited = 0;
+        int visited = 0, end = -1;
         while (!open.isEmpty() && visited++ < 40000) {
             Cell c = open.poll();
             int k = c.x * h + c.z;
-            if (k == goal) break;
-            if (c.f > cost[k] + Math.abs(c.x - gx) + Math.abs(c.z - gz) + 1e-6) continue;
+            if (k == goal) {
+                end = k;
+                break;
+            }
+            if (c.f > cost[k] + 1e-6) continue;
             for (int[] s : steps) {
                 int nx = c.x + s[0], nz = c.z + s[1];
                 if (nx < 0 || nz < 0 || nx >= w || nz >= h) continue;
@@ -239,7 +276,7 @@ final class Paths {
                 int dy = Math.abs(ground[m] - ground[k]);
                 // along a path already there is easiest; steep ground is hard (and will be dug or built up); over water
                 // only if there is no way round (a bridge is a lot of work)
-                double step = (kind[m] == 1 ? 0.35 : kind[m] == 3 ? water : 1.0) + (dy == 0 ? 0 : dy == 1 ? 0.6 : dy * 4.0);
+                double step = (net[m] ? NET_STEP : kind[m] == 1 ? 0.35 : kind[m] == 3 ? water : 1.0) + (dy == 0 ? 0 : dy == 1 ? 0.6 : dy * 4.0);
                 // (the doorstep and the goal aside: a way has to come off and on to the street somewhere)
                 if (beside[m] && kind[k] != 1 && Math.abs(nx - from.getX() + x0) + Math.abs(nz - from.getZ() + z0) > 2
                         && Math.abs(nx - gx) + Math.abs(nz - gz) > 3) step += 2.5;
@@ -247,19 +284,27 @@ final class Paths {
                 if (g < cost[m]) {
                     cost[m] = g;
                     prev[m] = k;
-                    open.add(new Cell(nx, nz, g + Math.abs(nx - gx) + Math.abs(nz - gz)));
+                    open.add(new Cell(nx, nz, g));
                 }
             }
         }
-        if (prev[goal] < 0 && goal != start) return null;
+        if (end < 0) return null;
         List<int[]> out = new ArrayList<>();
-        for (int k = goal; k >= 0; k = prev[k]) {
+        for (int k = end; k >= 0; k = prev[k]) {
             out.add(new int[]{x0 + k / h, z0 + k % h, ground[k], kind[k] == 3 ? 1 : 0});
             if (k == start) break;
         }
         Collections.reverse(out);
+        // (only what is new is laid: up to where it meets the network, the rest of the way is trodden already)
+        for (int i = 0; i < out.size(); i++) {
+            int[] c = out.get(i);
+            if (net[(c[0] - x0) * h + (c[1] - z0)]) return new ArrayList<>(out.subList(0, i + 1));
+        }
         return out;
     }
+
+    /** What a step along a path of the network costs, against 1 for a step on fresh ground. */
+    private static final double NET_STEP = 0.2;
 
     /**
      * Each crossing of water made straight: from the last dry step before it to the first after, in a line (if that

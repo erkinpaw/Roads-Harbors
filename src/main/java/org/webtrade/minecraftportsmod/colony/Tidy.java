@@ -51,6 +51,14 @@ public final class Tidy {
     private static final Map<Integer, Set<BlockPos>> NEVER = new HashMap<>();
     /** How many jobs a village's list holds. */
     private static final int LIST = 160;
+    /** Where each village's look round its land got to, cell by cell (besides the columns looked at by chance). */
+    private static final Map<Integer, Integer> SWEEP = new HashMap<>();
+    /** The day each village's places it could not get to were last forgotten (a way may lead there by now). */
+    private static final Map<Integer, Long> FORGOT = new HashMap<>();
+    /** Cells of the land looked over in order each time. */
+    private static final int SWEEP_CELLS = 2;
+    /** Room on a full list for trees still. */
+    private static final int TREES = 40;
 
     private Tidy() {
     }
@@ -60,6 +68,8 @@ public final class Tidy {
         TODO.clear();
         TAKEN.clear();
         NEVER.clear();
+        SWEEP.clear();
+        FORGOT.clear();
     }
 
     /** The village's own land (see {@link Territory}). */
@@ -93,7 +103,12 @@ public final class Tidy {
     /** A look round the village's land: a few columns each time, what needs doing added to the list. */
     static void survey(ServerLevel level, Village v, RandomSource rnd, int tries) {
         Deque<Job> todo = TODO.computeIfAbsent(v.id, k -> new ArrayDeque<>());
-        if (todo.size() >= LIST) return;
+        if (todo.size() >= LIST + TREES) return;
+        // (what could not be got to: tried again every few days)
+        long today = VillageData.get(level.getServer()).day;
+        if (today - FORGOT.getOrDefault(v.id, today) >= 3) NEVER.remove(v.id);
+        FORGOT.putIfAbsent(v.id, today);
+        if (!NEVER.containsKey(v.id)) FORGOT.put(v.id, today);
         Set<BlockPos> listed = new HashSet<>(NEVER.getOrDefault(v.id, Set.of()));
         for (Job j : todo) listed.add(j.pos());
         int reach = 16;
@@ -101,14 +116,35 @@ public final class Tidy {
             reach = Math.max(reach, Math.max(Math.abs(b.origin.getX() - v.center.getX()), Math.abs(b.origin.getZ() - v.center.getZ())) + b.type.half + 8);
         }
         reach = Math.min(reach, 90);
-        for (int i = 0; i < tries && todo.size() < LIST; i++) {
+        for (int i = 0; i < tries && todo.size() < LIST + TREES; i++) {
             int x = v.center.getX() + rnd.nextInt(2 * reach + 1) - reach, z = v.center.getZ() + rnd.nextInt(2 * reach + 1) - reach;
-            if (!territory(v, x, z) || !Construction.loaded(level, new BlockPos(x, 0, z))) continue;
-            // (on a building's plot, outside its walls: only a tree, a mushroom, a bush grown up on it since)
-            Job j = !inPlot(v, x, z) ? look(level, v, x, z)
-                    : Plots.inside(v, x, z, 0) || DwellerGoals.inside(v, x, z) || Mine.inPit(v, x, z, 1) ? null : growth(level, v, x, z);
-            if (j != null && listed.add(j.pos())) todo.add(j);
+            consider(level, v, x, z, todo, listed);
         }
+        // and the land cell by cell, in order: every column of it is looked at in time (by chance alone some were
+        // not for weeks, a tree standing on among the houses)
+        java.util.List<Long> cells = new java.util.ArrayList<>(Territory.cells(v));
+        if (cells.isEmpty()) return;
+        java.util.Collections.sort(cells);
+        int at = SWEEP.getOrDefault(v.id, 0);
+        for (int c = 0; c < SWEEP_CELLS && todo.size() < LIST + TREES; c++, at++) {
+            long cell = cells.get(Math.floorMod(at, cells.size()));
+            int cx = (int) (cell >> 32), cz = (int) cell;
+            for (int dx = 0; dx < Territory.CELL; dx++) {
+                for (int dz = 0; dz < Territory.CELL; dz++) consider(level, v, cx * Territory.CELL + dx, cz * Territory.CELL + dz, todo, listed);
+            }
+        }
+        SWEEP.put(v.id, Math.floorMod(at, cells.size()));
+    }
+
+    /** A column looked at: what needs doing there, on the list. */
+    private static void consider(ServerLevel level, Village v, int x, int z, Deque<Job> todo, Set<BlockPos> listed) {
+        if (todo.size() >= LIST + TREES || !territory(v, x, z) || !Construction.loaded(level, new BlockPos(x, 0, z))) return;
+        // (on a building's plot, outside its walls: only a tree, a mushroom, a bush grown up on it since)
+        Job j = !inPlot(v, x, z) ? look(level, v, x, z)
+                : Plots.inside(v, x, z, 0) || DwellerGoals.inside(v, x, z) || Mine.inPit(v, x, z, 1) ? null : growth(level, v, x, z);
+        // (a list full of small jobs still takes a tree)
+        if (j == null || todo.size() >= LIST && j.kind() != Kind.TREE && j.kind() != Kind.POST) return;
+        if (listed.add(j.pos())) todo.add(j);
     }
 
     /** A tree, a huge mushroom or a bush standing in a column (the woodcutters' grove aside), or null. */
@@ -117,10 +153,12 @@ public final class Tidy {
         BlockPos up = new BlockPos(x, ground + 1, z);
         BlockState stand = level.getBlockState(up);
         if (WorkGoal.fungus(stand)) return new Job(Kind.DEBRIS, up);
-        if (stand.is(BlockTags.LOGS) && !grove(v, x, z)) {
+        // (in the woodcutters' grove a tree is theirs; a bare trunk there, crown gone, no woodcutter takes: taken away)
+        if (stand.is(BlockTags.LOGS)) {
             boolean crown = false;
             for (int k = 1; k <= 12 && !crown; k++) crown = level.getBlockState(up.above(k)).is(BlockTags.LEAVES);
-            return new Job(crown ? Kind.TREE : Kind.POST, up);
+            if (!crown) return new Job(Kind.POST, up);
+            if (!grove(v, x, z)) return new Job(Kind.TREE, up);
         }
         // a bush: leaves on the ground with no trunk
         if (stand.is(BlockTags.LEAVES) && !trunkNear(level, up)) return new Job(Kind.LEAVES, up);
@@ -160,10 +198,12 @@ public final class Tidy {
         // a tree on the village's land (the woodcutters' grove aside): felled; a stump or a lone post: taken away
         BlockPos up = g.above();
         BlockState stand = level.getBlockState(up);
-        if (stand.is(BlockTags.LOGS) && !grove(v, x, z)) {
+        // (in the woodcutters' grove a tree is theirs; a bare trunk there, crown gone, no woodcutter takes: taken away)
+        if (stand.is(BlockTags.LOGS)) {
             boolean crown = false;
             for (int k = 1; k <= 12 && !crown; k++) crown = level.getBlockState(up.above(k)).is(BlockTags.LEAVES);
-            return new Job(crown ? Kind.TREE : Kind.POST, up);
+            if (!crown) return new Job(Kind.POST, up);
+            if (!grove(v, x, z)) return new Job(Kind.TREE, up);
         }
         if (stand.is(BlockTags.FENCES) && !level.getBlockState(up.above()).is(BlockTags.FENCES) && level.getBlockState(up.above()).isAir()
                 && !nearBuilding(v, x, z, 1)) return new Job(Kind.POST, up);
@@ -322,6 +362,8 @@ public final class Tidy {
         for (Job j : todo) {
             if (taken.contains(j.pos())) continue;
             double d = j.pos().distSqr(near);
+            // (a tree or a bare trunk among the houses first: it is what shows; a weed can wait)
+            if (j.kind() == Kind.TREE || j.kind() == Kind.POST) d /= 16;
             if (d < bestD) {
                 bestD = d;
                 best = j;

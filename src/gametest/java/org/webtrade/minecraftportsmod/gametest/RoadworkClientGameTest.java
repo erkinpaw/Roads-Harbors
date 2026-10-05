@@ -461,6 +461,14 @@ public class RoadworkClientGameTest implements FabricClientGameTest {
                 if (atPit > 0) throw new AssertionError("crew members got stuck at the pit and had to be lifted over it " + atPit + " times");
                 if (stuck.size() > 2) throw new AssertionError("crew members got stuck " + stuck.size() + " times on the way to their work");
             });
+            // the bridge over the pit, from above: its deck and its rails (one unbroken line along each side)
+            server.runOnServer(s -> {
+                int pm = (pit[0] + pit[1]) / 2, x = p[2 * pm], z = p[2 * pm + 1];
+                s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), String.format(java.util.Locale.ROOT,
+                        "tp @a %d %d %d facing %d %d %d", x + 9, pit[2] + 12, z + 9, x, pit[2], z));
+            });
+            context.waitTicks(40);
+            context.takeScreenshot("roadwork_d_pit_bridge");
 
             // 5. the evening: they stop, pitch a tent by the way, sleep; nothing is made at night (unless the crews
             // have met already, the way being short: then there is no night out to see)
