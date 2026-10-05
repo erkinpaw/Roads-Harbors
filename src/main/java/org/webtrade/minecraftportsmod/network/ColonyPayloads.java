@@ -311,8 +311,12 @@ public final class ColonyPayloads {
 
     // ------------------------------------------------------------------ a resident
 
-    /** A task the player has taken, as the inventory's panel shows it: what, whose, how far along, days left. */
-    public record PanelQuest(net.minecraft.world.item.ItemStack icon, Component what, String giver, String village, int have, int need, int days) {
+    /**
+     * A task the player has taken, as the inventory's panel shows it: what, whose, how far along, days left; and, for
+     * the panel's tip, the task in full, the giver's trade, what is handed in, carried, the reward, where the letter went.
+     */
+    public record PanelQuest(net.minecraft.world.item.ItemStack icon, Component what, String giver, String village, int have, int need, int days,
+                             int kind, Component full, Component trade, int done, int carried, int reward, String to) {
     }
 
     /** The inventory's panel: the purse (hundredths), the tasks taken, the plot, the trade hired at. */
@@ -329,6 +333,13 @@ public final class ColonyPayloads {
                 buf.writeVarInt(q.have);
                 buf.writeVarInt(q.need);
                 buf.writeVarInt(q.days);
+                buf.writeVarInt(q.kind);
+                comp(buf, q.full);
+                comp(buf, q.trade);
+                buf.writeVarInt(q.done);
+                buf.writeVarInt(q.carried);
+                buf.writeVarInt(q.reward);
+                buf.writeUtf(q.to, 64);
             }
             comp(buf, v.plot);
             comp(buf, v.hired);
@@ -338,7 +349,8 @@ public final class ColonyPayloads {
             List<PanelQuest> qs = new ArrayList<>();
             for (int i = 0; i < n; i++) {
                 var icon = net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf);
-                qs.add(new PanelQuest(icon, comp(buf), buf.readUtf(64), buf.readUtf(64), buf.readVarInt(), buf.readVarInt(), buf.readVarInt()));
+                qs.add(new PanelQuest(icon, comp(buf), buf.readUtf(64), buf.readUtf(64), buf.readVarInt(), buf.readVarInt(), buf.readVarInt(),
+                        buf.readVarInt(), comp(buf), comp(buf), buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), buf.readUtf(64)));
             }
             return new PanelView(purse, qs, comp(buf), comp(buf));
         });

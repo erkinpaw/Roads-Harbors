@@ -129,10 +129,13 @@ public final class Wallet extends SavedData {
             for (Quests.Quest q : v.tasks.quests()) {
                 if (!p.getUUID().equals(q.taker())) continue;
                 Dweller giver = v.dweller(q.giver);
-                int have = Math.min(q.count, q.done() + Math.max(0, Quests.carried(p, q)));
+                int carried = Math.max(0, Quests.carried(p, q));
+                int have = Math.min(q.count, q.done() + carried);
                 Village to = data.get(q.to());
                 quests.add(new ColonyPayloads.PanelQuest(Quests.icon(q), Quests.thing(q, to), giver == null ? "?" : giver.name, v.name, have, q.count,
-                        (int) Math.max(0, q.until() - data.day)));
+                        (int) Math.max(0, q.until() - data.day), q.kind.ordinal(), ColonyService.questText(data, v, q),
+                        giver == null || giver.job == null ? Component.empty() : giver.job.displayName(), q.done(), carried, q.reward(),
+                        to == null ? "" : to.name));
             }
             Plots.Plot mine = Plots.of(v, p.getUUID());
             if (mine != null) plot = Component.literal(v.name + " " + mine.marker().toShortString());

@@ -180,6 +180,14 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
             var panel = context.computeOnClient(mc -> org.webtrade.minecraftportsmod.client.chart.InventoryPanel.view());
             log("purse in the panel: {}", panel == null ? "none" : panel.purse());
             context.takeScreenshot("workshop_inventory");
+            // the mouse over the first task: all of it in the tip
+            var rows = context.computeOnClient(mc -> org.webtrade.minecraftportsmod.client.chart.InventoryPanel.rows());
+            if (rows.isEmpty()) throw new AssertionError("no tasks in the panel");
+            double scale = context.computeOnClient(mc -> mc.getWindow().getGuiScale());
+            int[] r0 = rows.getFirst();
+            context.getInput().setCursorPos((r0[0] + r0[2]) / 2.0 * scale, (r0[1] + r0[3]) / 2.0 * scale);
+            context.waitTicks(5);
+            context.takeScreenshot("workshop_inventory_tip");
             context.setScreen(() -> null);
             // the player's tools in the slot
             server.runOnServer(s -> {
