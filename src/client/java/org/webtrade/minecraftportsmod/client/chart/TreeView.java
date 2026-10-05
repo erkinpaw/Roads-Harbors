@@ -379,6 +379,16 @@ final class TreeView {
 
         g.enableScissor(x0, y0, right, y1 - STRIP_H);
         BuildingType.Sub mySub = view.sub() < 0 ? null : BuildingType.Sub.values()[view.sub()];
+        // the links first (the names drawn over them): from the middle to each root (the smithy, the field, what every village has), from each node to the next
+        for (BuildingType t : BuildingType.values()) {
+            if (!t.isNode()) continue;
+            Tree.Node st = state(row(view, t));
+            double[] p = at(t);
+            double[] q = t.parent == null ? new double[]{0, 0} : at(t.parent);
+            boolean alive = st == Tree.Node.OPEN;
+            line(g, sx(q[0]), sy(q[1]), sx(p[0]), sy(p[1]), alive ? 3 : 2, alive ? 0xFF6B4A2A : st == Tree.Node.HIDDEN ? 0x80B8AC94 : 0xFFB8AC94,
+                    alive ? 1 : st == Tree.Node.HIDDEN ? 3 : 2);
+        }
         // the specialities: their names at the top; the sub-branches' names (a click makes one the village's) with what
         // they give; a sub-branch with nothing in it yet, an empty place
         for (BuildingType.Branch b : SPECIAL) {
@@ -388,7 +398,7 @@ final class TreeView {
             int nx = (int) Math.round(sx(colX(b))), ny = (int) Math.round(sy(-titleRow(b) * ROW)) - 4;
             int w = font.width(name);
             g.fill(nx - w / 2 - 3, ny - 2, nx + w / 2 + 3, ny + 10, f ? 0xE0F3D38A : 0xA0EADBB5);
-            g.centeredText(font, name, nx, ny, f ? 0xFFB07A10 : ChartStyle.TEXT);
+            Ui.centered(g,font, name, nx, ny, f ? 0xFFB07A10 : ChartStyle.TEXT);
             for (BuildingType.Sub sb : subs(b)) {
                 int lx = (int) Math.round(sx(laneX(sb))), ly = (int) Math.round(sy(-subNameRow(b) * ROW)) - 10;
                 boolean mine = sb == mySub;
@@ -400,15 +410,15 @@ final class TreeView {
                 boolean hot = mouseX >= rect[0] && mouseX < rect[0] + rect[2] && mouseY >= rect[1] && mouseY < rect[1] + rect[3];
                 g.fill(rect[0], rect[1], rect[0] + rect[2], rect[1] + rect[3], mine ? 0xF0F3D38A : hot ? 0xE0F3EAD5 : 0xB0EADBB5);
                 g.outline(rect[0], rect[1], rect[2], rect[3], mine ? 0xFFC9922A : 0x60000000);
-                g.centeredText(font, label, lx, ly, ChartStyle.TEXT);
-                g.centeredText(font, pct, lx, ly + 10, color);
+                Ui.centered(g,font, label, lx, ly, ChartStyle.TEXT);
+                Ui.centered(g,font, pct, lx, ly + 10, color);
                 if (!mine) buttons.add(new Object[]{rect, (Runnable) () -> send(ColonyPayloads.VillageAction.SUB, sb.ordinal())});
                 boolean any = false;
                 for (BuildingType t : BuildingType.values()) if (t.isNode() && t.sub() == sb) any = true;
                 if (!any) {
                     int ey = (int) Math.round(sy(-subRow(b) * ROW));
                     disc(g, lx, ey, NODE_R - 3, 0x40000000);
-                    g.centeredText(font, "?", lx + 1, ey - 3, 0x80000000);
+                    Ui.centered(g,font, "?", lx + 1, ey - 3, 0x80000000);
                 }
             }
         }
@@ -420,17 +430,7 @@ final class TreeView {
             if (first == null) continue;
             Component name = b.displayName();
             int nx = (int) Math.round(sx(first[0])), ny = (int) Math.round(sy(first[1])) - NODE_R - 12;
-            g.centeredText(font, name, nx, ny, ChartStyle.TEXT_MUTED);
-        }
-        // the links: from the middle to each root (the smithy, the field, what every village has), from each node to the next
-        for (BuildingType t : BuildingType.values()) {
-            if (!t.isNode()) continue;
-            Tree.Node st = state(row(view, t));
-            double[] p = at(t);
-            double[] q = t.parent == null ? new double[]{0, 0} : at(t.parent);
-            boolean alive = st == Tree.Node.OPEN;
-            line(g, sx(q[0]), sy(q[1]), sx(p[0]), sy(p[1]), alive ? 3 : 2, alive ? 0xFF6B4A2A : st == Tree.Node.HIDDEN ? 0x80B8AC94 : 0xFFB8AC94,
-                    alive ? 1 : st == Tree.Node.HIDDEN ? 3 : 2);
+            Ui.centered(g,font, name, nx, ny, ChartStyle.TEXT_MUTED);
         }
         // the nodes
         for (BuildingType t : BuildingType.values()) {
@@ -460,7 +460,7 @@ final class TreeView {
                 }
             }
             if (st == Tree.Node.HIDDEN) {
-                g.centeredText(font, "?", x + 1, y - 3, 0xFF6D6558);
+                Ui.centered(g,font, "?", x + 1, y - 3, 0xFF6D6558);
                 continue;
             }
             g.item(new ItemStack(t.icon), x - 8, y - 8);
@@ -473,7 +473,7 @@ final class TreeView {
                 // the one picked in the upper half: its name above it, off the node it grows from
                 int ny = lit && !names && p[1] < -1 ? y - NODE_R - 11 : y + NODE_R + 1;
                 g.fill(x - w / 2 - 2, ny, x + w / 2 + 2, ny + 10, 0xC8EADBB5);
-                g.centeredText(font, name, x, ny + 1, st == Tree.Node.WAIT ? 0xFF8D8574 : ChartStyle.TEXT);
+                Ui.centered(g,font, name, x, ny + 1, st == Tree.Node.WAIT ? 0xFF8D8574 : ChartStyle.TEXT);
             }
             if (st == Tree.Node.OPEN && count(n) > 0) {
                 // how many stand; gold once one of them has grown to the top (what opens the next node)
@@ -484,7 +484,7 @@ final class TreeView {
                 g.fill(bx, by, bx + bw, by + 10, top ? 0xF0C9922A : 0xE02B2118);
                 g.text(font, c, bx + 2, by + 1, top ? 0xFF2B1D08 : 0xFFEFE6D3, false);
             }
-            if (view.priority() == t.ordinal()) g.text(font, "★", x - NODE_R - 5, y - NODE_R - 3, 0xFFFFD24A, true);
+            if (view.priority() == t.ordinal()) g.text(font, "★", x - NODE_R - 5, y - NODE_R - 3, 0xFFFFD24A, false);
         }
         // the middle of the village
         ColonyPayloads.CenterRow c = view.center();
@@ -568,7 +568,7 @@ final class TreeView {
         boolean hover = active && mouseX >= b[0] && mouseX < b[0] + b[2] && mouseY >= b[1] && mouseY < b[1] + b[3];
         g.fill(b[0], b[1], b[0] + b[2], b[1] + b[3], !active ? 0xFF8A7F6C : hover ? ChartStyle.BRASS : ChartStyle.WOOD);
         g.outline(b[0], b[1], b[2], b[3], ChartStyle.WOOD_DARK);
-        g.centeredText(font, label, b[0] + b[2] / 2, b[1] + (b[3] - 8) / 2, !active ? 0xFFD0C6B0 : hover ? ChartStyle.TEXT : ChartStyle.TEXT_LIGHT);
+        Ui.centered(g,font, label, b[0] + b[2] / 2, b[1] + (b[3] - 8) / 2, !active ? 0xFFD0C6B0 : hover ? ChartStyle.TEXT : ChartStyle.TEXT_LIGHT);
         if (active) buttons.add(new Object[]{b, action});
     }
 
@@ -705,7 +705,7 @@ final class TreeView {
             if (on) {
                 g.fill(rect[0], rect[1], rect[0] + rect[2], rect[1] + rect[3], 0xFF7FC04A);
                 g.outline(rect[0], rect[1], rect[2], rect[3], ChartStyle.WOOD_DARK);
-                g.centeredText(font, name, rect[0] + rect[2] / 2, rect[1] + 3, ChartStyle.TEXT);
+                Ui.centered(g,font, name, rect[0] + rect[2] / 2, rect[1] + 3, ChartStyle.TEXT);
             } else {
                 button(g, rect, name, mouseX, mouseY, true, () -> send(ColonyPayloads.VillageAction.FOCUS, b.ordinal()));
             }

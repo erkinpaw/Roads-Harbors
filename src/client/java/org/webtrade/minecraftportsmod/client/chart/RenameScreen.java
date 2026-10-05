@@ -30,6 +30,7 @@ public class RenameScreen extends UiScreen {
     protected void layout() {
         int w = 200, x = (width - w) / 2, y = height / 2 - 20;
         box = new EditBox(font, x, y, w, 20, title);
+        box.setTextShadow(false);
         box.setMaxLength(32);
         box.setValue(initial);
         addRenderableWidget(box);
@@ -67,7 +68,7 @@ public class RenameScreen extends UiScreen {
     protected void draw(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         int w = 220, h = 84, x = (width - w) / 2, y = height / 2 - 44;
         Ui.frame(g, x, y, x + w, y + h);
-        g.centeredText(font, title, width / 2, y + 9, ChartStyle.TEXT_LIGHT);
+        Ui.centered(g,font, title, width / 2, y + 9, ChartStyle.TEXT_LIGHT);
         widgets(g, mouseX, mouseY, partialTick);
     }
 }

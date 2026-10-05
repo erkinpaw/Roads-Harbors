@@ -134,7 +134,7 @@ public class ScoutMapScreen extends UiScreen {
     @Override
     protected void draw(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         Ui.frame(g, x0, y0, x1, y1);
-        g.text(font, Component.translatable("minecraftportsmod.map.header", view.villageName()), x0 + 10, y0 + 7, ChartStyle.TEXT_LIGHT, true);
+        g.text(font, Component.translatable("minecraftportsmod.map.header", view.villageName()), x0 + 10, y0 + 7, ChartStyle.TEXT_LIGHT, false);
         Ui.blit(g, Ui.PARCHMENT, mx0 - 1, my0 - 1, mx1 + 1, my1 + 1);
         g.enableScissor(mx0, my0, mx1, my1);
         if (w > 0) {
@@ -142,7 +142,7 @@ public class ScoutMapScreen extends UiScreen {
             int sw = (int) Math.round(w * zoom), sh = (int) Math.round(h * zoom);
             g.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, left, top, 0, 0, sw, sh, w, h, w, h);
         } else {
-            g.centeredText(font, Component.translatable("minecraftportsmod.map.empty"), (mx0 + mx1) / 2, (my0 + my1) / 2 - 4, ChartStyle.TEXT_MUTED);
+            Ui.centered(g,font, Component.translatable("minecraftportsmod.map.empty"), (mx0 + mx1) / 2, (my0 + my1) / 2 - 4, ChartStyle.TEXT_MUTED);
         }
         // the scouts' reach round the village
         if (view.range() > 0) {
@@ -168,14 +168,14 @@ public class ScoutMapScreen extends UiScreen {
             g.fill(px - 5, pz - 5, px + 5, pz + 5, 0xE0EADBB5);
             g.outline(px - 5, pz - 5, 10, 10, ChartStyle.ROUTE);
             g.item(new ItemStack(Items.BELL), px - 8, pz - 8);
-            g.centeredText(font, p.name(), px, pz + 9, ChartStyle.TEXT);
+            Ui.centered(g,font, p.name(), px, pz + 9, ChartStyle.TEXT);
             if (Math.abs(mouseX - px) < 8 && Math.abs(mouseY - pz) < 8) hover = p;
         }
         int hx = (int) Math.round(sx(view.x())), hz = (int) Math.round(sy(view.z()));
         g.fill(hx - 6, hz - 6, hx + 6, hz + 6, 0xF0FFE08A);
         g.outline(hx - 6, hz - 6, 12, 12, ChartStyle.INK);
         g.item(new ItemStack(Items.CAMPFIRE), hx - 8, hz - 8);
-        g.centeredText(font, view.villageName(), hx, hz + 10, ChartStyle.INK);
+        Ui.centered(g,font, view.villageName(), hx, hz + 10, ChartStyle.INK);
         // the way the next expedition is to go
         if (view.aim() >= 0) {
             double a = Math.toRadians(view.aim());

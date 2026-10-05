@@ -171,6 +171,7 @@ public class OrderScreen extends UiScreen {
         int sx = px0 + 190;
         slider = addRenderableWidget(new QtySlider(sx, dy, Math.max(80, px1 - sx - 442), 20));
         qtyBox = addRenderableWidget(new EditBox(font, px1 - 434, dy + 2, 48, 16, Component.translatable("minecraftportsmod.market.qty")));
+        qtyBox.setTextShadow(false);
         qtyBox.setMaxLength(4);
         qtyBox.setResponder(this::typed);
         confirm = addRenderableWidget(UiButton.make(Component.empty(), b -> order()).bounds(px1 - 186, dy, 186, 20).build());

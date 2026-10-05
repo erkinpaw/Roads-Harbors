@@ -77,9 +77,9 @@ public class QuestScreen extends UiScreen {
     protected void draw(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         Ui.frame(g, x0, y0, x1, y1);
         Job job = view.job() < 0 ? null : Job.values()[view.job()];
-        g.text(font, Component.literal((view.elder() ? "★ " : "") + view.name()), x0 + 10, y0 + 7, view.elder() ? ChartStyle.BRASS : ChartStyle.TEXT_LIGHT, true);
+        g.text(font, Component.literal((view.elder() ? "★ " : "") + view.name()), x0 + 10, y0 + 7, view.elder() ? ChartStyle.BRASS : ChartStyle.TEXT_LIGHT, false);
         String count = view.taken() + "/" + Quests.MAX_TAKEN;
-        g.text(font, count, x1 - 10 - font.width(count), y0 + 7, ChartStyle.TEXT_LIGHT, true);
+        g.text(font, count, x1 - 10 - font.width(count), y0 + 7, ChartStyle.TEXT_LIGHT, false);
         int px0 = x0 + 8, py0 = y0 + 20, px1 = x1 - 8, py1 = y1 - 32;
         Ui.blit(g, Ui.PARCHMENT, px0 - 1, py0 - 1, px1 + 1, py1 + 1);
         if (view.quest() < 0) {
@@ -94,7 +94,7 @@ public class QuestScreen extends UiScreen {
         // how many are asked for, on the slot as on a stack
         if (kind != Quests.Kind.LETTER) {
             String n = String.valueOf(view.count());
-            g.text(font, n, x + 27 - font.width(n), y + 19, ChartStyle.TEXT_LIGHT, true);
+            g.text(font, n, x + 27 - font.width(n), y + 19, ChartStyle.TEXT_LIGHT, false);
         }
         int tx = x + 36, tw = px1 - tx - 8;
         y += Ui.wrap(g, font, view.what(), tx, y + 2, tw, ChartStyle.TEXT) + 6;
@@ -103,7 +103,7 @@ public class QuestScreen extends UiScreen {
         float frac = view.count() == 0 ? 0 : Math.min(1F, view.done() / (float) view.count());
         Ui.bar(g, x, y, px1 - 8, y + 10, frac, ChartStyle.GOOD);
         String prog = view.done() + " / " + view.count();
-        g.text(font, prog, (x + px1 - 8 - font.width(prog)) / 2, y + 1, ChartStyle.TEXT_LIGHT, true);
+        g.text(font, prog, (x + px1 - 8 - font.width(prog)) / 2, y + 1, ChartStyle.TEXT_LIGHT, false);
         y += 16;
         if (kind != Quests.Kind.HUNT && kind != Quests.Kind.LETTER && view.state() != 2) {
             g.item(new ItemStack(Items.BUNDLE), x, y);

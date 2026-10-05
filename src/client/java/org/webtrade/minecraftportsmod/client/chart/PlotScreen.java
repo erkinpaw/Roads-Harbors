@@ -53,10 +53,10 @@ public class PlotScreen extends UiScreen {
     @Override
     protected void draw(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         Ui.frame(g, x0, y0, x1, y1);
-        g.text(font, title, x0 + 10, y0 + 7, ChartStyle.TEXT_LIGHT, true);
+        g.text(font, title, x0 + 10, y0 + 7, ChartStyle.TEXT_LIGHT, false);
         String purse = org.webtrade.minecraftportsmod.colony.Trade.money(view.purse());
         g.item(new ItemStack(Items.EMERALD), x1 - 26, y0 + 3);
-        g.text(font, purse, x1 - 30 - font.width(purse), y0 + 7, ChartStyle.TEXT_LIGHT, true);
+        g.text(font, purse, x1 - 30 - font.width(purse), y0 + 7, ChartStyle.TEXT_LIGHT, false);
         Ui.blit(g, Ui.PARCHMENT, x0 + 7, y0 + 23, x1 - 7, y1 - 7);
         int y = y0 + 30;
         for (ColonyPayloads.PlotHouse house : view.houses()) {

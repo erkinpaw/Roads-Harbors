@@ -131,6 +131,7 @@ public class TradeScreen extends UiScreen {
         int sx = px0 + 190;
         slider = addRenderableWidget(new QtySlider(sx, dy, Math.max(80, px1 - sx - 190), 20));
         qtyBox = addRenderableWidget(new EditBox(font, px1 - 182, dy + 2, 48, 16, Component.translatable("minecraftportsmod.market.qty")));
+        qtyBox.setTextShadow(false);
         qtyBox.setMaxLength(5);
         qtyBox.setResponder(this::typed);
         confirm = addRenderableWidget(UiButton.make(Component.empty(), b -> deal()).bounds(px1 - 126, dy, 126, 20).build());

@@ -57,7 +57,7 @@ public class NewsScreen extends UiScreen {
     @Override
     protected void draw(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         Ui.frame(g, x0, y0, x1, y1);
-        g.text(font, title, x0 + 10, y0 + 7, ChartStyle.TEXT_LIGHT, true);
+        g.text(font, title, x0 + 10, y0 + 7, ChartStyle.TEXT_LIGHT, false);
         int cx0 = x0 + 8, cy0 = y0 + 22, cx1 = x1 - 8, cy1 = y1 - 8;
         Ui.blit(g, Ui.PARCHMENT, cx0 - 1, cy0 - 1, cx1 + 1, cy1 + 1);
         g.enableScissor(cx0, cy0, cx1, cy1);
