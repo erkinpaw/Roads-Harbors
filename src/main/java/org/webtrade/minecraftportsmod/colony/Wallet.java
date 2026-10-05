@@ -132,7 +132,7 @@ public final class Wallet extends SavedData {
                 int carried = Math.max(0, Quests.carried(p, q));
                 int have = Math.min(q.count, q.done() + carried);
                 Village to = data.get(q.to());
-                quests.add(new ColonyPayloads.PanelQuest(Quests.icon(q), Quests.thing(q, to), giver == null ? "?" : giver.name, v.name, have, q.count,
+                quests.add(new ColonyPayloads.PanelQuest(Quests.icon(q), Quests.title(q, v, to), giver == null ? "?" : giver.name, v.name, have, q.count,
                         (int) Math.max(0, q.until() - data.day), q.kind.ordinal(), ColonyService.questText(data, v, q),
                         giver == null || giver.job == null ? Component.empty() : giver.job.displayName(), q.done(), carried, q.reward(),
                         to == null ? "" : to.name));

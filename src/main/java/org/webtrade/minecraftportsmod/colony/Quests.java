@@ -579,15 +579,20 @@ public final class Quests {
         };
     }
 
-    /** In a word or two, what a task wants (the letter: the village it reached, once it has). */
-    public static Component thing(Quest q, Village to) {
+    /** A task's name, short: "Bring: food", "To the site (House): planks", "A grindstone for the blades", "Hunt"... */
+    public static Component title(Quest q, Village v, Village to) {
+        Component res = q.res() == null ? Component.literal("?") : q.res().displayName();
         return switch (q.kind) {
-            case BRING, SITE -> q.res() == null ? Component.literal("?") : q.res().displayName();
+            case BRING -> Component.translatable("minecraftportsmod.panel.bring", res);
+            case SITE -> {
+                Building b = v.building(q.building);
+                yield Component.translatable("minecraftportsmod.panel.site", b == null ? Component.literal("?") : b.type.displayName(), res);
+            }
             case HUNT -> Component.translatable("minecraftportsmod.panel.hunt");
+            // (the letter: to an unknown village; once it reached one, its answer back)
             case LETTER -> to == null ? Component.translatable("minecraftportsmod.panel.letter")
                     : Component.translatable("minecraftportsmod.panel.letter_to", to.name);
-            case ITEM -> q.what.startsWith("#") ? Component.translatable("minecraftportsmod.quest.item." + q.what.replace("#", "").replace("minecraft:", ""))
-                    : icon(q).getHoverName();
+            case ITEM -> Component.translatable("minecraftportsmod.quest.item." + q.what.replace("#", "").replace("minecraft:", ""));
         };
     }
 

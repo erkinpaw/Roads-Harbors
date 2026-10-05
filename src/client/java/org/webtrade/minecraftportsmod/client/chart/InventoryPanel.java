@@ -128,8 +128,8 @@ public final class InventoryPanel {
                 String n = q.have() + "/" + q.need();
                 if (g != null) g.text(font, n, rx - font.width(n), y + 1, q.have() >= q.need() ? DONE : INK, false);
                 y = lines(g, font, q.what(), tx, y + 1, rx - tx - font.width(n) - 6, INK);
-                // whose it is, and where
-                y = lines(g, font, Component.literal(q.giver() + " · " + q.village()), tx, y + 1, rx - tx, MUTED);
+                // whom it is for, and where
+                y = lines(g, font, Component.translatable("minecraftportsmod.panel.to", q.giver(), q.village()), tx, y + 1, rx - tx, MUTED);
                 // how far along, and the days left
                 String d = Component.translatable("minecraftportsmod.panel.days", q.days()).getString();
                 int by = Math.max(y + 1, top + 21);
