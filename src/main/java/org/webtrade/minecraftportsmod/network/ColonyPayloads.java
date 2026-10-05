@@ -315,11 +315,11 @@ public final class ColonyPayloads {
     public record PanelQuest(net.minecraft.world.item.ItemStack icon, Component what, String giver, String village, int have, int need, int days) {
     }
 
-    /** The inventory's panel: the purse, the tasks taken, the plot, the trade hired at. */
-    public record PanelView(int purse, List<PanelQuest> quests, Component plot, Component hired) implements CustomPacketPayload {
+    /** The inventory's panel: the purse (hundredths), the tasks taken, the plot, the trade hired at. */
+    public record PanelView(long purse, List<PanelQuest> quests, Component plot, Component hired) implements CustomPacketPayload {
         public static final Type<PanelView> TYPE = new Type<>(Minecraftportsmod.id("panel_view"));
         public static final StreamCodec<RegistryFriendlyByteBuf, PanelView> CODEC = StreamCodec.of((buf, v) -> {
-            buf.writeVarInt(v.purse);
+            buf.writeVarLong(v.purse);
             buf.writeVarInt(v.quests.size());
             for (PanelQuest q : v.quests) {
                 net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, q.icon);
@@ -333,7 +333,8 @@ public final class ColonyPayloads {
             comp(buf, v.plot);
             comp(buf, v.hired);
         }, buf -> {
-            int purse = buf.readVarInt(), n = buf.readVarInt();
+            long purse = buf.readVarLong();
+            int n = buf.readVarInt();
             List<PanelQuest> qs = new ArrayList<>();
             for (int i = 0; i < n; i++) {
                 var icon = net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf);
@@ -392,7 +393,7 @@ public final class ColonyPayloads {
     }
 
     /** A player's plot, as its stone shows it to its owner: the houses to choose from, the purse. */
-    public record PlotView(int village, String villageName, List<PlotHouse> houses, int purse) implements CustomPacketPayload {
+    public record PlotView(int village, String villageName, List<PlotHouse> houses, long purse) implements CustomPacketPayload {
         public static final Type<PlotView> TYPE = new Type<>(Minecraftportsmod.id("plot_view"));
         public static final StreamCodec<RegistryFriendlyByteBuf, PlotView> CODEC = StreamCodec.of((buf, v) -> {
             buf.writeVarInt(v.village);
@@ -404,14 +405,14 @@ public final class ColonyPayloads {
                 buf.writeVarIntArray(h.cost);
                 buf.writeVarInt(h.price);
             }
-            buf.writeVarInt(v.purse);
+            buf.writeVarLong(v.purse);
         }, buf -> {
             int village = buf.readVarInt();
             String name = buf.readUtf(64);
             int n = buf.readVarInt();
             List<PlotHouse> hs = new ArrayList<>();
             for (int i = 0; i < n; i++) hs.add(new PlotHouse(buf.readVarInt(), buf.readVarInt(), ints(buf), buf.readVarInt()));
-            return new PlotView(village, name, hs, buf.readVarInt());
+            return new PlotView(village, name, hs, buf.readVarLong());
         });
 
         @Override
@@ -676,15 +677,15 @@ public final class ColonyPayloads {
                            int available, int sellCents, int buyCents, int maxBuy, int maxSell, int carried) {
     }
 
-    public record TradeView(int village, String villageName, String merchant, int purse, int playerEmeralds, List<TradeRow> rows,
+    public record TradeView(int village, String villageName, String merchant, long purse, long playerEmeralds, List<TradeRow> rows,
                             Component note) implements CustomPacketPayload {
         public static final Type<TradeView> TYPE = new Type<>(Minecraftportsmod.id("trade_view"));
         public static final StreamCodec<RegistryFriendlyByteBuf, TradeView> CODEC = StreamCodec.of((buf, v) -> {
             buf.writeVarInt(v.village);
             buf.writeUtf(v.villageName, 64);
             buf.writeUtf(v.merchant, 64);
-            buf.writeVarInt(v.purse);
-            buf.writeVarInt(v.playerEmeralds);
+            buf.writeVarLong(v.purse);
+            buf.writeVarLong(v.playerEmeralds);
             buf.writeVarInt(v.rows.size());
             for (TradeRow r : v.rows) {
                 buf.writeVarInt(r.ware);
@@ -704,7 +705,7 @@ public final class ColonyPayloads {
         }, buf -> {
             int village = buf.readVarInt();
             String name = buf.readUtf(64), merchant = buf.readUtf(64);
-            int purse = buf.readVarInt(), em = buf.readVarInt();
+            long purse = buf.readVarLong(), em = buf.readVarLong();
             int n = buf.readVarInt();
             List<TradeRow> rows = new ArrayList<>();
             for (int i = 0; i < n; i++) {
@@ -745,7 +746,7 @@ public final class ColonyPayloads {
      * first being made: {@code progress} 0..1, seconds left), and the uses left of its tools (wooden, stone, iron).
      */
     public record OrderView(int village, int building, String villageName, String worker, Component buildingName, int level,
-                            int playerEmeralds, List<OrderRow> rows, List<MineRow> mine, Component note, List<WorkRow> queue, float progress,
+                            long playerEmeralds, List<OrderRow> rows, List<MineRow> mine, Component note, List<WorkRow> queue, float progress,
                             int secondsLeft, int[] tools, int workers) implements CustomPacketPayload {
         public static final Type<OrderView> TYPE = new Type<>(Minecraftportsmod.id("order_view"));
         public static final StreamCodec<RegistryFriendlyByteBuf, OrderView> CODEC = StreamCodec.of((buf, v) -> {
@@ -755,7 +756,7 @@ public final class ColonyPayloads {
             buf.writeUtf(v.worker, 64);
             comp(buf, v.buildingName);
             buf.writeVarInt(v.level);
-            buf.writeVarInt(v.playerEmeralds);
+            buf.writeVarLong(v.playerEmeralds);
             buf.writeVarInt(v.rows.size());
             for (OrderRow r : v.rows) {
                 buf.writeVarInt(r.recipe);
@@ -797,7 +798,8 @@ public final class ColonyPayloads {
             int village = buf.readVarInt(), building = buf.readVarInt();
             String vname = buf.readUtf(64), worker = buf.readUtf(64);
             Component bname = comp(buf);
-            int level = buf.readVarInt(), em = buf.readVarInt();
+            int level = buf.readVarInt();
+            long em = buf.readVarLong();
             int n = buf.readVarInt();
             List<OrderRow> rows = new ArrayList<>();
             for (int i = 0; i < n; i++) {

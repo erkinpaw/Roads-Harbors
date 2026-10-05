@@ -80,7 +80,7 @@ public class OrderScreen extends UiScreen {
         ColonyPayloads.OrderRow r = selectedRow();
         if (r == null || !r.open()) return 0;
         int n = Orders.MAX_PIECES;
-        while (n > 0 && Trade.total(r.cents(), n) > view.playerEmeralds()) n--;
+        while (n > 0 && Trade.total(r.cents(), n) * 100L > view.playerEmeralds()) n--;
         return n;
     }
 
@@ -89,7 +89,7 @@ public class OrderScreen extends UiScreen {
         ColonyPayloads.OrderRow r = selectedRow();
         if (r == null || r.nowCents() < 0) return 0;
         int n = Math.min(r.stock(), Orders.MAX_PIECES);
-        while (n > 0 && Trade.total(r.nowCents(), n) > view.playerEmeralds()) n--;
+        while (n > 0 && Trade.total(r.nowCents(), n) * 100L > view.playerEmeralds()) n--;
         return n;
     }
 
@@ -308,7 +308,7 @@ public class OrderScreen extends UiScreen {
         int yx = px1 - 28 - Math.max(font.width(yours), 30);
         Ui.slot(g, px1 - 22, py0, 22, new ItemStack(Items.EMERALD));
         g.text(font, yours, yx, py0 + 2, ChartStyle.TEXT_MUTED, false);
-        g.text(font, String.valueOf(view.playerEmeralds()), yx, py0 + 12, ChartStyle.INK, false);
+        g.text(font, Trade.money(view.playerEmeralds()), yx, py0 + 12, ChartStyle.INK, false);
         Ui.rule(g, px0, px1, ly0 - 30);
 
         recipes(g, mouseX, mouseY);

@@ -151,9 +151,9 @@ public class TradeScreen extends UiScreen {
         if (r == null) return;
         slider.active = maxQty() > 1;
         qtyBox.active = on;
-        int total = Trade.total(cents(), qty);
         confirm.active = on && qty > 0;
-        confirm.setMessage(Component.translatable(selling ? "minecraftportsmod.trade.sell_n" : "minecraftportsmod.trade.buy_n", total));
+        confirm.setMessage(Component.translatable(selling ? "minecraftportsmod.trade.sell_n" : "minecraftportsmod.trade.buy_n",
+                Trade.money((long) Math.max(0, cents()) * qty)));
     }
 
     /** Sets the quantity (clamped to 1..max, or 0 if nothing can be dealt) and moves slider and field with it. */
@@ -253,12 +253,12 @@ public class TradeScreen extends UiScreen {
         // the purses: the village's and the player's
         Ui.slot(g, px0, py0, 22, new ItemStack(Items.EMERALD));
         g.text(font, Component.translatable("minecraftportsmod.trade.purse_village"), px0 + 28, py0 + 2, ChartStyle.TEXT_MUTED, false);
-        g.text(font, String.valueOf(view.purse()), px0 + 28, py0 + 12, ChartStyle.INK, false);
+        g.text(font, Trade.money(view.purse()), px0 + 28, py0 + 12, ChartStyle.INK, false);
         Component yours = Component.translatable("minecraftportsmod.trade.purse_yours");
         int yx = px1 - 28 - Math.max(font.width(yours), 30);
         Ui.slot(g, px1 - 22, py0, 22, new ItemStack(Items.EMERALD));
         g.text(font, yours, yx, py0 + 2, ChartStyle.TEXT_MUTED, false);
-        g.text(font, String.valueOf(view.playerEmeralds()), yx, py0 + 12, ChartStyle.INK, false);
+        g.text(font, Trade.money(view.playerEmeralds()), yx, py0 + 12, ChartStyle.INK, false);
         // under the tabs, the page they open
         Ui.rule(g, px0, px1, ly0 - 18);
 
@@ -274,7 +274,7 @@ public class TradeScreen extends UiScreen {
             Component what = Component.translatable(selling ? "minecraftportsmod.trade.selling" : "minecraftportsmod.trade.buying");
             g.text(font, what, px0 + 36, dy, ChartStyle.TEXT_MUTED, false);
             g.text(font, Ui.fit(font, r.name().getString(), 140), px0 + 36, dy + 11, ChartStyle.INK, false);
-            int total = Trade.total(cents(), qty);
+            String total = Trade.money((long) Math.max(0, cents()) * qty);
             Component sum = maxQty() <= 0
                     ? Component.translatable(selling ? "minecraftportsmod.trade.cant_sell" : "minecraftportsmod.trade.cant_buy")
                     : Component.translatable("minecraftportsmod.trade.total", qty, price(Math.max(0, cents())), total);

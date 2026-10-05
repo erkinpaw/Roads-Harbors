@@ -699,14 +699,14 @@ public final class ColonyService {
                 Trade.Ware w = Trade.WARES.get(a.a());
                 boolean selling = a.kind() == ColonyPayloads.VillageAction.SELL;
                 int n = Math.min(a.b(), selling ? Trade.maxSell(player, v, w) : Trade.maxBuy(player, v, w));
-                int paid = selling ? Trade.sell(player, v, w, n) : Trade.buy(player, v, w, n);
+                long paid = selling ? Trade.sell(player, v, w, n) : Trade.buy(player, v, w, n);
                 if (paid > 0) Achievements.traded(player);
                 Component note;
                 if (paid > 0) {
                     note = Component.translatable(selling ? "minecraftportsmod.trade.sold" : "minecraftportsmod.trade.bought",
-                            n, Trade.name(v, w), paid).withStyle(ChatFormatting.DARK_GREEN);
+                            n, Trade.name(v, w), Trade.money(paid)).withStyle(ChatFormatting.DARK_GREEN);
                     v.log(data.day, Component.translatable(selling ? "minecraftportsmod.vlog.bought_from" : "minecraftportsmod.vlog.sold_to",
-                            player.getName(), n, Trade.name(v, w), paid));
+                            player.getName(), n, Trade.name(v, w), Trade.money(paid)));
                     player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 0.6F, 1.0F);
                     data.changed();
                 } else {
@@ -759,7 +759,7 @@ public final class ColonyService {
         }
         double[] p = Workshops.progress(v, b);
         ServerPlayNetworking.send(player, new ColonyPayloads.OrderView(v.id, b.id, v.name, worker, b.type.displayName(), b.level,
-                Trade.emeralds(player), rows, mine, note == null ? Component.empty() : note, queue, (float) p[1], (int) Math.ceil(p[0]),
+                Trade.purse(player), rows, mine, note == null ? Component.empty() : note, queue, (float) p[1], (int) Math.ceil(p[0]),
                 b.tools(), Workshops.hands(v, b).size()));
     }
 
@@ -781,7 +781,7 @@ public final class ColonyService {
                     r == null ? 0 : v.stock(r), r == null ? 0 : VillageLife.target(v, r), Trade.available(v, w), Trade.sellCents(v, w),
                     Trade.buyCents(v, w), Trade.maxBuy(player, v, w), Trade.maxSell(player, v, w), Trade.carried(player, w)));
         }
-        ServerPlayNetworking.send(player, new ColonyPayloads.TradeView(v.id, v.name, merchant, v.emeralds(), Trade.emeralds(player), rows,
+        ServerPlayNetworking.send(player, new ColonyPayloads.TradeView(v.id, v.name, merchant, v.cents(), Trade.purse(player), rows,
                 note == null ? Component.empty() : note));
     }
 
