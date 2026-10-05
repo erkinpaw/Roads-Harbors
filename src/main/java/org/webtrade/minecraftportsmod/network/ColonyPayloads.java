@@ -738,7 +738,8 @@ public final class ColonyPayloads {
                 /** a = person: their task; a = quest id: take it, hand in what is asked, give it up */ QUEST = 20, QUEST_TAKE = 21, QUEST_HAND = 22, QUEST_DROP = 23,
                 /** a = person (the head of the village): buy a boundary stone */ PLOT_BUY = 24,
                 /** a = person: take what one carries to the store; hire on at a trade (or leave it) */ DEPOSIT = 25, HIRE = 26,
-                /** a = person (a skipper), b = village: a passage there on his ship */ PASSAGE = 27;
+                /** a = person (a skipper), b = village: a passage there on his ship */ PASSAGE = 27,
+                /** a = workshop: the player's tools put in its slot */ TOOLS = 28;
         public static final Type<VillageAction> TYPE = new Type<>(Minecraftportsmod.id("village_action"));
         public static final StreamCodec<FriendlyByteBuf, VillageAction> CODEC = StreamCodec.of((buf, p) -> {
             buf.writeVarInt(p.village);

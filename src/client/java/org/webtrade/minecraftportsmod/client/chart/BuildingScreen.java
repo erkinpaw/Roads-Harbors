@@ -82,8 +82,9 @@ public class BuildingScreen extends UiScreen {
             int bx = mid + 10, by = flowsY - 30 - (view.raiseCost().length > 0 ? 50 : 26);
             int bw = Math.max(50, (px1 - mid - 16 - 4 * (view.crops().length - 1)) / Math.max(1, view.crops().length));
             for (int c : view.crops()) {
-                Crop crop = Crop.values()[c];
-                UiButton b = addRenderableWidget(UiButton.make(crop.displayName(),
+                // (a farmyard's herds are sent as 100 + the herd)
+                Component name = c >= 100 ? Component.translatable("minecraftportsmod.herd." + (c - 100)) : Crop.values()[c].displayName();
+                UiButton b = addRenderableWidget(UiButton.make(name,
                         btn -> ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(), ColonyPayloads.VillageAction.CROP,
                                 view.building(), c))).bounds(bx, by, bw, 18)
                         .style(c == view.crop() ? UiButton.Style.TAB_OPEN : UiButton.Style.PLANK).build());
@@ -219,7 +220,9 @@ public class BuildingScreen extends UiScreen {
         }
         if (view.crop() >= 0) {
             int by = flowsY - 30 - (view.raiseCost().length > 0 ? 50 : 26);
-            g.text(font, Component.translatable("minecraftportsmod.bmenu.sow"), mid + 10, by - 12, ChartStyle.TEXT_MUTED, false);
+            g.text(font, Component.translatable(view.crop() >= 100 ? "minecraftportsmod.bmenu.herd" : "minecraftportsmod.bmenu.sow"), mid + 10, by - 12,
+                    ChartStyle.TEXT_MUTED, false);
+
         }
 
         // ---- a day's making and using

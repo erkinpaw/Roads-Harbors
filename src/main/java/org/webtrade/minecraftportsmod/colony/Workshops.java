@@ -137,6 +137,29 @@ public final class Workshops {
         b.tools[tier - 1] += USES[tier] * count;
     }
 
+    /**
+     * All the tools a player carries put in a workshop's slot: each gives its kind's uses, as much of them as it has
+     * left of its wear. Returns how many tools.
+     */
+    public static int takeTools(net.minecraft.server.level.ServerPlayer p, Building b) {
+        int n = 0;
+        var inv = p.getInventory();
+        for (int i = 0; i < inv.getContainerSize(); i++) {
+            var s = inv.getItem(i);
+            for (int t = 1; t <= 3; t++) {
+                if (Res.tools(t).unitsOf(s) <= 0) continue;
+                double left = s.isDamageableItem() ? 1 - s.getDamageValue() / (double) Math.max(1, s.getMaxDamage()) : 1;
+                b.tools[t - 1] += Math.max(1, (int) Math.round(USES[t] * left)) * s.getCount();
+                n += s.getCount();
+                inv.setItem(i, net.minecraft.world.item.ItemStack.EMPTY);
+                break;
+            }
+        }
+        inv.setChanged();
+        return n;
+    }
+
+
     // ------------------------------------------------------------------ the work
 
     /** How fast a workshop works with what is in its slot and its level: a fifth faster a level. */

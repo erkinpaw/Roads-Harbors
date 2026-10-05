@@ -49,11 +49,44 @@ final class Herds {
         return out;
     }
 
-    /** The runs a farmyard has at its level. */
+    /** The runs a farmyard has at its level: every one of them the farmyard's own herd, if it keeps one kind only. */
     static List<Run> runs(Building b) {
         List<Run> out = new ArrayList<>();
-        for (Run r : runs(b.type.half)) if (r.level <= Math.max(1, b.level)) out.add(r);
+        EntityType<? extends Animal> only = kind(herd(b));
+        for (Run r : runs(b.type.half)) {
+            if (r.level > Math.max(1, b.level)) continue;
+            out.add(only == null ? r : new Run(r.index, r.level, only, only == EntityTypes.CHICKEN ? 5 : 3, r.x0, r.x1, r.z0, r.z1));
+        }
         return out;
+    }
+
+    /** The herds a farmyard can keep: all four kinds, a run each (0), or one kind in all its runs (1 hens, 2 sheep, 3 pigs, 4 cows). */
+    public static final int HERDS = 5;
+
+    /** The herd a farmyard keeps (its setting). */
+    static int herd(Building b) {
+        String o = b.option();
+        int i = o == null ? -1 : o.indexOf("herd:");
+        if (i < 0 || i + 5 >= o.length() || !Character.isDigit(o.charAt(i + 5))) return 0;
+        return Math.max(0, Math.min(HERDS - 1, o.charAt(i + 5) - '0'));
+    }
+
+    static EntityType<? extends Animal> kind(int herd) {
+        return switch (herd) {
+            case 1 -> EntityTypes.CHICKEN;
+            case 2 -> EntityTypes.SHEEP;
+            case 3 -> EntityTypes.PIG;
+            case 4 -> EntityTypes.COW;
+            default -> null;
+        };
+    }
+
+    /** What a run of a kind gives in a day: {food, wool, hides, grain eaten}. */
+    static int[] yield(EntityType<?> kind) {
+        if (kind == EntityTypes.CHICKEN) return new int[]{16, 0, 1, 3};
+        if (kind == EntityTypes.SHEEP) return new int[]{6, 5, 0, 4};
+        if (kind == EntityTypes.PIG) return new int[]{16, 0, 0, 4};
+        return new int[]{20, 0, 2, 6};
     }
 
     /** The mark the animals of a run carry. */
@@ -129,6 +162,13 @@ final class Herds {
             if (!b.type.isPen() || !b.standing() || !Construction.loaded(level, b.origin)) continue;
             for (Run r : runs(b)) {
                 List<Animal> herd = animals(level, v, b, r);
+                // (a run given over to another herd: the animals it had are sold off)
+                for (Animal a : new ArrayList<>(herd)) {
+                    if (a.getType() != r.kind) {
+                        a.discard();
+                        herd.remove(a);
+                    }
+                }
                 if (herd.size() >= r.head) continue;
                 // a new run: stocked once with grown animals (brought from the market); a herd short of its number: a
                 // young one now and then; a run left with none (killed, run off): a young one bought in, rarely

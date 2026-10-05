@@ -1128,5 +1128,12 @@
   "minecraftportsmod.order.tools": "Tools",
   "minecraftportsmod.order.put_tools": "Put tools in",
   "minecraftportsmod.order.tools_put": "Tools put in: %s.",
-  "minecraftportsmod.order.no_tools": "You have no tools."
+  "minecraftportsmod.order.no_tools": "You have no tools.",
+  "minecraftportsmod.herd.0": "A bit of everything",
+  "minecraftportsmod.herd.1": "Hens",
+  "minecraftportsmod.herd.2": "Sheep",
+  "minecraftportsmod.herd.3": "Pigs",
+  "minecraftportsmod.herd.4": "Cows",
+  "minecraftportsmod.bmenu.herd": "Herd",
+  "minecraftportsmod.vlog.herd": "%s: the farmyard keeps %s now."
 }
