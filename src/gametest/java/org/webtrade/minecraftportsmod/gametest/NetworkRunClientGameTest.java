@@ -275,6 +275,8 @@ public class NetworkRunClientGameTest implements FabricClientGameTest {
             for (int n : trips.values()) if (n >= 3) pairs3++;
             log(seed, "trips by pair {}; pairs with 3+ trips {}; sales {}, to villages with no merchant {}; emeralds paid {}; emeralds checked {} days, "
                     + "minted {}, lost {}", trips, pairs3, sales, salesNoMerchant, emeraldsMoved, checks, data.minted(), data.burnt());
+            log(seed, "carried on for gain: {} units, made {} emeralds on them", org.webtrade.minecraftportsmod.colony.Dealing.carriedOn,
+                    org.webtrade.minecraftportsmod.colony.Dealing.madeOn / 100);
             // the market: what went where, what nobody had
             log(seed, "traded: sold by merchants {} (emeralds {}), bought by merchants {} (emeralds {}); wanted and not found on the round {}; "
                     + "rounds not made {} (nothing worth going for {}, too little {})",
