@@ -37,7 +37,7 @@ import java.util.Locale;
  */
 public class VillageScreen extends UiScreen {
 
-    private enum Tab {OVERVIEW, PEOPLE, STORE, TRADE, TREE, MAP, TASKS, LOG}
+    private enum Tab {OVERVIEW, PEOPLE, STORE, TRADE, TREE, MAP, LOG}
 
     private static final int ROW = 24;
     private static final int TAB_HEIGHT = 18;
@@ -180,7 +180,6 @@ public class VillageScreen extends UiScreen {
             case PEOPLE -> drawPeople(g, mouseX, mouseY);
             case TREE -> drawTree(g, mouseX, mouseY);
             case MAP -> drawMap(g, mouseX, mouseY);
-            case TASKS -> drawTasks(g);
             case LOG -> drawLog(g);
         }
         g.disableScissor();
@@ -374,83 +373,94 @@ public class VillageScreen extends UiScreen {
         // what the village is short of: what a player could bring
         wantList(g, x, y, colW, Component.translatable("minecraftportsmod.trade.short"), view.shortOf(), ChartStyle.BAD, mouseX, mouseY);
 
-        // on the right: the queue (its places: open ones, the rest locked till a level opens them), the building sites
+        // on the right: the queue, one list - what the village has taken on, in its order: the building sites, the
+        // levels being raised, what comes down, the building being saved for, the trails' work; each with how far it
+        // has come, what it waits for and what is missing; the mouse on one: up, down, out. Under it, the places a
+        // higher level opens.
         g.fill(mid, cy0 + 4, mid + 1, cy1 - 4, ChartStyle.PARCHMENT_SHADE);
-        int rx = mid + 8, ry = cy0 + 6;
-        Ui.heading(g, font, Component.translatable("minecraftportsmod.vboard.slots"), rx, ry, cx1 - rx - 8);
-        ry = drawSlots(g, rx, ry + 18, cx1 - rx - 8, mouseX, mouseY) + 10;
-        Ui.heading(g, font, Component.translatable("minecraftportsmod.vboard.sites"), rx, ry, cx1 - rx - 8);
+        drawQueue(g, mid + 8, cy0 + 6, cx1 - mid - 16, mouseX, mouseY);
+    }
+
+    private void drawQueue(GuiGraphicsExtractor g, int rx, int ry, int w, int mouseX, int mouseY) {
+        queueButtons.clear();
+        int used = 0;
+        for (ColonyPayloads.QueueRow q : view.queue()) if (q.kind() != 4) used++;
+        Ui.heading(g, font, Component.translatable("minecraftportsmod.vboard.queue_head", used, view.slots()), rx, ry, w);
         ry += 18;
-        boolean any = false;
-        for (BuildingRow b : view.buildings()) {
-            if (b.state() == Building.State.BUILT.ordinal() && b.progress() >= 1) continue;
-            any = true;
-            BuildingType t = BuildingType.values()[b.type()];
-            Ui.slot(g, rx, ry, 24, new ItemStack(t.icon));
-            g.text(font, t.displayName(), rx + 30, ry, ChartStyle.INK, false);
-            g.text(font, font.plainSubstrByWidth(stateText(b).getString(), cx1 - rx - 36), rx + 30, ry + 10, stateColor(b), false);
-            int bw = cx1 - rx - 12;
-            boolean waiting = b.state() == Building.State.PLANNED.ordinal() || b.state() == Building.State.BUILT.ordinal() && b.progress() < 0.5F;
-            // (what it still needs: wrapped, not cut)
-            int rowH = 28;
-            if (!waiting) Ui.bar(g, rx + 30, ry + 20, rx + bw, ry + 28, b.progress(), ChartStyle.GOOD);
-            else rowH = Math.max(28, 20 + Ui.wrap(g, font, missingText(b), rx + 30, ry + 20, cx1 - rx - 38, ChartStyle.TEXT_MUTED));
-            if (mouseX >= rx && mouseX < cx1 && mouseY >= ry && mouseY < ry + rowH) {
-                g.setComponentTooltipForNextFrame(font, buildingTip(b), mouseX, mouseY);
-            }
-            ry += rowH + 4;
+        if (view.queue().isEmpty()) {
+            g.text(font, Component.translatable("minecraftportsmod.queue.empty"), rx, ry, ChartStyle.TEXT_MUTED, false);
+            ry += 14;
         }
-        if (!any) g.textWithWordWrap(font, Component.translatable("minecraftportsmod.vboard.no_sites"), rx, ry, cx1 - rx - 6, ChartStyle.TEXT_MUTED, false);
+        int bottom = cy1 - 26, n = 0, left = 0;
+        for (ColonyPayloads.QueueRow q : view.queue()) {
+            n++;
+            if (ry + 30 > bottom) {
+                left++;
+                continue;
+            }
+            int top = ry;
+            boolean road = q.kind() == 4;
+            BuildingType t = road ? null : BuildingType.values()[q.type()];
+            Ui.slot(g, rx, ry, 24, new ItemStack(road ? Items.DIRT_PATH : t.icon));
+            if (q.kind() == 2) g.text(font, String.valueOf(q.level()), rx + 17, ry + 15, ChartStyle.INK, false);
+            Component name = switch (q.kind()) {
+                case 0 -> Component.translatable("minecraftportsmod.queue.research", t.displayName());
+                case 2 -> Component.translatable("minecraftportsmod.queue.raise", t.displayName(), q.level());
+                case 3 -> Component.translatable("minecraftportsmod.queue.demolish", t.displayName());
+                case 4 -> Component.translatable("minecraftportsmod.queue.road");
+                default -> t.displayName();
+            };
+            int tx = rx + 30, tw = w - 30;
+            String eta = q.eta() > 0 ? Component.translatable("minecraftportsmod.queue.eta", q.eta()).getString() : "";
+            g.text(font, Ui.fit(font, n + ". " + name.getString(), tw - font.width(eta) - 8), tx, ry, ChartStyle.INK, false);
+            if (!eta.isEmpty()) g.text(font, eta, rx + w - font.width(eta), ry, ChartStyle.TEXT_MUTED, false);
+            int color = q.kind() == 3 ? ChartStyle.BAD : q.kind() == 0 ? 0xFFB07A10 : q.progress() >= 0.5F ? ChartStyle.GOOD : 0xFFB07A10;
+            g.text(font, Ui.fit(font, q.status().getString(), tw), tx, ry + 10, color, false);
+            Ui.bar(g, tx, ry + 21, rx + w, ry + 27, Math.max(0, Math.min(1, q.progress())), q.kind() == 3 ? ChartStyle.BAD : ChartStyle.GOOD);
+            ry += 30;
+            // what is missing: wrapped, not cut
+            net.minecraft.network.chat.MutableComponent missing = null;
+            for (Res r : Res.values()) {
+                int k = q.missing()[r.ordinal()];
+                if (k <= 0) continue;
+                if (missing == null) missing = Component.translatable("minecraftportsmod.queue.missing").append(" ");
+                else missing.append(", ");
+                missing.append(k + " ").append(r.displayName());
+            }
+            if (missing != null) ry += Ui.wrap(g, font, missing, tx, ry, tw, ChartStyle.TEXT_MUTED);
+            // the mouse on it: up, down, out (a trail's work stays; what is saved for only goes out)
+            boolean hot = mouseX >= rx && mouseX < rx + w && mouseY >= top && mouseY < ry;
+            if (hot && !road) {
+                String[] marks = {"▲", "▼", "✕"};
+                int[] acts = {ColonyPayloads.VillageAction.QUEUE_UP, ColonyPayloads.VillageAction.QUEUE_DOWN, ColonyPayloads.VillageAction.QUEUE_CANCEL};
+                int ax = rx + w - 3 * 16 - (eta.isEmpty() ? 0 : font.width(eta) + 6);
+                for (int k = 0; k < 3; k++) {
+                    if (q.kind() == 0 && k < 2) continue;
+                    int bxk = ax + k * 16, byk = top - 1;
+                    g.fill(bxk, byk, bxk + 14, byk + 11, 0xC0F3EAD5);
+                    g.outline(bxk, byk, 14, 11, 0x60000000);
+                    Ui.centered(g, font, Component.literal(marks[k]), bxk + 7, byk + 2, k == 2 ? 0xFFB0403A : ChartStyle.TEXT);
+                    queueButtons.add(new int[]{bxk, byk, acts[k], q.id()});
+                }
+            }
+            ry += 6;
+        }
+        if (left > 0) {
+            g.text(font, Component.translatable("minecraftportsmod.vboard.queue_more", left), rx, ry, ChartStyle.TEXT_MUTED, false);
+            ry += 12;
+        }
+        // the places a higher level opens
+        if (view.slots() < ALL_SLOTS) {
+            Village.Level opens = Village.Level.values()[Math.min(Village.Level.values().length - 1, view.slots() / 2)];
+            int ly = Math.max(ry + 4, cy1 - 22);
+            lock(g, rx + 2, ly);
+            g.text(font, Component.translatable("minecraftportsmod.vboard.queue_locked", ALL_SLOTS - view.slots(), opens.number(), opens.displayName()),
+                    rx + 14, ly + 1, ChartStyle.TEXT_MUTED, false);
+        }
     }
 
     /** The most places a queue has (a town's). */
     private static final int ALL_SLOTS = 10;
-
-    /**
-     * The queue's places, in rows: what is in each (its icon; the level it is raised to; how far along), the free
-     * ones empty, the ones a higher level opens with a padlock. Returns where they end.
-     */
-    private int drawSlots(GuiGraphicsExtractor g, int x, int y, int w, int mouseX, int mouseY) {
-        List<ColonyPayloads.QueueRow> steps = new ArrayList<>();
-        for (ColonyPayloads.QueueRow q : view.queue()) if (q.kind() != 4) steps.add(q);
-        int size = 22, per = Math.max(1, Math.min(ALL_SLOTS, (w + 3) / (size + 3)));
-        int bottom = y;
-        for (int i = 0; i < ALL_SLOTS; i++) {
-            int cx = x + (i % per) * (size + 3), cy = y + (i / per) * (size + 3);
-            bottom = cy + size;
-            boolean open = i < view.slots();
-            ColonyPayloads.QueueRow q = open && i < steps.size() ? steps.get(i) : null;
-            boolean hot = mouseX >= cx && mouseX < cx + size && mouseY >= cy && mouseY < cy + size;
-            g.fill(cx, cy, cx + size, cy + size, !open ? 0xFFCDBF9F : q == null ? ChartStyle.PARCHMENT_SHADE : 0xFFF3E6C4);
-            g.outline(cx, cy, size, size, q == null ? 0x60000000 : ChartStyle.INK_SOFT);
-            if (!open) {
-                lock(g, cx + (size - 7) / 2, cy + (size - 9) / 2);
-                if (hot) {
-                    Village.Level opens = Village.Level.values()[Math.min(Village.Level.values().length - 1, i / 2)];
-                    g.setComponentTooltipForNextFrame(font, List.of(Component.translatable("minecraftportsmod.vboard.slot_locked", opens.number(),
-                            opens.displayName())), mouseX, mouseY);
-                }
-                continue;
-            }
-            if (q == null) continue;
-            BuildingType t = BuildingType.values()[q.type()];
-            g.item(new ItemStack(t.icon), cx + 3, cy + 3);
-            if (q.kind() == 2) g.text(font, String.valueOf(q.level()), cx + size - 6, cy + size - 9, ChartStyle.INK, false);
-            if (q.kind() == 0) g.text(font, "?", cx + size - 6, cy + size - 9, 0xFFB07A10, false);
-            // how far it has come, under it
-            g.fill(cx + 1, cy + size - 2, cx + 1 + Math.round((size - 2) * Math.max(0, Math.min(1, q.progress()))), cy + size - 1, ChartStyle.GOOD);
-            if (hot) {
-                Component name = switch (q.kind()) {
-                    case 0 -> Component.translatable("minecraftportsmod.queue.research", t.displayName());
-                    case 2 -> Component.translatable("minecraftportsmod.queue.raise", t.displayName(), q.level());
-                    case 3 -> Component.translatable("minecraftportsmod.queue.demolish", t.displayName());
-                    default -> t.displayName();
-                };
-                g.setComponentTooltipForNextFrame(font, List.of(name, q.status()), mouseX, mouseY);
-            }
-        }
-        return bottom;
-    }
 
     /** A small padlock. */
     private static void lock(GuiGraphicsExtractor g, int x, int y) {
@@ -460,10 +470,6 @@ public class VillageScreen extends UiScreen {
         g.fill(x, y + 3, x + 7, y + 9, 0xFF4A4038);
         g.fill(x + 1, y + 4, x + 6, y + 8, 0xFFC9922A);
         g.fill(x + 3, y + 5, x + 4, y + 7, 0xFF4A4038);
-    }
-
-    private static int cy(int y) {
-        return y + 2;
     }
 
     // --- the stores: one room for everything; each thing: how much there is, made and spent the last day
@@ -757,62 +763,8 @@ public class VillageScreen extends UiScreen {
 
     /** The buttons of the queue's rows as drawn last: x, y, action, building id. */
     private final List<int[]> queueButtons = new ArrayList<>();
-    private static final int QROW = 30;
 
     /** The village's queue: what it is saving for and building, in order; the players move a step up, down or out. */
-    private void drawTasks(GuiGraphicsExtractor g) {
-        queueButtons.clear();
-        int x = cx0 + 6, w = cx1 - cx0 - 12, y = cy0 + 4;
-        if (view.queue().isEmpty()) {
-            g.text(font, Component.translatable("minecraftportsmod.queue.empty"), x + 4, y + 2, ChartStyle.TEXT_MUTED, false);
-            return;
-        }
-        int n = 0, skip = scroll;
-        for (ColonyPayloads.QueueRow q : view.queue()) {
-            n++;
-            if (skip-- > 0) continue;
-            if (y + QROW > cy1) break;
-            g.fill(x, y, x + w, y + QROW - 3, (n % 2 == 0) ? 0x20000000 : 0x10000000);
-            Component name = switch (q.kind()) {
-                case 0 -> Component.translatable("minecraftportsmod.queue.research", BuildingType.values()[q.type()].displayName());
-                case 2 -> Component.translatable("minecraftportsmod.queue.raise", BuildingType.values()[q.type()].displayName(), q.level());
-                case 3 -> Component.translatable("minecraftportsmod.queue.demolish", BuildingType.values()[q.type()].displayName());
-                case 4 -> Component.translatable("minecraftportsmod.queue.road");
-                default -> BuildingType.values()[q.type()].displayName();
-            };
-            g.text(font, Component.literal(n + ". ").append(name), x + 4, y + 3, ChartStyle.TEXT, false);
-            // how far it has come
-            int bx = x + 4, bw = Math.min(160, w / 3), by = y + 15;
-            g.fill(bx, by, bx + bw, by + 5, 0x40000000);
-            g.fill(bx, by, bx + Math.round(bw * Math.max(0, Math.min(1, q.progress()))), by + 5, 0xFF5BA05A);
-            // what it waits for, and what is missing
-            List<Component> missing = new ArrayList<>();
-            for (Res r : Res.values()) if (q.missing()[r.ordinal()] > 0) missing.add(Component.literal(q.missing()[r.ordinal()] + " ").append(r.displayName()));
-            Component status = q.status();
-            if (!missing.isEmpty()) {
-                net.minecraft.network.chat.MutableComponent m = Component.translatable("minecraftportsmod.queue.missing");
-                for (int i = 0; i < missing.size(); i++) m.append(i == 0 ? " " : ", ").append(missing.get(i));
-                status = Component.empty().append(status).append(" · ").append(m);
-            }
-            if (q.eta() > 0) status = Component.empty().append(status).append(" · ").append(Component.translatable("minecraftportsmod.queue.eta", q.eta()));
-            g.text(font, status, bx + bw + 8, y + 13, ChartStyle.TEXT_MUTED, false);
-            // up, down, out (not for a trail)
-            if (q.kind() != 4) {
-                int ax = x + w - 3 * 16;
-                String[] marks = {"▲", "▼", "✕"};
-                int[] acts = {ColonyPayloads.VillageAction.QUEUE_UP, ColonyPayloads.VillageAction.QUEUE_DOWN, ColonyPayloads.VillageAction.QUEUE_CANCEL};
-                for (int k = 0; k < 3; k++) {
-                    if (q.kind() == 0 && k < 2) continue;
-                    int bxk = ax + k * 16, byk = y + 2;
-                    g.fill(bxk, byk, bxk + 14, byk + 12, 0x40000000);
-                    Ui.centered(g,font, Component.literal(marks[k]), bxk + 7, byk + 2, k == 2 ? 0xFFB0403A : ChartStyle.TEXT);
-                    queueButtons.add(new int[]{bxk, byk, acts[k], q.id()});
-                }
-            }
-            y += QROW;
-        }
-    }
-
     private void drawLog(GuiGraphicsExtractor g) {
         int y = cy0 + 5;
         int skip = scroll;
@@ -851,7 +803,7 @@ public class VillageScreen extends UiScreen {
         }
         if (tab == Tab.STORE && view != null && storeClick(event.x(), event.y())) return true;
         if (tab == Tab.TREE && view != null) return tree().click(event.x(), event.y());
-        if (tab == Tab.TASKS) {
+        if (tab == Tab.OVERVIEW) {
             for (int[] b : queueButtons) {
                 if (event.x() >= b[0] && event.x() < b[0] + 14 && event.y() >= b[1] && event.y() < b[1] + 12) {
                     ClientPlayNetworking.send(new ColonyPayloads.VillageAction(villageId, b[2], b[3], 0));
