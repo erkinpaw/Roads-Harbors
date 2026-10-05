@@ -31,14 +31,14 @@ public enum BuildingType {
     /** The first real house: log frame, plank walls, two beds. */
     HUT(Branch.HOME, null, null, 3, 2, null, 0xA07040, Items.OAK_DOOR, 3, true, Map.of(Res.WOOD, 20, Res.WHEAT, 10)),
     /** A wooden house on a stone footing, four beds. */
-    HOUSE(Branch.HOME, HUT, null, 4, 2, null, 0x8A5A30, Items.SPRUCE_DOOR, 3, false, Map.of(Res.WOOD, 30, Res.PLANKS, 20, Res.STONE, 15, Res.JOINERY, 12)),
+    HOUSE(Branch.HOME, HUT, null, 4, 2, null, 0x8A5A30, Items.SPRUCE_DOOR, 3, false, Map.of(Res.WOOD, 30, Res.PLANKS, 20, Res.STONE, 15)),
     /** A wooden house of two storeys, six beds. */
-    HOUSE_TALL(Branch.HOME, HOUSE, null, 4, 3, null, 0x7A4A28, Items.DARK_OAK_DOOR, 3, false, Map.of(Res.WOOD, 40, Res.PLANKS, 45, Res.STONE, 20, Res.JOINERY, 24)),
+    HOUSE_TALL(Branch.HOME, HOUSE, null, 4, 3, null, 0x7A4A28, Items.DARK_OAK_DOOR, 3, false, Map.of(Res.WOOD, 40, Res.PLANKS, 45, Res.STONE, 20)),
     /** A stone house, four beds: warmer, people are happier in it. */
-    STONE_HOUSE(Branch.HOME, HOUSE, null, 4, 2, null, 0x8A8A8A, Items.IRON_DOOR, 3, false, Map.of(Res.STONE, 65, Res.PLANKS, 20, Res.WOOD, 10, Res.JOINERY, 14)),
+    STONE_HOUSE(Branch.HOME, HOUSE, null, 4, 2, null, 0x8A8A8A, Items.IRON_DOOR, 3, false, Map.of(Res.STONE, 65, Res.PLANKS, 20, Res.WOOD, 10)),
     /** A stone house of two storeys, six beds. */
     STONE_HOUSE_TALL(Branch.HOME, STONE_HOUSE, null, 4, 3, null, 0x6A6A70, Items.STONE_BRICKS, 3, false,
-            Map.of(Res.STONE, 110, Res.PLANKS, 35, Res.WOOD, 10, Res.METALWARE, 6, Res.JOINERY, 24)),
+            Map.of(Res.STONE, 110, Res.PLANKS, 35, Res.WOOD, 10)),
 
     // ---- stores
     /** A roofed store with barrels and crates: the village's stock is kept here. */
@@ -212,6 +212,25 @@ public enum BuildingType {
         this.maxLevel = maxLevel;
         this.free = free;
         this.cost = cost;
+    }
+
+    /**
+     * The workshops' things a building of this kind is put up with, besides its plain materials: the houses' doors,
+     * trapdoors, fences, stairs, slabs, chests and barrels as they stand in it (the stone house of two storeys, its
+     * lanterns and chains too); none for anything else (its builders make what it takes themselves).
+     */
+    public java.util.Set<Res> goods() {
+        java.util.Set<Res> wood = java.util.EnumSet.of(Res.DOOR, Res.TRAPDOOR, Res.FENCE, Res.FENCE_GATE, Res.LADDER, Res.STAIRS, Res.SLAB,
+                Res.CHEST, Res.BARREL);
+        return switch (this) {
+            case HOUSE, HOUSE_TALL, STONE_HOUSE -> wood;
+            case STONE_HOUSE_TALL -> {
+                wood.add(Res.LANTERN);
+                wood.add(Res.CHAIN);
+                yield wood;
+            }
+            default -> java.util.EnumSet.noneOf(Res.class);
+        };
     }
 
     public Map<Res, Integer> cost() {

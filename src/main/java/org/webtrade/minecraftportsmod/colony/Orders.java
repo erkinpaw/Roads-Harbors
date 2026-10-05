@@ -12,10 +12,10 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * What players order from a building's people: so many pieces of an item by one of the building's recipes (the tree's,
- * see {@link TreeData}), paid for when ordered. Every day the building's workers do the orders first, oldest first,
- * with what the village's stores have of what a recipe takes; what is left of their day goes to the village's own
- * work. A finished order waits at the building until the player comes for it.
+ * The orders in the workshops' queues (see {@link Workshops}): so many pieces of a thing by one of a workshop's
+ * recipes. A player's is paid for when ordered and waits at the workshop when done until the player comes for it; the
+ * village's own (what its building sites and stores want) go to the store as they are made. All in one queue per
+ * workshop, the oldest first.
  */
 public final class Orders {
 
@@ -23,6 +23,8 @@ public final class Orders {
     public static final int MAX_OPEN = 4;
     /** Pieces in one order at most. */
     public static final int MAX_PIECES = 256;
+    /** Whose an order of the village's own is. */
+    static final UUID VILLAGE = new UUID(0, 0);
 
     private Orders() {
     }
@@ -66,6 +68,11 @@ public final class Orders {
         public boolean done() {
             return made >= count;
         }
+
+        /** The village's own order (no player's). */
+        public boolean village() {
+            return VILLAGE.equals(player);
+        }
     }
 
     // ------------------------------------------------------------------ what can be ordered
@@ -75,79 +82,60 @@ public final class Orders {
         return t.job;
     }
 
-    /** The recipes of a building the village can make (all levels; {@link #open} says which are open now). */
-    public static List<TreeData.Recipe> recipes(Building b) {
-        List<TreeData.Recipe> out = new ArrayList<>();
-        for (TreeData.Recipe r : TreeData.recipes(b.type)) if (r.item() != null && r.makeable()) out.add(r);
-        return out;
+    /** The recipes of a workshop (all levels; {@link #open} says which are open now). */
+    public static List<Workshops.Recipe> recipes(Building b) {
+        return Workshops.recipes(b.type);
     }
 
-    public static boolean open(Building b, TreeData.Recipe r) {
-        return b.standing() && r.lvl() <= b.level;
+    public static boolean open(Building b, Workshops.Recipe r) {
+        return Workshops.open(b, r);
     }
 
-    public static TreeData.Recipe recipe(Building b, int index) {
-        List<TreeData.Recipe> all = TreeData.recipes(b.type);
-        return index >= 0 && index < all.size() ? all.get(index) : null;
+    public static Workshops.Recipe recipe(Building b, int index) {
+        return Workshops.recipe(b.type, index);
     }
 
     /**
      * What a piece costs, in hundredths of an emerald: what the making takes (at the stall's prices) and the work (half
-     * an emerald a worker's day), shared among the pieces a making gives.
+     * an emerald for ten minutes of it), shared among the pieces a making gives.
      */
-    public static int cents(TreeData.Recipe r) {
-        double worth = 0.5 / Math.max(1, r.per());
-        for (TreeData.Input in : r.use()) {
-            Res res = TreeData.res(in.cat());
-            if (res != null) worth += Trade.base(res) * in.n();
-        }
+    public static int cents(Workshops.Recipe r) {
+        double worth = 0.5 * r.seconds() / 600.0;
+        for (var e : r.in().entrySet()) worth += Trade.base(e.getKey()) * e.getValue();
         return Math.max(1, (int) Math.round(worth * 100 / Math.max(1, r.n())));
     }
 
-    /** Pieces the building's people make in a day by a recipe (all of them at it). */
-    public static int perDay(Village v, TreeData.Recipe r) {
-        Job j = worker(BuildingType.byId(r.building()));
-        return Math.max(1, j == null ? 0 : v.workers(j)) * r.per() * r.n() * r.chance() / 100;
+    /** Pieces the workshop's people make in a day by a recipe (all of them at it, with what tools it has). */
+    public static int perDay(Village v, Building b, Workshops.Recipe r, double workSeconds) {
+        int hands = Math.max(1, Workshops.hands(v, b).size());
+        return (int) Math.floor(hands * workSeconds * Workshops.speed(b) / r.seconds()) * r.n();
     }
 
     /** Does the store have what one making takes. */
-    static boolean supplied(Village v, TreeData.Recipe r) {
-        for (TreeData.Input in : r.use()) if (v.stock(TreeData.res(in.cat())) < in.n()) return false;
+    static boolean supplied(Village v, Workshops.Recipe r) {
+        for (var e : r.in().entrySet()) if (v.stock(e.getKey()) < e.getValue()) return false;
         return true;
     }
 
     /**
-     * Days until an order is ready: the work on it and on the orders before it at its building, at what the
-     * building's people do in a day (0: ready).
+     * Days until an order is ready: the work on it and on the orders before it in its workshop's queue, at what the
+     * workshop's people do in a day (0: ready; -1: nobody to make it).
      */
-    public static int eta(Village v, Order o) {
+    public static int eta(Village v, Order o, double workSeconds) {
         if (o.done()) return 0;
         Building b = v.building(o.building);
         if (b == null) return -1;
-        Job j = worker(b.type);
-        int workers = j == null ? 0 : v.workers(j);
-        if (workers == 0) return -1;
-        double days = 0;
-        for (Order q : v.orders) {
-            if (q.building != o.building || q.done()) continue;
-            TreeData.Recipe r = recipe(b, q.recipe);
+        int hands = Workshops.hands(v, b).size();
+        if (hands == 0) return -1;
+        double seconds = 0;
+        for (Order q : Workshops.queue(v, b)) {
+            Workshops.Recipe r = recipe(b, q.recipe);
             if (r == null) continue;
-            int makings = (int) Math.ceil((q.count - q.made) / (double) r.n() * 100 / r.chance());
-            days += makings / (double) r.per();
+            int makings = (int) Math.ceil((q.count - q.made) / (double) r.n());
+            seconds += makings * r.seconds() / Workshops.speed(b);
             if (q == o) break;
         }
-        return Math.max(1, (int) Math.ceil(days / workers - 1e-9));
-    }
-
-    /** Days a new order of so many pieces would take, after the orders already there. */
-    public static int etaNew(Village v, Building b, TreeData.Recipe r, int count) {
-        Order o = new Order(-1, b.id, r.index(), count, 0, new UUID(0, 0), "", 0, 0);
-        v.orders.add(o);
-        try {
-            return eta(v, o);
-        } finally {
-            v.orders.remove(o);
-        }
+        return Math.max(1, (int) Math.ceil(seconds / hands / Math.max(1, workSeconds) - 1e-9));
     }
 
     public static List<Order> of(Village v, UUID player, int building) {
@@ -156,47 +144,34 @@ public final class Orders {
         return out;
     }
 
-    // ------------------------------------------------------------------ bought now, from what the village has
-
-    /** The store an item of a recipe is kept in by the village (null: not kept, only made to order). */
-    public static Res stored(TreeData.Recipe r) {
-        if (r.item() == null) return null;
-        String id = r.item();
-        Res res = TreeData.res(r.cat());
-        // (the store of wood is logs; of iron, ingots; of coal, coal: other things of the same category are not in it)
-        if (res == Res.WOOD && !id.endsWith("_log")) return null;
-        if (res == Res.IRON && !id.equals("iron_ingot")) return null;
-        if (res == Res.STONE && !id.equals("cobblestone")) return null;
-        if (res == Res.COAL && !id.equals("coal")) return null;
-        return res;
+    private static int nextId(Village v) {
+        int id = 1;
+        for (Order o : v.orders) id = Math.max(id, o.id + 1);
+        return id;
     }
+
+    /** An order of the village's own, at the end of a workshop's queue. */
+    static Order villageOrder(Village v, Building b, int recipe, int count, long today) {
+        return new Order(nextId(v), b.id, recipe, count, 0, VILLAGE, "", 0, today);
+    }
+
+    // ------------------------------------------------------------------ bought now, from what the village has
 
     private static Trade.Ware ware(Res res) {
         return Trade.WARES.get(res.ordinal());
     }
 
-    /** Pieces the village has to spare of an item right now. */
-    public static int inStock(Village v, TreeData.Recipe r) {
-        Res res = stored(r);
-        return res == null ? 0 : Trade.available(v, ware(res));
+    /** Pieces the village has to spare of a thing right now. */
+    public static int inStock(Village v, Workshops.Recipe r) {
+        return Trade.available(v, ware(r.out()));
     }
 
     /** What a piece costs bought now (the stall's price), in hundredths; -1 if there is none to spare. */
-    public static int nowCents(Village v, TreeData.Recipe r) {
-        Res res = stored(r);
-        return res == null ? -1 : Trade.sellCents(v, ware(res));
+    public static int nowCents(Village v, Workshops.Recipe r) {
+        return Trade.sellCents(v, ware(r.out()));
     }
 
-    /** The player buys pieces of an item from what the village has. Returns the emeralds paid, 0 if it did not happen. */
-    static int buyNow(ServerPlayer p, Village v, Building b, int recipe, int count) {
-        TreeData.Recipe r = recipe(b, recipe);
-        if (r == null) return 0;
-        Res res = stored(r);
-        if (res == null) return 0;
-        Trade.Ware w = ware(res);
-        int n = Math.min(count, Trade.maxBuy(p, v, w));
-        if (n <= 0) return 0;
-        int price = Trade.total(Trade.sellCents(v, w), n);
+    private static void pay(ServerPlayer p, int price) {
         int need = price;
         var inv = p.getInventory();
         for (int i = 0; i < inv.getContainerSize() && need > 0; i++) {
@@ -207,45 +182,48 @@ public final class Orders {
             need -= take;
         }
         inv.setChanged();
-        TreeData.TreeItem item = TreeData.item(r.item());
-        v.add(res, -n * (res == Res.FOOD ? Trade.units(w) : item != null ? Math.max(1, item.units()) : 1));
-        v.emeralds += price;
-        ItemStack one = TreeData.stack(v, r, 1);
+    }
+
+    private static void give(ServerPlayer p, Village v, Res r, int n) {
+        ItemStack one = Trade.piece(v, ware(r));
         for (int left = n; left > 0; ) {
             int k = Math.min(left, one.getMaxStackSize());
             ItemStack st = one.copyWithCount(k);
             if (!p.getInventory().add(st)) p.drop(st, false);
             left -= k;
         }
+    }
+
+    /** The player buys pieces of a thing from what the village has. Returns the emeralds paid, 0 if it did not happen. */
+    static int buyNow(ServerPlayer p, Village v, Building b, int recipe, int count) {
+        Workshops.Recipe r = recipe(b, recipe);
+        if (r == null) return 0;
+        Trade.Ware w = ware(r.out());
+        int n = Math.min(count, Trade.maxBuy(p, v, w));
+        if (n <= 0) return 0;
+        int price = Trade.total(Trade.sellCents(v, w), n);
+        pay(p, price);
+        v.add(r.out(), -n * Trade.units(w));
+        v.emeralds += price;
+        give(p, v, r.out(), n * Trade.units(w));
         return price;
     }
 
     // ------------------------------------------------------------------ the player's side
 
-    /** A player orders pieces of a recipe. Returns the emeralds paid, 0 if it did not happen. */
+    /** A player orders pieces of a recipe: at the end of the workshop's queue. Returns the emeralds paid, 0 if it did not happen. */
     static int place(ServerPlayer p, Village v, Building b, int recipe, int count, long today) {
-        TreeData.Recipe r = recipe(b, recipe);
-        if (r == null || r.item() == null || !r.makeable() || !open(b, r)) return 0;
+        Workshops.Recipe r = recipe(b, recipe);
+        if (r == null || !open(b, r)) return 0;
         Job j = worker(b.type);
         if (j == null || v.workers(j) == 0) return 0;
         if (of(v, p.getUUID(), -1).size() >= MAX_OPEN) return 0;
         count = Math.max(1, Math.min(count, MAX_PIECES));
         int price = Trade.total(cents(r), count);
         if (Trade.emeralds(p) < price) return 0;
-        int need = price;
-        var inv = p.getInventory();
-        for (int i = 0; i < inv.getContainerSize() && need > 0; i++) {
-            ItemStack s = inv.getItem(i);
-            if (!s.is(Items.EMERALD)) continue;
-            int take = Math.min(need, s.getCount());
-            inv.removeItem(i, take);
-            need -= take;
-        }
-        inv.setChanged();
+        pay(p, price);
         v.emeralds += price;
-        int id = 1;
-        for (Order o : v.orders) id = Math.max(id, o.id + 1);
-        v.orders.add(new Order(id, b.id, recipe, count, 0, p.getUUID(), p.getName().getString(), price, today));
+        v.orders.add(new Order(nextId(v), b.id, recipe, count, 0, p.getUUID(), p.getName().getString(), price, today));
         return price;
     }
 
@@ -254,55 +232,17 @@ public final class Orders {
         int given = 0;
         for (Order o : new ArrayList<>(v.orders)) {
             if (!o.player.equals(p.getUUID()) || o.building != b.id || !o.done()) continue;
-            TreeData.Recipe r = recipe(b, o.recipe);
+            Workshops.Recipe r = recipe(b, o.recipe);
             if (r == null) continue;
-            ItemStack one = TreeData.stack(v, r, 1);
-            for (int left = o.count; left > 0; ) {
-                int k = Math.min(left, one.getMaxStackSize());
-                ItemStack st = one.copyWithCount(k);
-                if (!p.getInventory().add(st)) p.drop(st, false);
-                left -= k;
-            }
+            give(p, v, r.out(), o.count);
             given += o.count;
             v.orders.remove(o);
         }
         return given;
     }
 
-    // ------------------------------------------------------------------ the day's work
-
-    /**
-     * The orders' share of the day: each building's workers work through its orders, oldest first, as long as their
-     * day lasts and the stores have what the recipes take. Returns, per trade, the share of its day that went on
-     * orders (0..1), for the village's own work to be cut by.
-     */
+    /** (The orders are worked through in the workshops themselves, second by second: nothing on paper any more.) */
     static java.util.Map<Job, Double> work(Village v) {
-        java.util.Map<Job, Double> used = new java.util.EnumMap<>(Job.class);
-        java.util.Map<Integer, Double> left = new java.util.HashMap<>();
-        for (Order o : v.orders) {
-            if (o.done()) continue;
-            Building b = v.building(o.building);
-            if (b == null || !b.standing()) continue;
-            Job j = worker(b.type);
-            int workers = j == null ? 0 : v.workers(j);
-            if (workers == 0) continue;
-            TreeData.Recipe r = recipe(b, o.recipe);
-            if (r == null || !r.makeable()) continue;
-            double day = left.computeIfAbsent(b.id, k -> (double) workers);
-            double step = 1.0 / Math.max(1, r.per());
-            while (!o.done() && day >= step - 1e-9 && supplied(v, r)) {
-                for (TreeData.Input in : r.use()) {
-                    Res res = TreeData.res(in.cat());
-                    v.add(res, -in.n());
-                    v.used.merge(res, in.n(), Integer::sum);
-                }
-                if (r.chance() >= 100 || VillageLife.RND.nextInt(100) < r.chance()) o.made = Math.min(o.count, o.made + r.n());
-                day -= step;
-                used.merge(j, step / workers, Double::sum);
-            }
-            left.put(b.id, day);
-        }
-        used.replaceAll((j, d) -> Math.min(1.0, d));
-        return used;
+        return new java.util.EnumMap<>(Job.class);
     }
 }

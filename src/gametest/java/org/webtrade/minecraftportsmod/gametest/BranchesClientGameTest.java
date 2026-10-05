@@ -34,7 +34,7 @@ public class BranchesClientGameTest implements FabricClientGameTest {
 
     private static String stocks(Village v) {
         StringBuilder b = new StringBuilder();
-        for (Res r : new Res[]{Res.FOOD, Res.WHEAT, Res.WOOL, Res.CLOTH, Res.LEATHER, Res.IRON, Res.COAL, Res.GLASS, Res.METALWARE, Res.PLANKS, Res.FURNITURE, Res.JOINERY}) {
+        for (Res r : new Res[]{Res.FOOD, Res.WHEAT, Res.WOOL, Res.CARPET, Res.LEATHER, Res.IRON, Res.COAL, Res.GLASS, Res.LANTERN, Res.PLANKS, Res.BED, Res.DOOR}) {
             b.append(r.id()).append(' ').append(v.stock(r)).append(" (+").append(v.made(r)).append(" -").append(v.used(r)).append(") ");
         }
         return b.toString();
@@ -171,11 +171,11 @@ public class BranchesClientGameTest implements FabricClientGameTest {
                 if (animals(s, v) == 0) throw new AssertionError("no animals in the runs");
                 log("kinds of animals: {}", kinds(s, v));
                 if (kinds(s, v).size() < 4) throw new AssertionError("a farmyard at level 3 keeps hens, sheep, pigs and cows: " + kinds(s, v));
-                if (v.made(Res.CLOTH) == 0 && v.stock(Res.CLOTH) == 0) throw new AssertionError("no cloth");
+                if (v.made(Res.CARPET) == 0 && v.stock(Res.CARPET) == 0) throw new AssertionError("no carpets");
                 if (v.stock(Res.GLASS) == 0) throw new AssertionError("no glass");
                 if (v.stock(Res.WOOL) + v.used(Res.WOOL) == 0 && v.made(Res.WOOL) == 0) throw new AssertionError("no wool");
-                if (v.stock(Res.METALWARE) == 0) throw new AssertionError("no metalware");
-                if (v.stock(Res.FURNITURE) == 0) throw new AssertionError("no furniture");
+                if (v.stock(Res.LANTERN) + v.stock(Res.CHAIN) + v.made(Res.LANTERN) + v.made(Res.CHAIN) == 0) throw new AssertionError("no lanterns nor chains");
+                if (v.stock(Res.BED) + v.made(Res.BED) + v.stock(Res.CHEST) + v.made(Res.CHEST) == 0) throw new AssertionError("no beds nor chests");
             });
             // the tree with the new nodes, and the store
             context.runOnClient(mc -> mc.options.guiScale().set(2));

@@ -31,13 +31,16 @@ public final class Building {
     }
 
     /** The part of a building added with the levels: its level, the one it is growing to, kept from demolition. */
-    private record Grade(int level, int goal, boolean keep, int look, List<Integer> jetty) {
+    private record Grade(int level, int goal, boolean keep, int look, List<Integer> jetty, double progress, boolean taken, List<Integer> tools) {
         static final com.mojang.serialization.MapCodec<Grade> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
                 Codec.INT.optionalFieldOf("level", 1).forGetter(Grade::level),
                 Codec.INT.optionalFieldOf("goal", 0).forGetter(Grade::goal),
                 Codec.BOOL.optionalFieldOf("keep", false).forGetter(Grade::keep),
                 Codec.INT.optionalFieldOf("look", 0).forGetter(Grade::look),
-                Codec.INT.listOf().optionalFieldOf("jetty", List.of()).forGetter(Grade::jetty)
+                Codec.INT.listOf().optionalFieldOf("jetty", List.of()).forGetter(Grade::jetty),
+                Codec.DOUBLE.optionalFieldOf("progress", 0.0).forGetter(Grade::progress),
+                Codec.BOOL.optionalFieldOf("taken", false).forGetter(Grade::taken),
+                Codec.INT.listOf().optionalFieldOf("tools", List.of()).forGetter(Grade::tools)
         ).apply(i, Grade::new));
     }
 
@@ -112,9 +115,13 @@ public final class Building {
         b.keep = g.keep();
         b.look = g.look();
         if (g.jetty().size() == 3) b.jetty = new int[]{g.jetty().get(0), g.jetty().get(1), g.jetty().get(2)};
+        b.progress = g.progress();
+        b.taken = g.taken();
+        for (int k = 0; k < Math.min(3, g.tools().size()); k++) b.tools[k] = g.tools().get(k);
         return b;
     }, b -> com.mojang.datafixers.util.Pair.of(b, new Grade(b.level, b.goal, b.keep, b.look,
-            b.jetty == null ? List.of() : List.of(b.jetty[0], b.jetty[1], b.jetty[2])))).codec();
+            b.jetty == null ? List.of() : List.of(b.jetty[0], b.jetty[1], b.jetty[2]), b.progress, b.taken,
+            List.of(b.tools[0], b.tools[1], b.tools[2])))).codec();
 
     public final int id;
     public final BuildingType type;
@@ -148,6 +155,15 @@ public final class Building {
     int look;
     /** A pier's jetty: {way out (2D data value), length beyond the plot, the sea's level}; null for anything else. */
     int[] jetty;
+    /** A workshop's making in hand: seconds of work done on it, and whether what it takes is taken from the store. */
+    double progress;
+    boolean taken;
+    /** A workshop's tools: uses left of wooden, stone, iron ones (see {@link Workshops}). */
+    final int[] tools = new int[3];
+
+    public int[] tools() {
+        return tools.clone();
+    }
 
     /** Sets its look (a new building: its village's style). */
     Building look(int look) {

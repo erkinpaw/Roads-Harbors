@@ -86,7 +86,8 @@ public final class ColonyService {
         }
         // the ones who make things to order: their building (the "Trade" button opens its orders)
         Building work = workplace(v, d.job);
-        int orders = work != null && !Orders.recipes(work).isEmpty() ? work.id : -1;
+        int orders = work != null && Workshops.workshop(work.type) ? work.id : -1;
+
         ServerPlayNetworking.send(player, new ColonyPayloads.PersonView(v.id, d.id, v.name, v.level.ordinal(), d.name,
                 d.job == null ? -1 : d.job.ordinal(), d.child(data.day), d.elder, e.activity(), homeText, data.day - d.joined, orders, questState(player, v, d),
                 d.elder && Plots.of(v, player.getUUID()) == null ? Plots.price(v, player.getUUID()) : -1,
@@ -619,11 +620,11 @@ public final class ColonyService {
                 Building b = v.building(a.a());
                 if (b == null || a.b() < 0) return;
                 int recipe = a.b() / 1000, pieces = a.b() % 1000;
-                TreeData.Recipe r = Orders.recipe(b, recipe);
+                Workshops.Recipe r = Orders.recipe(b, recipe);
                 int paid = Orders.place(player, v, b, recipe, pieces, data.day);
                 Component note;
                 if (paid > 0 && r != null) {
-                    Component what = TreeData.stack(v, r, 1).getHoverName();
+                    Component what = piece(v, r).getHoverName();
                     note = Component.translatable("minecraftportsmod.order.placed", pieces, what, paid).withStyle(ChatFormatting.DARK_GREEN);
                     v.log(data.day, Component.translatable("minecraftportsmod.vlog.ordered", player.getName(), pieces, what, b.type.displayName(), paid));
                     player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 0.6F, 1.0F);
@@ -638,12 +639,12 @@ public final class ColonyService {
                 Building b = v.building(a.a());
                 if (b == null || a.b() < 0) return;
                 int recipe = a.b() / 1000, pieces = a.b() % 1000;
-                TreeData.Recipe r = Orders.recipe(b, recipe);
+                Workshops.Recipe r = Orders.recipe(b, recipe);
                 int paid = Orders.buyNow(player, v, b, recipe, pieces);
                 if (paid > 0) Achievements.traded(player);
                 Component note;
                 if (paid > 0 && r != null) {
-                    Component what = TreeData.stack(v, r, 1).getHoverName();
+                    Component what = piece(v, r).getHoverName();
                     note = Component.translatable("minecraftportsmod.trade.bought", pieces, what, paid).withStyle(ChatFormatting.DARK_GREEN);
                     v.log(data.day, Component.translatable("minecraftportsmod.vlog.sold_to", player.getName(), pieces, what, paid));
                     player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 0.6F, 1.0F);
@@ -705,23 +706,38 @@ public final class ColonyService {
         String worker = "";
         for (Dweller d : v.dwellers) if (job != null && d.job == job) worker = d.name;
         List<ColonyPayloads.OrderRow> rows = new ArrayList<>();
-        for (TreeData.Recipe r : Orders.recipes(b)) {
-            Map<Res, Integer> takes = new java.util.LinkedHashMap<>();
-            for (TreeData.Input in : r.use()) takes.merge(TreeData.res(in.cat()), in.n(), Integer::sum);
-            rows.add(new ColonyPayloads.OrderRow(r.index(), TreeData.stack(v, r, 1), TreeData.stack(v, r, 1).getHoverName(), r.lvl(),
-                    Orders.open(b, r), r.n(), Orders.perDay(v, r), Orders.cents(r), Orders.supplied(v, r),
+        VillageData data = data(player);
+        double work = Workshops.workSeconds(data);
+        for (Workshops.Recipe r : Orders.recipes(b)) {
+            Map<Res, Integer> takes = new java.util.LinkedHashMap<>(r.in());
+            rows.add(new ColonyPayloads.OrderRow(r.index(), piece(v, r), piece(v, r).getHoverName(), r.lvl(),
+                    Orders.open(b, r), r.n(), Orders.perDay(v, b, r, work), Orders.cents(r), Orders.supplied(v, r),
                     takes.isEmpty() ? Component.translatable("minecraftportsmod.order.takes_nothing") : VillageText.amounts(takes), takes.isEmpty(),
                     Orders.inStock(v, r), Orders.nowCents(v, r)));
         }
         List<ColonyPayloads.MineRow> mine = new ArrayList<>();
         for (Orders.Order o : Orders.of(v, player.getUUID(), b.id)) {
-            TreeData.Recipe r = Orders.recipe(b, o.recipe);
+            Workshops.Recipe r = Orders.recipe(b, o.recipe);
             if (r == null) continue;
-            mine.add(new ColonyPayloads.MineRow(o.id, TreeData.stack(v, r, 1), TreeData.stack(v, r, 1).getHoverName(), o.count, o.made(),
-                    Orders.eta(v, o)));
+            mine.add(new ColonyPayloads.MineRow(o.id, piece(v, r), piece(v, r).getHoverName(), o.count, o.made(), Orders.eta(v, o, work)));
         }
+        // the whole queue, whoever's: the first one being made
+        List<ColonyPayloads.WorkRow> queue = new ArrayList<>();
+        for (Orders.Order o : Workshops.queue(v, b)) {
+            Workshops.Recipe r = Orders.recipe(b, o.recipe);
+            if (r == null) continue;
+            Component who = o.village() ? Component.literal(v.name) : Component.literal(o.playerName);
+            queue.add(new ColonyPayloads.WorkRow(piece(v, r), o.count, o.made(), who));
+        }
+        double[] p = Workshops.progress(v, b);
         ServerPlayNetworking.send(player, new ColonyPayloads.OrderView(v.id, b.id, v.name, worker, b.type.displayName(), b.level,
-                Trade.emeralds(player), rows, mine, note == null ? Component.empty() : note));
+                Trade.emeralds(player), rows, mine, note == null ? Component.empty() : note, queue, (float) p[1], (int) Math.ceil(p[0]),
+                b.tools(), Workshops.hands(v, b).size()));
+    }
+
+    /** One piece of what a recipe makes, as the village makes it (of its wood). */
+    static net.minecraft.world.item.ItemStack piece(Village v, Workshops.Recipe r) {
+        return Trade.piece(v, Trade.WARES.get(r.out().ordinal()));
     }
 
     /** The merchant's stall for a player. */
