@@ -92,8 +92,12 @@ public class ShipCrewClientGameTest implements FabricClientGameTest {
                 if (flying == 0) throw new AssertionError("the player's musket did not fire");
                 int had = ships[0].crewTotal();
                 ships[0].crewLostForTest();
-                p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, new ItemStack(net.minecraft.world.item.Items.EMERALD, 3));
+                // (an emerald out of the purse: crouching, empty-handed)
+                p.getInventory().add(new ItemStack(net.minecraft.world.item.Items.EMERALD, 3));
+                p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+                p.setShiftKeyDown(true);
                 ships[0].interact(p, net.minecraft.world.InteractionHand.MAIN_HAND, ships[0].position());
+                p.setShiftKeyDown(false);
                 log("hired: crew {} -> lost one -> {}", had, ships[0].crewTotal());
                 if (ships[0].crewTotal() != had) throw new AssertionError("the emerald should hire the lost hand back");
             });
