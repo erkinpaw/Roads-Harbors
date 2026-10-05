@@ -957,6 +957,11 @@ public final class DwellerGoals {
             Village v = village(r);
             BuildingType t = placeOf(r.colonyJob());
             if (v == null || t == null) return null;
+            // (a trade with workshops of its own: the one this person works at, as the workshops share out their hands)
+            Dweller d = dweller(r);
+            if (d != null && Workshops.workshop(t)) {
+                for (Building b : v.buildings) if (b.type == t && b.standing() && Workshops.hands(v, b).contains(d)) return b;
+            }
             for (Building b : v.buildings) if (b.type == t && b.standing()) return b;
             return null;
         }

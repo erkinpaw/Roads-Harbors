@@ -6,41 +6,7 @@
   "environment": "client",
   "entrypoints": {
     "fabric-client-gametest": [
-      "org.webtrade.minecraftportsmod.gametest.ReproClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.ChildSizeClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.ForestCampClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.TradesClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.MinerClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.MineClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.ColonyClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.TreeClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.LevelsClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.LayoutClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.GoodsClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.StallClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.OrderClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.TrailClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.RoadworkClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.StorehouseClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.FarGrowthClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.DaySkipClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.UiClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.MapMarksClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.NightClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.JungleClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.BranchesClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.TerritoryClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.QuestClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.PlotClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.HelpingClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.LooksClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.ShipCombatClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.ShipDeckClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.ShipCrewClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.ShipHudClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.IslandClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.LongRunClientGameTest",
-      "org.webtrade.minecraftportsmod.gametest.WorldRunClientGameTest"
+      "org.webtrade.minecraftportsmod.gametest.WorkshopClientGameTest"
     ]
   }
 }

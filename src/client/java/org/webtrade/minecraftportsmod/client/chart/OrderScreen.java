@@ -108,6 +108,23 @@ public class OrderScreen extends UiScreen {
         return false;
     }
 
+    /** When a window of orders was last closed, and whose: a refresh on its way then is not to open it again. */
+    private static long closedAt;
+    private static int closedVillage = -1, closedBuilding = -1;
+
+    @Override
+    public void removed() {
+        super.removed();
+        closedAt = System.currentTimeMillis();
+        closedVillage = view.village();
+        closedBuilding = view.building();
+    }
+
+    /** Is this the answer to a refresh of a window just closed? */
+    public static boolean justClosed(ColonyPayloads.OrderView v) {
+        return v.village() == closedVillage && v.building() == closedBuilding && System.currentTimeMillis() - closedAt < 2500;
+    }
+
     /** Every second, the queue and how far along it is, as it is now. */
     @Override
     public void tick() {
