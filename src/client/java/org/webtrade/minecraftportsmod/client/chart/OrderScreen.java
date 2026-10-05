@@ -34,7 +34,8 @@ public class OrderScreen extends UiScreen {
 
     private QtySlider slider;
     private EditBox qtyBox;
-    private UiButton confirm, buyNow, collect;
+    private UiButton confirm, buyNow, collect, tools;
+    private int ticks;
     private boolean syncing;
 
     public OrderScreen(ColonyPayloads.OrderView view) {
@@ -47,8 +48,16 @@ public class OrderScreen extends UiScreen {
     }
 
     public void update(ColonyPayloads.OrderView v) {
+        boolean same = v.rows().size() == view.rows().size() && v.note().getString().equals(view.note().getString()) && collect != null;
         view = v;
-        rebuildWidgets();
+        // (the second-by-second refresh: the bars move, the typing is not lost)
+        if (!same) {
+            rebuildWidgets();
+            return;
+        }
+        collect.visible = anyReady();
+        tools.visible = hasTools();
+        refresh();
     }
 
     // ------------------------------------------------------------------ what is shown
@@ -88,6 +97,26 @@ public class OrderScreen extends UiScreen {
         return Math.max(maxOrder(), maxNow());
     }
 
+    /** Has the player any tools to put in the slot (wooden, stone, iron)? */
+    private boolean hasTools() {
+        var p = net.minecraft.client.Minecraft.getInstance().player;
+        if (p == null) return false;
+        for (int i = 0; i < p.getInventory().getContainerSize(); i++) {
+            ItemStack s = p.getInventory().getItem(i);
+            for (int t = 1; t <= 3; t++) if (org.webtrade.minecraftportsmod.colony.Res.tools(t).unitsOf(s) > 0) return true;
+        }
+        return false;
+    }
+
+    /** Every second, the queue and how far along it is, as it is now. */
+    @Override
+    public void tick() {
+        super.tick();
+        if (++ticks % 20 == 0) {
+            ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(), ColonyPayloads.VillageAction.ORDERS, view.building(), 0));
+        }
+    }
+
     private boolean anyReady() {
         for (ColonyPayloads.MineRow m : view.mine()) if (m.eta() == 0) return true;
         return false;
@@ -115,7 +144,12 @@ public class OrderScreen extends UiScreen {
         collect = addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.order.collect"),
                 b -> ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(), ColonyPayloads.VillageAction.COLLECT, view.building(), 0)))
                 .bounds(rx1 - 130, ly0 - 24, 130, 20).build());
-        collect.active = anyReady();
+        // (only what can be done: no greyed-out buttons)
+        collect.visible = anyReady();
+        tools = addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.order.put_tools"),
+                b -> ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(), ColonyPayloads.VillageAction.TOOLS, view.building(), 0)))
+                .bounds(rx1 - 150, ly1 - 22, 146, 18).build());
+        tools.visible = hasTools();
         int dy = dy0 + 10;
         int sx = px0 + 190;
         slider = addRenderableWidget(new QtySlider(sx, dy, Math.max(80, px1 - sx - 442), 20));
@@ -336,28 +370,44 @@ public class OrderScreen extends UiScreen {
         }
     }
 
-    /** The player's orders here: a slot, the name, made of ordered (a bar), and when. */
+    /**
+     * The workshop's queue, whoever's, the oldest first: the one being made with its bar (how far along the making in
+     * hand is) and the seconds left; the rest, made of ordered and whose. Under it, the tools in the slot.
+     */
     private void mine(GuiGraphicsExtractor g) {
-        g.text(font, Component.translatable("minecraftportsmod.order.yours"), rx0 + 2, ly0 - 12, ChartStyle.INK, false);
-        Ui.inset(g, rx0, ly0, rx1, ly1);
-        if (view.mine().isEmpty()) {
-            g.text(font, Component.translatable("minecraftportsmod.order.none_yours"), rx0 + 8, ly0 + 10, ChartStyle.TEXT_MUTED, false);
-            return;
-        }
+        g.text(font, Component.translatable("minecraftportsmod.order.queue"), rx0 + 2, ly0 - 12, ChartStyle.INK, false);
+        int qy1 = ly1 - 28;
+        Ui.inset(g, rx0, ly0, rx1, qy1);
         int y = ly0 + 3;
-        for (int i = scrollRight; i < view.mine().size() && y + ROW <= ly1 - 2; i++, y += ROW) {
-            ColonyPayloads.MineRow m = view.mine().get(i);
+        for (int i = scrollRight; i < view.queue().size() && y + ROW <= qy1 - 2; i++, y += ROW) {
+            ColonyPayloads.WorkRow q = view.queue().get(i);
             if (i > scrollRight) g.fill(rx0 + 6, y, rx1 - 6, y + 1, 0x20000000);
-            Ui.slot(g, rx0 + 5, y + 3, 22, m.icon());
-            g.text(font, Ui.fit(font, m.count() + " × " + m.name().getString(), rx1 - rx0 - 40), rx0 + 32, y + 4, ChartStyle.INK, false);
-            // made of ordered, as a bar
-            int bx0 = rx0 + 32, bx1 = rx1 - 70, by = y + 16;
+            Ui.slot(g, rx0 + 5, y + 3, 22, q.icon());
+            g.text(font, Ui.fit(font, q.made() + "/" + q.count() + " × " + q.icon().getHoverName().getString(), rx1 - rx0 - 120), rx0 + 32, y + 4,
+                    ChartStyle.INK, false);
+            g.text(font, Ui.fit(font, q.who().getString(), 80), rx1 - 6 - Math.min(80, font.width(q.who())), y + 4, ChartStyle.TEXT_MUTED, false);
+            int bx0 = rx0 + 32, bx1 = rx1 - 50, by = y + 16;
             g.fill(bx0, by, bx1, by + 5, 0x30000000);
-            g.fill(bx0, by, bx0 + (bx1 - bx0) * Math.min(m.made(), m.count()) / Math.max(1, m.count()), by + 5, ChartStyle.GOOD);
-            Component when = m.eta() == 0 ? Component.translatable("minecraftportsmod.order.ready")
-                    : m.eta() < 0 ? Component.translatable("minecraftportsmod.order.nobody")
-                    : Component.translatable("minecraftportsmod.order.days", m.eta());
-            g.text(font, when, rx1 - 6 - font.width(when), y + 13, m.eta() == 0 ? ChartStyle.GOOD : m.eta() < 0 ? ChartStyle.BAD : ChartStyle.TEXT_MUTED, false);
+            if (i == 0) {
+                // the making in hand
+                g.fill(bx0, by, bx0 + (int) ((bx1 - bx0) * view.progress()), by + 5, view.workers() > 0 ? ChartStyle.GOOD : ChartStyle.TEXT_MUTED);
+                if (view.secondsLeft() >= 0) {
+                    String s = view.secondsLeft() + "s";
+                    g.text(font, s, rx1 - 6 - font.width(s), y + 14, view.workers() > 0 ? ChartStyle.TEXT : ChartStyle.TEXT_MUTED, false);
+                }
+            } else {
+                g.fill(bx0, by, bx0 + (bx1 - bx0) * Math.min(q.made(), q.count()) / Math.max(1, q.count()), by + 5, 0x6040A040);
+            }
+        }
+        // the tools in the slot: uses left of wooden, stone, iron ones
+        int ty = qy1 + 6;
+        g.text(font, Component.translatable("minecraftportsmod.order.tools"), rx0 + 2, ty + 5, ChartStyle.TEXT_MUTED, false);
+        net.minecraft.world.item.Item[] icons = {Items.WOODEN_PICKAXE, Items.STONE_PICKAXE, Items.IRON_PICKAXE};
+        int tx = rx0 + 60;
+        for (int k = 0; k < 3; k++) {
+            Ui.slot(g, tx, ty, 18, new ItemStack(icons[k]));
+            g.text(font, String.valueOf(view.tools()[k]), tx + 21, ty + 5, view.tools()[k] > 0 ? ChartStyle.INK : ChartStyle.TEXT_MUTED, false);
+            tx += 50;
         }
     }
 
@@ -381,7 +431,7 @@ public class OrderScreen extends UiScreen {
         int step = (int) -Math.signum(scrollY);
         int visible = Math.max(1, (ly1 - ly0 - 4) / ROW);
         if (mouseX < lx1) scrollLeft = Math.max(0, Math.min(Math.max(0, rows().size() - visible), scrollLeft + step));
-        else scrollRight = Math.max(0, Math.min(Math.max(0, view.mine().size() - visible), scrollRight + step));
+        else scrollRight = Math.max(0, Math.min(Math.max(0, view.queue().size() - visible), scrollRight + step));
         return true;
     }
 }

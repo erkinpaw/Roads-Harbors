@@ -419,6 +419,12 @@ public final class ColonyService {
             crops = open.stream().mapToInt(Integer::intValue).toArray();
             crop = b.crop().ordinal();
         }
+        // a farmyard: what herd it keeps (sent as 100 + the herd, beside the crops)
+        if (b.type == BuildingType.FARMYARD && b.standing()) {
+            crops = new int[Herds.HERDS];
+            for (int k = 0; k < Herds.HERDS; k++) crops[k] = 100 + k;
+            crop = 100 + Herds.herd(b);
+        }
         float progress = b.upgrading() ? raiseProgress(v, b) : 1;
         int[][] flows = VillageLife.flows(v, b);
         ServerPlayNetworking.send(player, new ColonyPayloads.BuildingView(v.id, b.id, v.name, b.type.ordinal(), b.state.ordinal(),
@@ -599,6 +605,14 @@ public final class ColonyService {
             }
             case ColonyPayloads.VillageAction.CROP -> {
                 Building b = v.building(a.a());
+                if (b != null && b.type == BuildingType.FARMYARD && a.b() >= 100 && a.b() < 100 + Herds.HERDS) {
+                    b.setOption("herd:" + (a.b() - 100) + ";");
+                    v.log(data.day, Component.translatable("minecraftportsmod.vlog.herd", player.getName(),
+                            Component.translatable("minecraftportsmod.herd." + (a.b() - 100))));
+                    data.changed();
+                    sendBuilding(player, v, b);
+                    return;
+                }
                 if (b == null || b.type != BuildingType.FIELD || a.b() < 0 || a.b() >= Crop.values().length) return;
                 Crop c = Crop.values()[a.b()];
                 if (!c.unlocked(v) || c == b.crop()) return;
@@ -653,6 +667,15 @@ public final class ColonyService {
                     note = Component.translatable("minecraftportsmod.trade.no_deal").withStyle(ChatFormatting.RED);
                     player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 0.6F, 1.0F);
                 }
+                sendOrders(player, v, b, note);
+            }
+            case ColonyPayloads.VillageAction.TOOLS -> {
+                Building b = v.building(a.a());
+                if (b == null || !Workshops.workshop(b.type)) return;
+                int n = Workshops.takeTools(player, b);
+                Component note = n > 0 ? Component.translatable("minecraftportsmod.order.tools_put", n).withStyle(ChatFormatting.DARK_GREEN)
+                        : Component.translatable("minecraftportsmod.order.no_tools").withStyle(ChatFormatting.GRAY);
+                if (n > 0) data.changed();
                 sendOrders(player, v, b, note);
             }
             case ColonyPayloads.VillageAction.COLLECT -> {

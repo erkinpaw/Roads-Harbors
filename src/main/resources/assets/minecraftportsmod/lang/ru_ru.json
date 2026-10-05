@@ -1127,5 +1127,12 @@
   "minecraftportsmod.order.tools": "Инструменты",
   "minecraftportsmod.order.put_tools": "Положить инструменты",
   "minecraftportsmod.order.tools_put": "Положено инструментов: %s.",
-  "minecraftportsmod.order.no_tools": "У тебя нет инструментов."
+  "minecraftportsmod.order.no_tools": "У тебя нет инструментов.",
+  "minecraftportsmod.herd.0": "Всё понемногу",
+  "minecraftportsmod.herd.1": "Куры",
+  "minecraftportsmod.herd.2": "Овцы",
+  "minecraftportsmod.herd.3": "Свиньи",
+  "minecraftportsmod.herd.4": "Коровы",
+  "minecraftportsmod.bmenu.herd": "Стадо",
+  "minecraftportsmod.vlog.herd": "%s: на скотном дворе теперь %s."
 }

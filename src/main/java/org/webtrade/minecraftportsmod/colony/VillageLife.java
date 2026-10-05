@@ -1005,18 +1005,12 @@ public final class VillageLife {
      * Its runs by its level: hens (eggs, fowl, feathers); sheep (wool, mutton) and pigs (pork); cows (milk, beef, hides).
      */
     static int[] herd(Village v, Building b) {
-        int l = Math.max(1, b.level);
         double k = subFactor(v, BuildingType.Sub.HUSBANDRY) * own(v, BuildingType.Branch.FOOD) * (v.mood < 30 ? 0.75 : 1.0);
-        int[] out = {16, 0, 1, 3};
-        if (l >= 2) {
-            out[0] += 6 + 16;
-            out[1] += 5;
-            out[3] += 4 + 4;
-        }
-        if (l >= 3) {
-            out[0] += 20;
-            out[2] += 2;
-            out[3] += 6;
+        // (each run what its animals give: the four kinds, a run each; or all the runs one herd)
+        int[] out = new int[4];
+        for (Herds.Run r : Herds.runs(b)) {
+            int[] y = Herds.yield(r.kind());
+            for (int i = 0; i < 4; i++) out[i] += y[i];
         }
         for (int i = 0; i < 3; i++) out[i] = (int) Math.round(out[i] * k);
         return out;
@@ -1926,6 +1920,12 @@ public final class VillageLife {
         if (type == BuildingType.PIER) {
             b.jetty = Harbour.jetty(level, v, f.origin(), type.half);
             if (b.jetty == null) return false;
+        }
+        // a second farmyard: one herd, the one whose goods the village wants most (the first keeps a bit of everything)
+        if (type == BuildingType.FARMYARD && v.count(BuildingType.FARMYARD, false) >= 1) {
+            double wool = want(v, Res.WOOL), hides = want(v, Res.LEATHER), food = want(v, Res.FOOD);
+            int herd = wool >= hides && wool >= food ? 2 : hides >= food ? 4 : 3;
+            b.setOption("herd:" + herd + ";");
         }
         add(v, b, today);
         return true;
