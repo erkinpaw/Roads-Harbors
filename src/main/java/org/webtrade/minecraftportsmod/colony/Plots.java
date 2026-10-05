@@ -290,7 +290,7 @@ public final class Plots {
             hs.add(new org.webtrade.minecraftportsmod.network.ColonyPayloads.PlotHouse(t.ordinal(), t.beds, cost, Orders.price(v, c)));
         }
         net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(p,
-                new org.webtrade.minecraftportsmod.network.ColonyPayloads.PlotView(v.id, v.name, hs, Wallet.balance(p)));
+                new org.webtrade.minecraftportsmod.network.ColonyPayloads.PlotView(v.id, v.name, hs, Trade.purse(p)));
     }
 
     /**

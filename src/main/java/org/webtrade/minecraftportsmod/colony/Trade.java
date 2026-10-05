@@ -152,6 +152,12 @@ public final class Trade {
         return n <= 0 || cents < 0 ? 0 : Math.max(1, (int) Math.round(cents * (double) n / 100));
     }
 
+    /** Hundredths of an emerald as money is written: "63", "63.45", "0.24". */
+    public static String money(long cents) {
+        if (cents % 100 == 0) return String.valueOf(cents / 100);
+        return String.format(java.util.Locale.ROOT, "%.2f", cents / 100.0);
+    }
+
     // ------------------------------------------------------------------ the player's side
 
     /** How many units of a resource the player carries. */
@@ -167,35 +173,39 @@ public final class Trade {
         return w.res() == null ? 0 : carried(p, w.res()) / units(w);
     }
 
+    /** What a player has in the purse, in hundredths (what was just picked up counted in). */
+    public static long purse(ServerPlayer p) {
+        Wallet.absorb(p);
+        return Wallet.cents(p);
+    }
+
     /** The emeralds a player has: in the purse (see {@link Wallet}). */
     public static int emeralds(ServerPlayer p) {
         Wallet.absorb(p);
         return Wallet.balance(p);
     }
 
-    /** The most pieces the player can sell the village in one deal (goods, room, the village's purse). */
+    /** The most pieces the player can sell the village in one deal (goods, room, the village's purse, to the hundredth). */
     public static int maxSell(ServerPlayer p, Village v, Ware w) {
         int cents = buyCents(v, w);
-        if (cents < 0) return 0;
-        int n = Math.min(carried(p, w), room(v, w));
-        while (n > 0 && total(cents, n) > v.emeralds) n--;
-        return n;
+        if (cents <= 0) return 0;
+        return (int) Math.min(Math.min(carried(p, w), room(v, w)), v.cents() / cents);
     }
 
-    /** The most pieces the player can buy in one deal (the village's spare, the player's emeralds). */
+    /** The most pieces the player can buy in one deal (the village's spare, the player's purse, to the hundredth). */
     public static int maxBuy(ServerPlayer p, Village v, Ware w) {
         int cents = sellCents(v, w);
-        if (cents < 0) return 0;
-        int n = available(v, w), have = emeralds(p);
-        while (n > 0 && total(cents, n) > have) n--;
-        return n;
+        if (cents <= 0) return 0;
+        Wallet.absorb(p);
+        return (int) Math.min(available(v, w), Wallet.cents(p) / cents);
     }
 
-    /** The player sells the village {@code n} pieces. Returns the emeralds paid, or 0 if it did not happen. */
-    static int sell(ServerPlayer p, Village v, Ware w, int n) {
+    /** The player sells the village {@code n} pieces. Returns what they were paid, in hundredths, or 0 if it did not happen. */
+    static long sell(ServerPlayer p, Village v, Ware w, int n) {
         n = Math.min(n, maxSell(p, v, w));
         if (n <= 0) return 0;
-        int price = total(buyCents(v, w), n);
+        long price = (long) buyCents(v, w) * n;
+        if (!v.payOut(price)) return 0;
         int need = n * units(w);
         var inv = p.getInventory();
         for (int i = 0; i < inv.getContainerSize() && need > 0; i++) {
@@ -208,20 +218,19 @@ public final class Trade {
         }
         inv.setChanged();
         v.add(w.res(), n * units(w));
-        v.emeralds -= price;
-        Wallet.add(p, price);
+        Wallet.addCents(p, price);
         return price;
     }
 
-    /** The player buys {@code n} pieces from the village. Returns the emeralds paid, or 0. */
-    static int buy(ServerPlayer p, Village v, Ware w, int n) {
+    /** The player buys {@code n} pieces from the village. Returns what they paid, in hundredths, or 0. */
+    static long buy(ServerPlayer p, Village v, Ware w, int n) {
         n = Math.min(n, maxBuy(p, v, w));
         if (n <= 0) return 0;
-        int price = total(sellCents(v, w), n);
-        if (!Wallet.pay(p, price)) return 0;
+        long price = (long) sellCents(v, w) * n;
+        if (!Wallet.payCents(p, price)) return 0;
         if (w.res() != null) v.add(w.res(), -n * units(w));
         else for (var e : materials(w).entrySet()) v.add(e.getKey(), -e.getValue() * n);
-        v.emeralds += price;
+        v.receive(price);
         ItemStack one = piece(v, w);
         for (int left = n; left > 0; ) {
             int k = Math.min(left, one.getMaxStackSize());

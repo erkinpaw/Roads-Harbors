@@ -35,7 +35,7 @@ public class PlotScreen extends UiScreen {
         int y = y0 + 30;
         for (ColonyPayloads.PlotHouse house : view.houses()) {
             // (only what can be paid for has a button)
-            if (house.price() <= view.purse()) {
+            if (house.price() * 100L <= view.purse()) {
                 addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.plot.build"), b -> {
                     onClose();
                     ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(), ColonyPayloads.VillageAction.PLOT_HOUSE, house.kind(), 0));
@@ -54,7 +54,7 @@ public class PlotScreen extends UiScreen {
     protected void draw(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         Ui.frame(g, x0, y0, x1, y1);
         g.text(font, title, x0 + 10, y0 + 7, ChartStyle.TEXT_LIGHT, true);
-        String purse = String.valueOf(view.purse());
+        String purse = org.webtrade.minecraftportsmod.colony.Trade.money(view.purse());
         g.item(new ItemStack(Items.EMERALD), x1 - 26, y0 + 3);
         g.text(font, purse, x1 - 30 - font.width(purse), y0 + 7, ChartStyle.TEXT_LIGHT, true);
         Ui.blit(g, Ui.PARCHMENT, x0 + 7, y0 + 23, x1 - 7, y1 - 7);
@@ -79,7 +79,7 @@ public class PlotScreen extends UiScreen {
             String price = String.valueOf(house.price());
             int px = x1 - 86 - font.width(price);
             g.item(new ItemStack(Items.EMERALD), px - 17, y + 8);
-            g.text(font, price, px, y + 12, house.price() <= view.purse() ? ChartStyle.INK : ChartStyle.BAD, false);
+            g.text(font, price, px, y + 12, house.price() * 100L <= view.purse() ? ChartStyle.INK : ChartStyle.BAD, false);
             g.fill(x0 + 12, y + ROW - 2, x1 - 12, y + ROW - 1, 0x30000000);
             y += ROW;
         }

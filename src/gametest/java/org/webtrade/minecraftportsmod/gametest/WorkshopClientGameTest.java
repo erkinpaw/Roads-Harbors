@@ -168,6 +168,11 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
                     ColonyService.handleAction(p, new ColonyPayloads.VillageAction(v.id, ColonyPayloads.VillageAction.QUEST_TAKE, q.id, 0));
                 }
                 log("tasks taken: {}", k);
+                // a few planks at the stall: paid to the hundredth
+                long before = org.webtrade.minecraftportsmod.colony.Wallet.cents(p);
+                ColonyService.handleAction(p, new ColonyPayloads.VillageAction(v.id, ColonyPayloads.VillageAction.BUY, Res.PLANKS.ordinal(), 3));
+                log("3 planks at the stall: purse {} -> {} hundredths, merchants {}", before, org.webtrade.minecraftportsmod.colony.Wallet.cents(p),
+                        v.workers(org.webtrade.minecraftportsmod.colony.Job.MERCHANT));
             });
             // the inventory with the purse beside it
             context.setScreen(() -> new net.minecraft.client.gui.screens.inventory.InventoryScreen(net.minecraft.client.Minecraft.getInstance().player));

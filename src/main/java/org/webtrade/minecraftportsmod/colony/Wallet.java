@@ -19,25 +19,31 @@ import java.util.UUID;
 
 /**
  * A player's purse: every emerald that comes into the inventory goes into it (an emerald block, nine), and everything
- * the villages are paid with is paid out of it. Kept with the world; what the player has is shown in the inventory's
- * panel (see {@link #panel}).
+ * the villages are paid with is paid out of it. It is kept in hundredths of an emerald: the stall's prices are, and a
+ * few logs cost less than an emerald. Kept with the world; what the player has is shown in the inventory's panel (see
+ * {@link #panel}).
  */
 public final class Wallet extends SavedData {
 
-    public static final Codec<Wallet> CODEC = Codec.unboundedMap(Codec.STRING, Codec.LONG).xmap(m -> {
+    /** The purses in hundredths; (the old form, before hundredths: whole emeralds). */
+    public static final Codec<Wallet> CODEC = Codec.withAlternative(
+            Codec.unboundedMap(Codec.STRING, Codec.LONG).fieldOf("cents").codec().xmap(m -> read(m, 1), w -> {
+                Map<String, Long> m = new HashMap<>();
+                w.purses.forEach((k, v) -> m.put(k.toString(), v));
+                return m;
+            }),
+            Codec.unboundedMap(Codec.STRING, Codec.LONG).xmap(m -> read(m, 100), w -> Map.of()));
+
+    private static Wallet read(Map<String, Long> m, long times) {
         Wallet w = new Wallet();
         m.forEach((k, v) -> {
             try {
-                w.purses.put(UUID.fromString(k), v);
+                w.purses.put(UUID.fromString(k), v * times);
             } catch (IllegalArgumentException ignored) {
             }
         });
         return w;
-    }, w -> {
-        Map<String, Long> m = new HashMap<>();
-        w.purses.forEach((k, v) -> m.put(k.toString(), v));
-        return m;
-    });
+    }
 
     public static final SavedDataType<Wallet> TYPE = new SavedDataType<>(Minecraftportsmod.id("wallets"), Wallet::new, CODEC, null);
 
@@ -50,27 +56,41 @@ public final class Wallet extends SavedData {
         return srv.getDataStorage().computeIfAbsent(TYPE);
     }
 
-    /** The emeralds a player has (in the purse). */
+    /** What a player has in the purse, in hundredths of an emerald. */
+    public static long cents(ServerPlayer p) {
+        return get(p.level().getServer()).purses.getOrDefault(p.getUUID(), 0L);
+    }
+
+    /** The whole emeralds a player has (in the purse). */
     public static int balance(ServerPlayer p) {
-        return (int) Math.min(Integer.MAX_VALUE, get(p.level().getServer()).purses.getOrDefault(p.getUUID(), 0L));
+        return (int) Math.min(Integer.MAX_VALUE, cents(p) / 100);
     }
 
     public static void add(ServerPlayer p, int n) {
-        if (n <= 0) return;
+        addCents(p, n * 100L);
+    }
+
+    public static void addCents(ServerPlayer p, long cents) {
+        if (cents <= 0) return;
         Wallet w = get(p.level().getServer());
-        w.purses.merge(p.getUUID(), (long) n, Long::sum);
+        w.purses.merge(p.getUUID(), cents, Long::sum);
         w.setDirty();
     }
 
-    /** Pays {@code n} out of the purse; false (and nothing paid) if there is not so much in it. */
+    /** Pays {@code n} emeralds out of the purse; false (and nothing paid) if there is not so much in it. */
     public static boolean pay(ServerPlayer p, int n) {
-        if (n <= 0) return true;
+        return payCents(p, n * 100L);
+    }
+
+    /** Pays hundredths out of the purse; false (and nothing paid) if there is not so much in it. */
+    public static boolean payCents(ServerPlayer p, long cents) {
+        if (cents <= 0) return true;
         // (what was just picked up counts too)
         absorb(p);
         Wallet w = get(p.level().getServer());
         long have = w.purses.getOrDefault(p.getUUID(), 0L);
-        if (have < n) return false;
-        w.purses.put(p.getUUID(), have - n);
+        if (have < cents) return false;
+        w.purses.put(p.getUUID(), have - cents);
         w.setDirty();
         return true;
     }
@@ -120,6 +140,6 @@ public final class Wallet extends SavedData {
             if (j != null) hired = Component.empty().append(j.displayName()).append(" · " + v.name + " · " + Helping.brought(v, p.getUUID()) + "/"
                     + Helping.quota(v, j));
         }
-        net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(p, new ColonyPayloads.PanelView(balance(p), quests, plot, hired));
+        net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(p, new ColonyPayloads.PanelView(cents(p), quests, plot, hired));
     }
 }

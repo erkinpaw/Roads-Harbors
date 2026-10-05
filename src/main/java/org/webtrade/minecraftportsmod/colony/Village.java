@@ -112,7 +112,7 @@ public final class Village {
             LogLine.CODEC.listOf().optionalFieldOf("log", List.of()).forGetter(v -> new ArrayList<>(v.log)),
             Chart.CODEC.optionalFieldOf("chart", Chart.EMPTY).forGetter(Village::chartData),
             Orders.Order.CODEC.listOf().optionalFieldOf("orders", List.of()).forGetter(v -> v.orders),
-            Economy.CODEC.optionalFieldOf("economy", Economy.NONE).forGetter(v -> new Economy(v.rewarded, v.mined, v.dig, v.ready, v.traded)),
+            Economy.CODEC.optionalFieldOf("economy", Economy.NONE).forGetter(v -> new Economy(v.rewarded, v.mined, v.dig, v.ready, v.traded, v.change)),
             Plans.CODEC.optionalFieldOf("plans", Plans.NONE).forGetter(v -> new Plans(List.copyOf(v.order), v.research == null ? "" : v.research.id(),
                     v.sub == null ? "" : v.sub.id(), v.style, v.island, v.ships, v.shipWork)),
             Quests.Board.CODEC.optionalFieldOf("tasks").forGetter(v -> java.util.Optional.of(v.tasks))
@@ -150,6 +150,7 @@ public final class Village {
         v.dig = eco.dig();
         v.ready = eco.ready();
         v.traded = eco.traded();
+        v.change = eco.change();
         v.order.addAll(plans.order());
         v.research = BuildingType.byId(plans.research());
         v.sub = BuildingType.Sub.byId(plans.sub());
@@ -191,14 +192,15 @@ public final class Village {
     }
 
     /** The village's own emeralds: the highest level it was rewarded for, the emeralds its miners found, and how near the next is. */
-    private record Economy(int rewarded, int mined, double dig, double ready, long traded) {
-        static final Economy NONE = new Economy(-1, 0, 0, 0, -100);
+    private record Economy(int rewarded, int mined, double dig, double ready, long traded, int change) {
+        static final Economy NONE = new Economy(-1, 0, 0, 0, -100, 0);
         static final Codec<Economy> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.INT.optionalFieldOf("rewarded", -1).forGetter(Economy::rewarded),
                 Codec.INT.optionalFieldOf("mined", 0).forGetter(Economy::mined),
                 Codec.DOUBLE.optionalFieldOf("dig", 0.0).forGetter(Economy::dig),
                 Codec.DOUBLE.optionalFieldOf("ready", 0.0).forGetter(Economy::ready),
-                Codec.LONG.optionalFieldOf("traded", -100L).forGetter(Economy::traded)
+                Codec.LONG.optionalFieldOf("traded", -100L).forGetter(Economy::traded),
+                Codec.INT.optionalFieldOf("change", 0).forGetter(Economy::change)
         ).apply(i, Economy::new));
     }
 
@@ -304,6 +306,8 @@ public final class Village {
     int mineStep;
     /** The village's purse, in emeralds (its merchant pays and is paid in them). */
     int emeralds = 10;
+    /** And the hundredths over them (the stall's deals with players are paid to the hundredth). */
+    int change;
     /** The order the village's building sites are seen to in: building ids, first first (see {@link VillageLife#queue}). */
     final List<Integer> order = new ArrayList<>();
     /** The sub-branch of its speciality the village is known for (null until it has a speciality). */
@@ -434,6 +438,28 @@ public final class Village {
     /** The ids of the villages this one knows of. */
     public java.util.Set<Integer> knownIds() {
         return java.util.Collections.unmodifiableSet(known.keySet());
+    }
+
+    /** The purse in hundredths: the emeralds and the change. */
+    public long cents() {
+        return emeralds * 100L + change;
+    }
+
+    /** Hundredths paid to the village: into the change, whole emeralds into the purse. */
+    void receive(long cents) {
+        setCents(cents() + Math.max(0, cents));
+    }
+
+    /** Hundredths the village pays out; false (and nothing paid) if it has not so much. */
+    boolean payOut(long cents) {
+        if (cents > cents()) return false;
+        setCents(cents() - Math.max(0, cents));
+        return true;
+    }
+
+    private void setCents(long c) {
+        emeralds = (int) (c / 100);
+        change = (int) (c % 100);
     }
 
     public int emeralds() {
