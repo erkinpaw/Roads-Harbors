@@ -152,6 +152,23 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
             context.waitTicks(30);
             context.takeScreenshot("workshop_window");
             context.setScreen(() -> null);
+            // tasks taken, for the inventory's panel to show
+            server.runOnServer(s -> {
+                var p = s.getPlayerList().getPlayers().getFirst();
+                var data = VillageData.get(s);
+                Village v = data.get(ids[0]);
+                var kinds = new org.webtrade.minecraftportsmod.colony.Quests.Kind[]{org.webtrade.minecraftportsmod.colony.Quests.Kind.BRING,
+                        org.webtrade.minecraftportsmod.colony.Quests.Kind.ITEM, org.webtrade.minecraftportsmod.colony.Quests.Kind.HUNT};
+                int k = 0;
+                for (var d : v.dwellers()) {
+                    if (k == kinds.length) break;
+                    var q = org.webtrade.minecraftportsmod.colony.Quests.ask(data, v, d.id, kinds[k]);
+                    if (q == null) continue;
+                    k++;
+                    ColonyService.handleAction(p, new ColonyPayloads.VillageAction(v.id, ColonyPayloads.VillageAction.QUEST_TAKE, q.id, 0));
+                }
+                log("tasks taken: {}", k);
+            });
             // the inventory with the purse beside it
             context.setScreen(() -> new net.minecraft.client.gui.screens.inventory.InventoryScreen(net.minecraft.client.Minecraft.getInstance().player));
             context.waitTicks(30);

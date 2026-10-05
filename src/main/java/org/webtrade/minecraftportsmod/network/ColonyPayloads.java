@@ -312,7 +312,7 @@ public final class ColonyPayloads {
     // ------------------------------------------------------------------ a resident
 
     /** A task the player has taken, as the inventory's panel shows it: what, whose, how far along, days left. */
-    public record PanelQuest(net.minecraft.world.item.ItemStack icon, Component who, int have, int need, int days) {
+    public record PanelQuest(net.minecraft.world.item.ItemStack icon, Component what, String giver, String village, int have, int need, int days) {
     }
 
     /** The inventory's panel: the purse, the tasks taken, the plot, the trade hired at. */
@@ -323,7 +323,9 @@ public final class ColonyPayloads {
             buf.writeVarInt(v.quests.size());
             for (PanelQuest q : v.quests) {
                 net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, q.icon);
-                comp(buf, q.who);
+                comp(buf, q.what);
+                buf.writeUtf(q.giver, 64);
+                buf.writeUtf(q.village, 64);
                 buf.writeVarInt(q.have);
                 buf.writeVarInt(q.need);
                 buf.writeVarInt(q.days);
@@ -335,7 +337,7 @@ public final class ColonyPayloads {
             List<PanelQuest> qs = new ArrayList<>();
             for (int i = 0; i < n; i++) {
                 var icon = net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf);
-                qs.add(new PanelQuest(icon, comp(buf), buf.readVarInt(), buf.readVarInt(), buf.readVarInt()));
+                qs.add(new PanelQuest(icon, comp(buf), buf.readUtf(64), buf.readUtf(64), buf.readVarInt(), buf.readVarInt(), buf.readVarInt()));
             }
             return new PanelView(purse, qs, comp(buf), comp(buf));
         });

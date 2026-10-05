@@ -579,6 +579,18 @@ public final class Quests {
         };
     }
 
+    /** In a word or two, what a task wants (the letter: the village it reached, once it has). */
+    public static Component thing(Quest q, Village to) {
+        return switch (q.kind) {
+            case BRING, SITE -> q.res() == null ? Component.literal("?") : q.res().displayName();
+            case HUNT -> Component.translatable("minecraftportsmod.panel.hunt");
+            case LETTER -> to == null ? Component.translatable("minecraftportsmod.panel.letter")
+                    : Component.translatable("minecraftportsmod.panel.letter_to", to.name);
+            case ITEM -> q.what.startsWith("#") ? Component.translatable("minecraftportsmod.quest.item." + q.what.replace("#", "").replace("minecraft:", ""))
+                    : icon(q).getHoverName();
+        };
+    }
+
     // ------------------------------------------------------------------ the player's side
 
     public enum Result {OK, FULL, NOTHING, GONE}
