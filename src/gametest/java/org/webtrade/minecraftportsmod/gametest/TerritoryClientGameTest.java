@@ -180,7 +180,17 @@ public class TerritoryClientGameTest implements FabricClientGameTest {
                     BlockState top = level.getBlockState(new BlockPos(x, g, z));
                     if (!top.getFluidState().isEmpty()) continue;
                     BlockState stand = level.getBlockState(new BlockPos(x, g + 1, z));
-                    if (stand.is(BlockTags.LOGS)) trees++;
+                    if (stand.is(BlockTags.LOGS)) {
+                        trees++;
+                        boolean crown = false;
+                        for (int up = 2; up <= 30 && !crown; up++) crown = level.getBlockState(new BlockPos(x, g + up, z)).is(BlockTags.LEAVES);
+                        boolean grove = false;
+                        for (Building b : v.buildings()) {
+                            if (b.type == BuildingType.WOOD_HUT && Math.abs(x - b.origin.getX()) <= b.type.half + 14
+                                    && Math.abs(z - b.origin.getZ()) <= b.type.half + 14) grove = true;
+                        }
+                        log(tag, "trunk at {} {} {}: {}, {}", x, g + 1, z, grove ? "in the grove" : "outside the grove", crown ? "crown" : "BARE");
+                    }
                     for (int y = g + 2; y <= g + 28; y++) {
                         BlockState st = level.getBlockState(new BlockPos(x, y, z));
                         if (st.is(Blocks.VINE) || st.is(Blocks.COCOA)) hanging++;
