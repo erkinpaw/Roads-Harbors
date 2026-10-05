@@ -616,9 +616,17 @@ public final class ColonyPayloads {
     public record MineRow(int id, net.minecraft.world.item.ItemStack icon, Component name, int count, int made, int eta) {
     }
 
-    /** A building's people, taking orders: what they make, and the player's orders with them. */
+    /** An order in a workshop's queue, whoever's: what, how many of it made, whose (the village, a player). */
+    public record WorkRow(net.minecraft.world.item.ItemStack icon, int count, int made, Component who) {
+    }
+
+    /**
+     * A building's people, taking orders: what they make, the player's orders with them, the workshop's whole queue (the
+     * first being made: {@code progress} 0..1, seconds left), and the uses left of its tools (wooden, stone, iron).
+     */
     public record OrderView(int village, int building, String villageName, String worker, Component buildingName, int level,
-                            int playerEmeralds, List<OrderRow> rows, List<MineRow> mine, Component note) implements CustomPacketPayload {
+                            int playerEmeralds, List<OrderRow> rows, List<MineRow> mine, Component note, List<WorkRow> queue, float progress,
+                            int secondsLeft, int[] tools, int workers) implements CustomPacketPayload {
         public static final Type<OrderView> TYPE = new Type<>(Minecraftportsmod.id("order_view"));
         public static final StreamCodec<RegistryFriendlyByteBuf, OrderView> CODEC = StreamCodec.of((buf, v) -> {
             buf.writeVarInt(v.village);
@@ -654,6 +662,17 @@ public final class ColonyPayloads {
                 buf.writeVarInt(m.eta + 1);
             }
             comp(buf, v.note);
+            buf.writeVarInt(v.queue.size());
+            for (WorkRow q : v.queue) {
+                net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, q.icon);
+                buf.writeVarInt(q.count);
+                buf.writeVarInt(q.made);
+                comp(buf, q.who);
+            }
+            buf.writeFloat(v.progress);
+            buf.writeVarInt(v.secondsLeft + 1);
+            for (int k = 0; k < 3; k++) buf.writeVarInt(v.tools[k]);
+            buf.writeVarInt(v.workers);
         }, buf -> {
             int village = buf.readVarInt(), building = buf.readVarInt();
             String vname = buf.readUtf(64), worker = buf.readUtf(64);
@@ -682,7 +701,17 @@ public final class ColonyPayloads {
                 Component name = comp(buf);
                 mine.add(new MineRow(id, icon, name, buf.readVarInt(), buf.readVarInt(), buf.readVarInt() - 1));
             }
-            return new OrderView(village, building, vname, worker, bname, level, em, rows, mine, comp(buf));
+            Component note = comp(buf);
+            int qn = buf.readVarInt();
+            List<WorkRow> queue = new ArrayList<>();
+            for (int i = 0; i < qn; i++) {
+                var icon = net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf);
+                queue.add(new WorkRow(icon, buf.readVarInt(), buf.readVarInt(), comp(buf)));
+            }
+            float progress = buf.readFloat();
+            int left = buf.readVarInt() - 1;
+            int[] tools = {buf.readVarInt(), buf.readVarInt(), buf.readVarInt()};
+            return new OrderView(village, building, vname, worker, bname, level, em, rows, mine, note, queue, progress, left, tools, buf.readVarInt());
         });
 
         @Override

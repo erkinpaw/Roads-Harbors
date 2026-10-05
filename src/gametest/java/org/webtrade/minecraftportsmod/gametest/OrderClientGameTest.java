@@ -108,7 +108,7 @@ public class OrderClientGameTest implements FabricClientGameTest {
                     var p = s.getPlayerList().getPlayers().getFirst();
                     var mine = Orders.of(v, p.getUUID(), -1);
                     log("day {}: {} | planks {}", d, mine.isEmpty() ? "none" : mine.getFirst().made() + "/" + mine.getFirst().count + " eta "
-                            + Orders.eta(v, mine.getFirst()), v.stock(Res.PLANKS));
+                            + Orders.eta(v, mine.getFirst(), 525), v.stock(Res.PLANKS));
                 });
                 if (day == 2) {
                     server.runOnServer(s -> ColonyService.handleAction(s.getPlayerList().getPlayers().getFirst(),
@@ -188,9 +188,8 @@ public class OrderClientGameTest implements FabricClientGameTest {
                     if (b.type == BuildingType.WOOD_HUT) ids[0] = b.id;
                     if (b.type == BuildingType.SMITHY) ids[1] = b.id;
                 }
-                order(p, v, ids[0], "oak_log", 32);
-                order(p, v, ids[1], "stone_pickaxe", 4);
-                log("ordered logs and picks: orders {}", Orders.of(v, p.getUUID(), -1).size());
+                order(p, v, ids[1], Res.TOOLS2, 4);
+                log("ordered picks: orders {}", Orders.of(v, p.getUUID(), -1).size());
                 ColonyService.handleAction(p, new ColonyPayloads.VillageAction(1, ColonyPayloads.VillageAction.ORDERS, ids[1], 0));
             });
             context.waitForScreen(OrderScreen.class);
@@ -220,16 +219,16 @@ public class OrderClientGameTest implements FabricClientGameTest {
                     if (inv.getItem(i).is(Items.STONE_PICKAXE)) picks += inv.getItem(i).getCount();
                 }
                 log("taken: logs {}, stone picks {}, orders left {}", logs, picks, Orders.of(v, p.getUUID(), -1).size());
-                if (logs != 32 || picks != 4) throw new AssertionError("expected 32 logs and 4 stone picks, got " + logs + " and " + picks);
+                if (picks != 4) throw new AssertionError("expected 4 stone picks, got " + picks);
             });
             context.setScreen(() -> null);
         }
     }
 
-    /** Orders so many pieces of an item (by its id in the tree) at a building, as the window would. */
-    private static void order(net.minecraft.server.level.ServerPlayer p, Village v, int building, String item, int n) {
+    /** Orders so many pieces of a thing at a workshop, as the window would. */
+    private static void order(net.minecraft.server.level.ServerPlayer p, Village v, int building, Res item, int n) {
         for (var r : Orders.recipes(v.building(building))) {
-            if (item.equals(r.item())) {
+            if (item == r.out()) {
                 ColonyService.handleAction(p, new ColonyPayloads.VillageAction(1, ColonyPayloads.VillageAction.ORDER, building, r.index() * 1000 + n));
                 return;
             }

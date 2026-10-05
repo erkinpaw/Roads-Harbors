@@ -128,6 +128,43 @@ public final class Blueprint {
         return b;
     }
 
+    /**
+     * The things made in a workshop that the pieces from {@code from} to {@code to} (exclusive) are, of the kinds
+     * asked: the doors, trapdoors, fences, stairs... of a house, as it stands in the world (a door, a bed counted once).
+     */
+    public Map<Res, Integer> goods(int from, int to, java.util.Set<Res> kinds) {
+        Map<Res, Integer> out = new java.util.EnumMap<>(Res.class);
+        for (int i = Math.max(0, from); i < Math.min(to, pieces.size()); i++) {
+            Res r = goodOf(pieces.get(i).state());
+            if (r != null && kinds.contains(r)) out.merge(r, goodCount(pieces.get(i).state()), Integer::sum);
+        }
+        return out;
+    }
+
+    /** What workshop's thing a block is (null: none, the builders' own work). */
+    static Res goodOf(BlockState s) {
+        if (s.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF) && s.getValue(BlockStateProperties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.UPPER) return null;
+        if (s.hasProperty(BlockStateProperties.BED_PART) && s.getValue(BlockStateProperties.BED_PART) == BedPart.FOOT) return null;
+        if (s.is(net.minecraft.tags.BlockTags.WOODEN_DOORS)) return Res.DOOR;
+        if (s.is(net.minecraft.tags.BlockTags.WOODEN_TRAPDOORS)) return Res.TRAPDOOR;
+        if (s.is(net.minecraft.tags.BlockTags.WOODEN_FENCES)) return Res.FENCE;
+        if (s.is(net.minecraft.tags.BlockTags.FENCE_GATES)) return Res.FENCE_GATE;
+        if (s.is(Blocks.LADDER)) return Res.LADDER;
+        if (s.is(net.minecraft.tags.BlockTags.WOODEN_STAIRS)) return Res.STAIRS;
+        if (s.is(net.minecraft.tags.BlockTags.WOODEN_SLABS)) return Res.SLAB;
+        if (s.is(Blocks.CHEST)) return Res.CHEST;
+        if (s.is(Blocks.BARREL)) return Res.BARREL;
+        if (s.is(net.minecraft.tags.BlockTags.BEDS)) return Res.BED;
+        if (s.is(Blocks.LANTERN)) return Res.LANTERN;
+        if (s.is(Blocks.IRON_CHAIN)) return Res.CHAIN;
+        if (s.is(Blocks.GLASS_PANE)) return Res.GLASS_PANE;
+        return null;
+    }
+
+    private static int goodCount(BlockState s) {
+        return s.hasProperty(BlockStateProperties.SLAB_TYPE) && s.getValue(BlockStateProperties.SLAB_TYPE) == SlabType.DOUBLE ? 2 : 1;
+    }
+
     /** The number of pieces that stand at a level (the rest are the additions of the levels above it). */
     public int upTo(int level) {
         return upTo[Math.max(1, Math.min(3, level))];

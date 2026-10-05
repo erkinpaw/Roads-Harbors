@@ -62,15 +62,10 @@ public final class VillageLife {
         produce(data, v, today);
         craft(v);
         charcoal(v);
-        joinery(v);
-        weaving(v);
-        furniture(v);
-        metalwork(v);
         smelting(v);
-        glassmaking(v);
-        // (the day's work wore the tools out; the smith makes new ones for tomorrow)
+        // (the day's work wore the gatherers' tools out; the workshops' queues get what the village wants of them)
         wear(v, today);
-        smith(v);
+        Workshops.plan(v, today);
         boolean hungry = eat(v, today);
         mood(v, hungry);
         supply(v, today);
@@ -326,10 +321,10 @@ public final class VillageLife {
                     v.workshop(pen.type, Res.LEATHER, hides, 0);
                 }
                 // (the milking wears out a bucket now and then)
-                if (pen.level >= 3 && v.stock(Res.METALWARE) > 0 && RND.nextInt(20) == 0) {
-                    v.add(Res.METALWARE, -1);
-                    v.used.merge(Res.METALWARE, 1, Integer::sum);
-                    v.workshop(pen.type, Res.METALWARE, 0, 1);
+                if (pen.level >= 3 && v.stock(Res.BUCKET) > 0 && RND.nextInt(20) == 0) {
+                    v.add(Res.BUCKET, -1);
+                    v.used.merge(Res.BUCKET, 1, Integer::sum);
+                    v.workshop(pen.type, Res.BUCKET, 0, 1);
                 }
             }
             if (d.job == Job.MINER && ironDaily(v) > 0) {
@@ -595,17 +590,15 @@ public final class VillageLife {
             case WOOD -> 60 + needed + smithNeeds(v, r);
             case STONE -> 40 + needed + smithNeeds(v, r);
             case IRON -> needed + smithNeeds(v, r);
-            case PLANKS -> 60 + needed + joinerNeeds(v, r);
-            case STICKS -> 8 + needed + smithNeeds(v, r) + joinerNeeds(v, r);
-            case COAL -> 12 + needed + smithNeeds(v, r);
+            case PLANKS -> 60 + needed + Workshops.needs(v, r);
+            case STICKS -> 8 + needed + smithNeeds(v, r) + Workshops.needs(v, r);
+            case COAL -> 12 + needed + smithNeeds(v, r) + Workshops.needs(v, r);
             case WHEAT -> 20 + needed;
-            case JOINERY -> 10 + needed;
             case TOOLS1, TOOLS2, TOOLS3 -> toolsKept(v, r.toolLevel());
-            case WOOL -> needed + furnitureNeeds(v, r) + 2 * weavingBatches(v);
-            case LEATHER -> needed + furnitureNeeds(v, r);
-            case METALWARE -> needed + (cows(v) ? 2 : 0);
-            case FURNITURE -> needed + Math.min(16, 2 * homesToFurnish(v));
-            case CLOTH, GLASS -> needed;
+            // (what the workshops' queues will take of it, the wool and hides and glass and iron of their makings)
+            case WOOL, LEATHER, GLASS -> needed + Workshops.needs(v, r);
+            // (the workshops' things: what the building sites want, and a few kept besides where they are made)
+            default -> needed + Workshops.needs(v, r) + (Workshops.canMake(v, r) ? 2 : 0);
         };
         return t;
     }
@@ -644,10 +637,9 @@ public final class VillageLife {
         return switch (r) {
             case FOOD -> foodJob(v);
             case WHEAT -> foodJob(v);
-            case WOOD, PLANKS, STICKS, JOINERY, TOOLS1, TOOLS2, TOOLS3, FURNITURE -> Job.WOODCUTTER;
-            case STONE, IRON, COAL, METALWARE -> Job.MINER;
-            case WOOL, LEATHER, CLOTH -> Job.HERDER;
-            case GLASS -> Job.MINER;
+            case STONE, IRON, COAL, GLASS, LANTERN, CHAIN, BUCKET, IRON_BARS, GLASS_PANE -> Job.MINER;
+            case WOOL, LEATHER, CARPET, BANNER -> Job.HERDER;
+            default -> Job.WOODCUTTER;
         };
     }
 
@@ -804,6 +796,8 @@ public final class VillageLife {
      * a sawmill with logs to spare saws them into planks too (they keep, and sell better).
      */
     static void craft(Village v) {
+        // (a sawmill with its sawyer: the planks and sticks are made there, to order, piece by piece)
+        if (v.has(BuildingType.SAWMILL) && v.workers(Job.SAWYER) > 0) return;
         int[] saw = sawing(v);
         // (what the sawyer spent on orders is not sawn for the village)
         saw[0] = (int) (saw[0] * (1 - v.orderLoad.getOrDefault(Job.SAWYER, 0.0)) * Quests.boost(v, Job.SAWYER));
@@ -915,60 +909,6 @@ public final class VillageLife {
 
     /** Tools the smith keeps making past what the village needs, for the merchant to sell: up to this many days of its work. */
     static final int TOOL_SALE_DAYS = 8;
-
-    /**
-     * The smith's day: tools of the best level he can make, first what the village's work needs, then more for the
-     * merchant to sell (while there are makings to spare over what the village keeps, and room in the store); the
-     * rest of his day goes on the players' orders.
-     */
-    static void smith(Village v) {
-        if (v.workers(Job.SMITH) == 0) return;
-        int users = Math.max(1, toolUsers(v));
-        double free = (1 - v.orderLoad.getOrDefault(Job.SMITH, 0.0)) * Quests.boost(v, Job.SMITH);
-        for (int made = 0; ; ) {
-            int l = smithMakes(v);
-            if (l == 0 || v.full(Res.tools(l))) return;
-            boolean needed = toolDaysFrom(v, 1) < users * (double) TOOL_RESERVE_DAYS;
-            // (for sale: only from what the village does not keep for itself, and not without end)
-            if (!needed && (toolDaysFrom(v, 1) >= users * (double) TOOL_SALE_DAYS || !spare(v, Job.toolRecipe(l)))) return;
-            int cap = (int) Math.round(TOOLS_A_DAY[l] * v.workers(Job.SMITH) * subFactor(v, BuildingType.Sub.METALWORK) * free);
-            if (made >= cap) return;
-            java.util.Map<Res, Integer> recipe = Job.toolRecipe(l);
-            recipe.forEach((r, n) -> {
-                v.add(r, -n);
-                v.used.merge(r, n, Integer::sum);
-                v.workshop(BuildingType.SMITHY, r, 0, n);
-            });
-            v.add(Res.tools(l), 1);
-            v.made.merge(Res.tools(l), 1, Integer::sum);
-            v.workshop(BuildingType.SMITHY, Res.tools(l), 1, 0);
-            made++;
-        }
-    }
-
-    /** The joiner's day: joinery from the planks and sticks over what the village keeps, up to twice what it wants of it. */
-    static void joinery(Village v) {
-        if (v.workers(Job.JOINER) == 0 || !v.has(BuildingType.CARPENTER)) return;
-        double free = (1 - v.orderLoad.getOrDefault(Job.JOINER, 0.0)) * Quests.boost(v, Job.JOINER);
-        int batches = (int) Math.round((JOINERY_A_DAY + JOINERY_PER_LEVEL * houseLevel(v, Job.JOINER)) * v.workers(Job.JOINER)
-                * subFactor(v, BuildingType.Sub.JOINERY) * free);
-        int made = 0;
-        for (int i = 0; i < batches; i++) {
-            if (v.stock(Res.JOINERY) >= target(v, Res.JOINERY) * 2 || v.full(Res.JOINERY)) break;
-            if (v.stock(Res.PLANKS) < 2 || v.stock(Res.STICKS) < 1) break;
-            v.add(Res.PLANKS, -2);
-            v.add(Res.STICKS, -1);
-            v.add(Res.JOINERY, 1);
-            made++;
-        }
-        if (made == 0) return;
-        v.used.merge(Res.PLANKS, 2 * made, Integer::sum);
-        v.used.merge(Res.STICKS, made, Integer::sum);
-        v.made.merge(Res.JOINERY, made, Integer::sum);
-        v.workshop(BuildingType.CARPENTER, Res.PLANKS, 0, 2 * made);
-        v.workshop(BuildingType.CARPENTER, Res.STICKS, 0, made);
-        v.workshop(BuildingType.CARPENTER, Res.JOINERY, made, 0);
-    }
 
     /**
      * What a building makes and uses up in a day, in tenths of a unit per resource: {produced, consumed}. A trade's
@@ -1137,7 +1077,17 @@ public final class VillageLife {
         return want(v, Res.FOOD) > 0.3 || want(v, Res.WOOL) > 0.3 || want(v, Res.LEATHER) > 0.3;
     }
 
+    /** Does the village want the joiner's work: doors, fences, stairs... for its building sites, or for the next houses it can open. */
+    static boolean wantsJoinery(Village v) {
+        for (Res r : new Res[]{Res.DOOR, Res.TRAPDOOR, Res.FENCE, Res.FENCE_GATE, Res.LADDER, Res.STAIRS, Res.SLAB, Res.CHEST, Res.BARREL}) {
+            if (want(v, r) > 0.3) return true;
+        }
+        // (the houses: built with the joiner's work)
+        return v.unlocked(BuildingType.HOUSE) || Tree.node(v, BuildingType.HOUSE) == Tree.Node.READY;
+    }
+
     /** Does the village want a weaver's now: wool coming in from its sheep, and none yet. */
+
     static boolean weaver(Village v) {
         return v.adults() >= 6 && v.count(BuildingType.WEAVER, false) == 0 && (v.stock(Res.WOOL) >= 10 || v.made.getOrDefault(Res.WOOL, 0) > 0);
     }
@@ -1154,35 +1104,12 @@ public final class VillageLife {
 
     /** Does the village want a locksmith's now: iron to work, and its trade or a want of metalware. */
     static boolean locksmith(Village v) {
-        return v.adults() >= 5 && v.stock(Res.IRON) >= 4 && (v.sub == BuildingType.Sub.METALWORK || want(v, Res.METALWARE) > 0.3);
+        return v.adults() >= 5 && v.stock(Res.IRON) >= 4 && (v.sub == BuildingType.Sub.METALWORK || want(v, Res.LANTERN) > 0.3 || want(v, Res.CHAIN) > 0.3
+                || want(v, Res.BUCKET) > 0.3);
     }
 
     /** Metalware a locksmith makes in a day at his workshop's first level, and more with each level: two pieces of an iron and a coal. */
     static final int METALWARE_A_DAY = 4, METALWARE_PER_LEVEL = 3;
-
-    /** The locksmith's day: iron and coal (over what the smith needs) into metalware, for the village and to sell. */
-    static void metalwork(Village v) {
-        if (v.workers(Job.LOCKSMITH) == 0 || !v.has(BuildingType.LOCKSMITH)) return;
-        double free = (1 - v.orderLoad.getOrDefault(Job.LOCKSMITH, 0.0)) * Quests.boost(v, Job.LOCKSMITH);
-        int batches = (int) Math.round((METALWARE_A_DAY + METALWARE_PER_LEVEL * houseLevel(v, Job.LOCKSMITH)) * v.workers(Job.LOCKSMITH)
-                * subFactor(v, BuildingType.Sub.METALWORK) * free);
-        int keepIron = smithNeeds(v, Res.IRON), keepCoal = smithNeeds(v, Res.COAL), made = 0;
-        for (int i = 0; i < batches; i++) {
-            if (v.stock(Res.METALWARE) >= Math.max(20, target(v, Res.METALWARE) * 2) || v.full(Res.METALWARE)) break;
-            if (v.stock(Res.IRON) - 1 < keepIron || v.stock(Res.COAL) - 1 < keepCoal) break;
-            v.add(Res.IRON, -1);
-            v.add(Res.COAL, -1);
-            v.add(Res.METALWARE, 2);
-            made++;
-        }
-        if (made == 0) return;
-        v.used.merge(Res.IRON, made, Integer::sum);
-        v.used.merge(Res.COAL, made, Integer::sum);
-        v.made.merge(Res.METALWARE, 2 * made, Integer::sum);
-        v.workshop(BuildingType.LOCKSMITH, Res.IRON, 0, made);
-        v.workshop(BuildingType.LOCKSMITH, Res.COAL, 0, made);
-        v.workshop(BuildingType.LOCKSMITH, Res.METALWARE, 2 * made, 0);
-    }
 
     /** The level of the house of a trade while someone works it (0: none). */
     static int craftLevel(Village v, BuildingType t, Job j) {
@@ -1198,23 +1125,6 @@ public final class VillageLife {
         if (l == 0) return 0;
         double free = (1 - v.orderLoad.getOrDefault(Job.WEAVER, 0.0)) * Quests.boost(v, Job.WEAVER);
         return (int) Math.round((3 + 2 * (l - 1)) * subFactor(v, BuildingType.Sub.HUSBANDRY) * free);
-    }
-
-    /** The weaver's day: the farmyard's wool (over what the joiner needs) into string, carpets, dyed wool and banners. */
-    static void weaving(Village v) {
-        int batches = weavingBatches(v), made = 0;
-        int keep = furnitureNeeds(v, Res.WOOL);
-        for (int i = 0; i < batches; i++) {
-            if (v.stock(Res.CLOTH) >= 30 || v.full(Res.CLOTH) || v.stock(Res.WOOL) - 2 < keep) break;
-            v.add(Res.WOOL, -2);
-            v.add(Res.CLOTH, 3);
-            made++;
-        }
-        if (made == 0) return;
-        v.used.merge(Res.WOOL, 2 * made, Integer::sum);
-        v.made.merge(Res.CLOTH, 3 * made, Integer::sum);
-        v.workshop(BuildingType.WEAVER, Res.WOOL, 0, 2 * made);
-        v.workshop(BuildingType.WEAVER, Res.CLOTH, 3 * made, 0);
     }
 
     /**
@@ -1236,24 +1146,6 @@ public final class VillageLife {
         v.made.merge(Res.IRON, more, Integer::sum);
         v.workshop(BuildingType.SMELTER, Res.COAL, 0, coal);
         v.workshop(BuildingType.SMELTER, Res.IRON, more, 0);
-    }
-
-    /** The glassworks' day: sand dug on the shore (farther to fetch with no water near) and coal into glass. */
-    static void glassmaking(Village v) {
-        int l = craftLevel(v, BuildingType.GLASSWORKS, Job.GLASSBLOWER);
-        if (l == 0) return;
-        double free = (1 - v.orderLoad.getOrDefault(Job.GLASSBLOWER, 0.0)) * Quests.boost(v, Job.GLASSBLOWER);
-        double sand = Land.known(v).water() >= 0.1 ? 1.0 : 0.5;
-        int glass = (int) Math.round((4 + 3 * (l - 1)) * sand * subFactor(v, BuildingType.Sub.MINING) * free);
-        glass = Math.min(glass, Math.max(0, 40 - v.stock(Res.GLASS)));
-        int coal = (glass + 7) / 8;
-        if (glass <= 0 || v.full(Res.GLASS) || v.stock(Res.COAL) - coal < smithNeeds(v, Res.COAL)) return;
-        v.add(Res.COAL, -coal);
-        v.add(Res.GLASS, glass);
-        v.used.merge(Res.COAL, coal, Integer::sum);
-        v.made.merge(Res.GLASS, glass, Integer::sum);
-        v.workshop(BuildingType.GLASSWORKS, Res.COAL, 0, coal);
-        v.workshop(BuildingType.GLASSWORKS, Res.GLASS, glass, 0);
     }
 
     /** Furniture a joiner makes in a day once his workshop is raised to level 2, and more at level 3: of three planks and wool or a hide. */
@@ -1285,41 +1177,6 @@ public final class VillageLife {
         int n = 0;
         for (Building b : v.buildings) if (b.standing() && b.type.branch == BuildingType.Branch.HOME && b.type != BuildingType.TENT && b.type != BuildingType.HUT && b.level < b.type.maxLevel) n++;
         return n;
-    }
-
-    /** The joiner's finer work: beds, tables, chairs and cupboards, of planks and wool (or a hide), for the homes and to sell. */
-    static void furniture(Village v) {
-        int batches = furnitureBatches(v);
-        int made = 0, wool = 0, hides = 0, plainPlanks = 0, plainSticks = 0;
-        for (int i = 0; i < batches; i++) {
-            if (v.stock(Res.FURNITURE) >= Math.max(12, target(v, Res.FURNITURE) * 2) || v.full(Res.FURNITURE)) break;
-            // a bed or a chair of wool or a hide; with neither, a plain table or cupboard of more wood
-            Res soft = v.stock(Res.CLOTH) > 0 ? Res.CLOTH : v.stock(Res.WOOL) > 0 ? Res.WOOL : v.stock(Res.LEATHER) > 0 ? Res.LEATHER : null;
-            int planks = soft != null ? 3 : 4, sticks = soft != null ? 0 : 2;
-            if (v.stock(Res.PLANKS) < planks || v.stock(Res.STICKS) < sticks) break;
-            v.add(Res.PLANKS, -planks);
-            v.add(Res.STICKS, -sticks);
-            if (soft != null) v.add(soft, -1);
-            v.add(Res.FURNITURE, 1);
-            if (soft == Res.WOOL || soft == Res.CLOTH) wool++;
-            else if (soft == Res.LEATHER) hides++;
-            plainPlanks += planks - 3;
-            plainSticks += sticks;
-            made++;
-        }
-        if (made == 0) return;
-        v.used.merge(Res.PLANKS, 3 * made + plainPlanks, Integer::sum);
-        if (plainSticks > 0) {
-            v.used.merge(Res.STICKS, plainSticks, Integer::sum);
-            v.workshop(BuildingType.CARPENTER, Res.STICKS, 0, plainSticks);
-        }
-        if (wool > 0) v.used.merge(Res.WOOL, wool, Integer::sum);
-        if (hides > 0) v.used.merge(Res.LEATHER, hides, Integer::sum);
-        v.made.merge(Res.FURNITURE, made, Integer::sum);
-        v.workshop(BuildingType.CARPENTER, Res.PLANKS, 0, 3 * made + plainPlanks);
-        if (wool > 0) v.workshop(BuildingType.CARPENTER, Res.WOOL, 0, wool);
-        if (hides > 0) v.workshop(BuildingType.CARPENTER, Res.LEATHER, 0, hides);
-        v.workshop(BuildingType.CARPENTER, Res.FURNITURE, made, 0);
     }
 
     /**
@@ -1629,7 +1486,7 @@ public final class VillageLife {
         if ((want(v, Res.PLANKS) > 0.3 || want(v, Res.STICKS) > 0.3) && Tree.open(v, BuildingType.SAWMILL)
                 && start(level, v, BuildingType.SAWMILL, today)) return;
         // a joiner's workshop once joinery is short (the houses are built with it)
-        if (want(v, Res.JOINERY) > 0.3 && Tree.open(v, BuildingType.CARPENTER) && start(level, v, BuildingType.CARPENTER, today)) return;
+        if (wantsJoinery(v) && Tree.open(v, BuildingType.CARPENTER) && start(level, v, BuildingType.CARPENTER, today)) return;
         // the animals: a run once there are hands and grain for it (a village known for its herds, or short of what they give)
         if (husbandry(v, BuildingType.FARMYARD) && Tree.open(v, BuildingType.FARMYARD) && start(level, v, BuildingType.FARMYARD, today)) return;
         if (weaver(v) && Tree.open(v, BuildingType.WEAVER) && start(level, v, BuildingType.WEAVER, today)) return;
@@ -1789,7 +1646,7 @@ public final class VillageLife {
             if (!Tree.canRaise(v, b) || !spare(v, Tree.levelCost(b.type, b.level + 1))) continue;
             int score = b.type.branch == v.focus ? 40 : b.type.isWorkshop() ? 30 : b.type.branch == BuildingType.Branch.HOME ? 20 : 10;
             // short of planks and no sawmill yet: the woodcutters' hut grown to the top is what opens it
-            if (b.type == BuildingType.WOOD_HUT && !v.unlocked(BuildingType.SAWMILL) && (want(v, Res.PLANKS) > 0.2 || want(v, Res.JOINERY) > 0.3)) score = 55;
+            if (b.type == BuildingType.WOOD_HUT && !v.unlocked(BuildingType.SAWMILL) && (want(v, Res.PLANKS) > 0.2 || wantsJoinery(v))) score = 55;
             // wooden tools only: the smithy grown a level makes stone ones, that last six times as long
             if (b.type == BuildingType.SMITHY && b.level < 2 && toolUsers(v) >= 4) score = 52;
             // the pier grown: a brig, then a second ship (an island lives by them); the fishers' hut, to open the pier
@@ -1859,8 +1716,8 @@ public final class VillageLife {
                     || t == BuildingType.MINE_HOUSE && v.workers(Job.MINER) > 0
                     || t == BuildingType.WOOD_HUT && v.workers(Job.WOODCUTTER) > 0
                     || t == BuildingType.FISH_HUT && v.adults() >= 6
-                    || t == BuildingType.SAWMILL && (want(v, Res.PLANKS) > 0.3 || want(v, Res.STICKS) > 0.3 || want(v, Res.JOINERY) > 0.3)
-                    || t == BuildingType.CARPENTER && want(v, Res.JOINERY) > 0.3
+                    || t == BuildingType.SAWMILL && (want(v, Res.PLANKS) > 0.3 || want(v, Res.STICKS) > 0.3 || wantsJoinery(v))
+                    || t == BuildingType.CARPENTER && wantsJoinery(v)
                     || t.isPen() && husbandry(v, t)
                     || t == BuildingType.LOCKSMITH && locksmith(v)
                     || t == BuildingType.WEAVER && weaver(v) || t == BuildingType.SMELTER && smelter(v) || t == BuildingType.GLASSWORKS && glassworks(v)
@@ -1898,15 +1755,11 @@ public final class VillageLife {
             Res r = e.getKey();
             if (v.stock(r) >= e.getValue()) continue;
             boolean makes = switch (r) {
-                case JOINERY -> v.has(BuildingType.CARPENTER) && v.workers(Job.JOINER) > 0;
-                case FURNITURE -> carpenterLevel(v) >= 2 && v.workers(Job.JOINER) > 0;
-                case METALWARE -> v.has(BuildingType.LOCKSMITH) && v.workers(Job.LOCKSMITH) > 0;
                 case WOOL, LEATHER -> v.has(BuildingType.FARMYARD);
-                case CLOTH -> v.has(BuildingType.WEAVER);
-                case GLASS -> v.has(BuildingType.GLASSWORKS);
                 // (iron: dug by the miners now and then, or smelted; a village under the plains may find none)
                 case IRON -> production(v, Res.IRON) > 0;
-                default -> true;
+                // (the workshops' things: a workshop of the kind with the recipe open and someone to work it)
+                default -> !r.made() && r != Res.GLASS || Workshops.canMake(v, r);
             };
             if (!makes) return r;
         }
@@ -1942,15 +1795,10 @@ public final class VillageLife {
     /** The workshop that makes the first of these goods. */
     private static BuildingType maker(java.util.Set<Res> goods) {
         for (Res r : goods) {
-            BuildingType m = switch (r) {
-                case JOINERY, FURNITURE -> BuildingType.CARPENTER;
-                case METALWARE -> BuildingType.LOCKSMITH;
-                case WOOL, LEATHER -> BuildingType.FARMYARD;
-                case CLOTH -> BuildingType.WEAVER;
-                case GLASS -> BuildingType.GLASSWORKS;
-                default -> null;
-            };
-            if (m != null) return m;
+            if (r == Res.WOOL || r == Res.LEATHER) return BuildingType.FARMYARD;
+            for (BuildingType t : BuildingType.values()) {
+                for (Workshops.Recipe x : Workshops.recipes(t)) if (x.out() == r && r.toolLevel() == 0 && r != Res.PLANKS && r != Res.STICKS) return t;
+            }
         }
         return null;
     }
@@ -2087,6 +1935,12 @@ public final class VillageLife {
         b.created = today;
         v.order.add(b.id);
         b.price.putAll(Tree.price(v, b.type));
+        // (the workshops' things: the ones in this very building, its look and all)
+        if (!b.type.goods().isEmpty()) {
+            b.price.keySet().removeAll(b.type.goods());
+            Blueprint bp = b.blueprint(v.wood);
+            b.price.putAll(bp.goods(0, bp.upTo(1), b.type.goods()));
+        }
         v.buildings.add(b);
         v.log(today, Component.translatable(b.replaces >= 0 ? "minecraftportsmod.vlog.planned_upgrade" : "minecraftportsmod.vlog.planned",
                 b.type.displayName()));

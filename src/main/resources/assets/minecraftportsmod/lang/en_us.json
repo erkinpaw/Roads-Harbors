@@ -1107,7 +1107,26 @@
   "minecraftportsmod.vlog.ship_launched": "A new %s is launched!",
   "minecraftportsmod.person.passage": "To %s — %s emeralds",
   "minecraftportsmod.sea.no_passage": "Not now: the ship is busy, or you are short of emeralds.",
-  "minecraftportsmod.vlog.passage": "%s took passage to %s for %s emeralds."
-
-
+  "minecraftportsmod.vlog.passage": "%s took passage to %s for %s emeralds.",
+  "minecraftportsmod.res.door": "Doors",
+  "minecraftportsmod.res.trapdoor": "Trapdoors",
+  "minecraftportsmod.res.fence": "Fences",
+  "minecraftportsmod.res.fence_gate": "Fence gates",
+  "minecraftportsmod.res.ladder": "Ladders",
+  "minecraftportsmod.res.slab": "Slabs",
+  "minecraftportsmod.res.chest": "Chests",
+  "minecraftportsmod.res.barrel": "Barrels",
+  "minecraftportsmod.res.bed": "Beds",
+  "minecraftportsmod.res.lantern": "Lanterns",
+  "minecraftportsmod.res.chain": "Chains",
+  "minecraftportsmod.res.bucket": "Buckets",
+  "minecraftportsmod.res.iron_bars": "Iron bars",
+  "minecraftportsmod.res.carpet": "Carpets",
+  "minecraftportsmod.res.banner": "Banners",
+  "minecraftportsmod.res.glass_pane": "Glass panes",
+  "minecraftportsmod.order.queue": "Queue",
+  "minecraftportsmod.order.tools": "Tools",
+  "minecraftportsmod.order.put_tools": "Put tools in",
+  "minecraftportsmod.order.tools_put": "Tools put in: %s.",
+  "minecraftportsmod.order.no_tools": "You have no tools."
 }

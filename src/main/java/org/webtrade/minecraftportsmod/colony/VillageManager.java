@@ -118,6 +118,11 @@ public final class VillageManager {
             } catch (Throwable e) {
                 Minecraftportsmod.LOGGER.error("Voyages failed", e);
             }
+            try {
+                Workshops.tick(level, data);
+            } catch (Throwable e) {
+                Minecraftportsmod.LOGGER.error("Workshops failed", e);
+            }
         }
         if (t % 100 == 0) {
             try {
@@ -145,6 +150,8 @@ public final class VillageManager {
         for (Village v : new ArrayList<>(data.all())) {
             try {
                 boolean seen = !skip && watched(level, v);
+                // (a day skipped: the workshops' day of work at once, before the new day plans the next)
+                if (skip) Workshops.skipDay(data, v);
                 VillageLife.day(level, data, v, seen);
                 if (!seen) Tidy.owe(v, v.adults());
             } catch (Throwable e) {

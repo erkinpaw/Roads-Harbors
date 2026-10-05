@@ -141,7 +141,7 @@ public class NightClientGameTest implements FabricClientGameTest {
                     if (under.is(Blocks.SAND) || under.is(Blocks.RED_SAND)) log("WARN {} stands on sand at {}", b.type.id(), b.origin.toShortString());
                 }
                 log("mess after: {}", mess(s, v));
-                log("store: tools {} wheat {} joinery {}", v.stock(Res.TOOLS1), v.stock(Res.WHEAT), v.stock(Res.JOINERY));
+                log("store: tools {} wheat {} joinery {}", v.stock(Res.TOOLS1), v.stock(Res.WHEAT), v.stock(Res.DOOR));
             });
             context.takeScreenshot("night_a_village");
             server.runOnServer(s -> {

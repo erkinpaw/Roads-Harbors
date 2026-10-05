@@ -55,34 +55,12 @@ public final class Trade {
 
     /** Emeralds a unit of a resource is worth at an even keel. */
     static double base(Res r) {
-        return switch (r) {
-            case FOOD -> 0.04;
-            case WOOD -> 0.08;
-            case STONE -> 0.05;
-            case IRON -> 0.8;
-            case PLANKS -> 0.03;
-            case STICKS -> 0.02;
-            case COAL -> 0.15;
-            case WHEAT -> 0.03;
-            case JOINERY -> 0.06;
-            case TOOLS1 -> 0.12;
-            case TOOLS2 -> 0.3;
-            case TOOLS3 -> 1.2;
-            case WOOL -> 0.1;
-            case LEATHER -> 0.15;
-            case METALWARE -> 0.5;
-            case FURNITURE -> 0.4;
-            case CLOTH -> 0.12;
-            case GLASS -> 0.1;
-        };
+        return r.price;
     }
 
-    /**
-     * Is a ware on the stall: joinery and the trades' tools are not, as such (the joiner sells the very pieces, the
-     * stall the tools themselves).
-     */
+    /** Is a ware on the stall: the trades' tools are not, as such (the stall sells the tools themselves). */
     public static boolean listed(Ware w) {
-        return w.res() == null || w.res() != Res.JOINERY && w.res().toolLevel() == 0;
+        return w.res() == null || w.res().toolLevel() == 0;
     }
 
     /** Units of its resource in one piece of a ware (food goes by the loaf: five of it). */
@@ -108,22 +86,9 @@ public final class Trade {
             return switch (w.res()) {
                 case FOOD -> new ItemStack(Items.BREAD);
                 case WOOD -> new ItemStack(wood(v, "log", Items.OAK_LOG));
-                case STONE -> new ItemStack(Items.COBBLESTONE);
-                case IRON -> new ItemStack(Items.IRON_INGOT);
                 case PLANKS -> new ItemStack(wood(v, "planks", Items.OAK_PLANKS));
-                case STICKS -> new ItemStack(Items.STICK);
-                case COAL -> new ItemStack(Items.COAL);
-                case WHEAT -> new ItemStack(Items.WHEAT);
-                case JOINERY -> new ItemStack(Items.CHEST);
-                case TOOLS1 -> new ItemStack(Items.WOODEN_PICKAXE);
-                case TOOLS2 -> new ItemStack(Items.STONE_PICKAXE);
-                case TOOLS3 -> new ItemStack(Items.IRON_PICKAXE);
-                case WOOL -> new ItemStack(Items.WOOL.white());
-                case LEATHER -> new ItemStack(Items.LEATHER);
-                case METALWARE -> new ItemStack(Items.LANTERN);
-                case FURNITURE -> new ItemStack(Items.BED.red());
-                case CLOTH -> new ItemStack(Items.CARPET.white());
-                case GLASS -> new ItemStack(Items.GLASS);
+                // (the joiner's work is of the village's own wood)
+                default -> new ItemStack(w.res().wooden != null ? wood(v, w.res().wooden, w.res().icon) : w.res().icon);
             };
         }
         return new ItemStack(switch (w.tool()) {

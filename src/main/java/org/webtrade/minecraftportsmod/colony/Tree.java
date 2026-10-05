@@ -115,7 +115,19 @@ public final class Tree {
      * the middle are taken, the wood and stone near by used up, and every next one stands farther out. So a village
      * that keeps building huts soon finds a proper house the better buy.
      */
+    private static final Map<BuildingType, Map<Res, Integer>> GOODS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** The workshops' things a building of a kind takes (as one of plain look of oak stands): for the tree's prices. */
+    static Map<Res, Integer> goods(BuildingType t) {
+        return GOODS.computeIfAbsent(t, k -> {
+            if (k.goods().isEmpty()) return Map.of();
+            Blueprint bp = Blueprint.of(k, new Blueprint.Frame(net.minecraft.core.BlockPos.ZERO, net.minecraft.core.Direction.NORTH), "oak", 0, null, 1, 0);
+            return bp.goods(0, bp.upTo(1), k.goods());
+        });
+    }
+
     public static Map<Res, Integer> price(Village v, BuildingType t) {
+
         int have = 0;
         for (Building b : v.buildings) if (b.type == t && b.state != Building.State.DEMOLISHING) have++;
         double k = 1 + DEARER * Math.max(0, have - 2);
@@ -124,6 +136,8 @@ public final class Tree {
             int c = t.cost(r);
             if (c > 0) out.put(r, (int) Math.ceil(c * k));
         }
+        // (and the workshops' things it is put up with: as many as there are of them in it)
+        goods(t).forEach((r, n) -> out.merge(r, n, Integer::sum));
         return out;
     }
 
@@ -235,11 +249,15 @@ public final class Tree {
         }
         // the lamps and torches the level brings
         out.put(Res.COAL, level >= 3 ? 2 : 1);
-        // a house's rooms furnished (not a hut's): a bed's worth for each of its people, and as much again at the top
-        if (t.branch == BuildingType.Branch.HOME && t != BuildingType.TENT && t != BuildingType.HUT) out.merge(Res.FURNITURE, level >= 3 ? 2 * t.beds : t.beds, Integer::sum);
-        // the buckets of a cattle barn; the fittings of the forge and the mine at the top
-        if (t == BuildingType.FARMYARD && level >= 3 || level >= 3 && (t == BuildingType.SMITHY || t == BuildingType.MINE_HOUSE || t == BuildingType.LOCKSMITH)) {
-            out.merge(Res.METALWARE, 2, Integer::sum);
+        // a house's rooms furnished (not a hut's): chests for its people's things, then beds for them at the top
+        if (t.branch == BuildingType.Branch.HOME && t != BuildingType.TENT && t != BuildingType.HUT) {
+            if (level >= 3) out.merge(Res.BED, t.beds, Integer::sum);
+            else out.merge(Res.CHEST, Math.max(1, t.beds / 2), Integer::sum);
+        }
+        // the buckets of a cattle barn; the lamps of the forge and the mine at the top
+        if (t == BuildingType.FARMYARD && level >= 3) out.merge(Res.BUCKET, 2, Integer::sum);
+        if (level >= 3 && (t == BuildingType.SMITHY || t == BuildingType.MINE_HOUSE || t == BuildingType.LOCKSMITH)) {
+            out.merge(Res.LANTERN, 2, Integer::sum);
         }
         if (level >= 3 && out.getOrDefault(Res.WOOD, 0) >= 4) {
             int logs = out.get(Res.WOOD), planks = logs / 2;
