@@ -36,6 +36,7 @@ public class MinecraftportsmodClient implements ClientModInitializer {
         EntityRendererRegistry.register(ModContent.TRADE_SHIP, org.webtrade.minecraftportsmod.client.render.TradeShipRenderer::new);
         CombatClient.init();
         org.webtrade.minecraftportsmod.client.chart.InventoryPanel.init();
+        org.webtrade.minecraftportsmod.client.render.BuildingBadges.init();
 
         KeyMappingHelper.registerKeyMapping(MinecraftportsmodKeys.CHART);
         KeyMappingHelper.registerKeyMapping(MinecraftportsmodKeys.MAP_SHOT);

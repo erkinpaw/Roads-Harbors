@@ -41,6 +41,7 @@ public final class ModNetworking {
         PayloadTypeRegistry.clientboundPlay().registerLarge(WorldMapPayloads.ShotData.TYPE, WorldMapPayloads.ShotData.CODEC, 2 * 1024 * 1024);
 
         PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.PanelView.TYPE, ColonyPayloads.PanelView.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.BadgeView.TYPE, ColonyPayloads.BadgeView.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(ColonyPayloads.RequestPanel.TYPE, ColonyPayloads.RequestPanel.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(ColonyPayloads.RequestPanel.TYPE,
                 (payload, ctx) -> org.webtrade.minecraftportsmod.colony.Wallet.panel(ctx.player()));

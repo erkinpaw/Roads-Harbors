@@ -346,6 +346,42 @@ public final class ColonyPayloads {
         }
     }
 
+    /** A building's badge: where it hangs, its icon, how far its work is (below 0: none), what it is doing, its name. */
+    public record Badge(float x, float y, float z, net.minecraft.world.item.ItemStack icon, float progress, Component doing, Component title) {
+    }
+
+    /** The badges over the buildings near a player (every second). */
+    public record BadgeView(List<Badge> badges) implements CustomPacketPayload {
+        public static final Type<BadgeView> TYPE = new Type<>(Minecraftportsmod.id("badge_view"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, BadgeView> CODEC = StreamCodec.of((buf, v) -> {
+            buf.writeVarInt(v.badges.size());
+            for (Badge b : v.badges) {
+                buf.writeFloat(b.x);
+                buf.writeFloat(b.y);
+                buf.writeFloat(b.z);
+                net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, b.icon);
+                buf.writeFloat(b.progress);
+                comp(buf, b.doing);
+                comp(buf, b.title);
+            }
+        }, buf -> {
+            int n = buf.readVarInt();
+            List<Badge> out = new ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                float x = buf.readFloat(), y = buf.readFloat(), z = buf.readFloat();
+                var icon = net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf);
+                float p = buf.readFloat();
+                out.add(new Badge(x, y, z, icon, p, comp(buf), comp(buf)));
+            }
+            return new BadgeView(out);
+        });
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
     /** The client asks for the inventory's panel. */
     public record RequestPanel() implements CustomPacketPayload {
         public static final Type<RequestPanel> TYPE = new Type<>(Minecraftportsmod.id("request_panel"));

@@ -257,7 +257,12 @@ public final class Workshops {
                 n++;
                 continue;
             }
-            if (e.distanceToSqr(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5) <= AT_WORK * AT_WORK) n++;
+            if (e.distanceToSqr(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5) <= AT_WORK * AT_WORK) {
+                n++;
+                // (the ring over the worker's head: the making in hand)
+                if (e instanceof org.webtrade.minecraftportsmod.village.ResidentEntity re) re.setProgress((float) progress(v, b)[1]);
+            }
+
         }
         return n;
     }

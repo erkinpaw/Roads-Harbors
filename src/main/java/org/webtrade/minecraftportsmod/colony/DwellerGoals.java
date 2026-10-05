@@ -884,6 +884,9 @@ public final class DwellerGoals {
             }
             boolean down = b.state == Building.State.DEMOLISHING;
             r.setActivity(act(down ? "demolishing" : "building", b.type.displayName()));
+            // (the ring over the head: how far the building is)
+            int total = Math.max(1, b.blueprint(v.wood).pieces.size());
+            r.setProgress(Math.min(1F, (down ? total - b.work : b.work) / (float) total));
             r.hold(new ItemStack(down ? Items.STONE_AXE : Items.OAK_PLANKS));
             // close enough to the plot is good enough; a spot that can't be reached is swapped for another
             boolean near = dist2(r, b.origin) <= (b.type.half + 4) * (b.type.half + 4) && Math.abs(r.getY() - b.origin.getY()) < 5;

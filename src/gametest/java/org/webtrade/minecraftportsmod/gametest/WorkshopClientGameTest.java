@@ -101,6 +101,44 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
                             Math.round(p[1] * 100), (int) p[0], b.tools()[0], b.tools()[1], b.tools()[2], v.stock(Res.PLANKS), v.stock(Res.STICKS),
                             VillageData.get(s).dayTicks(), joiners);
                 });
+                if (kk == 2) {
+                    context.setScreen(() -> null);
+                    // the badges over the joiner at the bench and the workshop: seen from a little way off, above
+                    server.runOnServer(s -> {
+                        Village v = VillageData.get(s).get(ids[0]);
+                        Building b = v.building(ids[1]);
+                        var spot = b.origin;
+                        var bd = org.webtrade.minecraftportsmod.colony.Badges.badge(v, b);
+                        s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), "gamemode spectator @a");
+                        s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), String.format(java.util.Locale.ROOT,
+                                "tp @a %.1f %.1f %.1f facing %.1f %.1f %.1f", bd.x() + 4, bd.y() - 1, bd.z() + 4, bd.x(), bd.y() - 2, bd.z()));
+                        // (the trees' crowns out of the way)
+                        int x = (int) bd.x(), y = (int) bd.y(), z = (int) bd.z();
+                        s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), String.format("fill %d %d %d %d %d %d air replace #minecraft:leaves",
+                                x - 4, y - 8, z - 4, x + 10, y + 6, z + 10));
+                    });
+                    context.waitTicks(30);
+                    var badges = context.computeOnClient(mc -> org.webtrade.minecraftportsmod.client.render.BuildingBadges.badges());
+                    context.runOnClient(mc -> log("camera at {}", mc.player.position()));
+                    for (var bd : badges) log("badge: {} | {} | ring {} at {} {} {}", bd.title().getString(), bd.doing().getString(), Math.round(bd.progress() * 100), bd.x(), bd.y(), bd.z());
+                    if (badges.isEmpty()) throw new AssertionError("no building badges");
+                    context.takeScreenshot("workshop_badges");
+                    // the joiner at the bench, close by
+                    server.runOnServer(s -> {
+                        Village v = VillageData.get(s).get(ids[0]);
+                        var spot = v.building(ids[1]).origin;
+                        var at = s.overworld().getEntitiesOfClass(org.webtrade.minecraftportsmod.village.ResidentEntity.class,
+                                new net.minecraft.world.phys.AABB(spot).inflate(12), e -> e.colony() && e.colonyJob() == org.webtrade.minecraftportsmod.colony.Job.JOINER);
+                        if (at.isEmpty()) return;
+                        var c = at.getFirst().position();
+                        s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), String.format(java.util.Locale.ROOT,
+                                "tp @a %.1f %.1f %.1f facing %.1f %.1f %.1f", c.x + 2.5, c.y + 1.6, c.z + 2.5, c.x, c.y + 2.2, c.z));
+                        log("joiner at the bench: progress {}", at.getFirst().progress());
+                    });
+                    context.waitTicks(20);
+                    context.takeScreenshot("workshop_joiner");
+                    server.runCommand("gamemode survival @a");
+                }
                 if (pr[1] > last[0]) moved++;
                 last[0] = pr[1];
                 if (pr[1] >= 20) break;
@@ -113,6 +151,13 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
             context.waitForScreen(OrderScreen.class);
             context.waitTicks(30);
             context.takeScreenshot("workshop_window");
+            context.setScreen(() -> null);
+            // the inventory with the purse beside it
+            context.setScreen(() -> new net.minecraft.client.gui.screens.inventory.InventoryScreen(net.minecraft.client.Minecraft.getInstance().player));
+            context.waitTicks(30);
+            var panel = context.computeOnClient(mc -> org.webtrade.minecraftportsmod.client.chart.InventoryPanel.view());
+            log("purse in the panel: {}", panel == null ? "none" : panel.purse());
+            context.takeScreenshot("workshop_inventory");
             context.setScreen(() -> null);
             // the player's tools in the slot
             server.runOnServer(s -> {
