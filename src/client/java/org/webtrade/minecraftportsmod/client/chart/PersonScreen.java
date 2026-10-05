@@ -106,7 +106,7 @@ public class PersonScreen extends UiScreen {
         Ui.frame(g, x0, y0, x1, y1);
         Job job = view.job() < 0 ? null : Job.values()[view.job()];
         Component name = Component.literal((view.elder() ? "★ " : "") + view.name());
-        g.text(font, name, x0 + 10, y0 + 7, view.elder() ? ChartStyle.BRASS : ChartStyle.TEXT_LIGHT, true);
+        g.text(font, name, x0 + 10, y0 + 7, view.elder() ? ChartStyle.BRASS : ChartStyle.TEXT_LIGHT, false);
         int px0 = x0 + 8, py0 = y0 + 20, px1 = x1 - 8, py1 = y1 - 32;
         Ui.blit(g, Ui.PARCHMENT, px0 - 1, py0 - 1, px1 + 1, py1 + 1);
         int x = px0 + 6, y = py0 + 6;

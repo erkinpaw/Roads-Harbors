@@ -111,7 +111,7 @@ public class TownHallScreen extends UiScreen {
     protected void draw(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         Ui.frame(g, x0, y0, x1, y1);
         if (view == null) {
-            g.centeredText(font, Component.translatable("minecraftportsmod.hall.loading"), (x0 + x1) / 2, (y0 + y1) / 2, ChartStyle.TEXT_LIGHT);
+            Ui.centered(g,font, Component.translatable("minecraftportsmod.hall.loading"), (x0 + x1) / 2, (y0 + y1) / 2, ChartStyle.TEXT_LIGHT);
             widgets(g, mouseX, mouseY, partialTick);
             return;
         }
@@ -132,7 +132,7 @@ public class TownHallScreen extends UiScreen {
 
     private void drawHeader(GuiGraphicsExtractor g) {
         Component title = Component.translatable("minecraftportsmod.hall.title_of", view.name());
-        g.text(font, title, x0 + 10, y0 + 7, ChartStyle.TEXT_LIGHT, true);
+        g.text(font, title, x0 + 10, y0 + 7, ChartStyle.TEXT_LIGHT, false);
         // the economy clock: day number and how far into it we are
         Component day = Component.translatable("minecraftportsmod.hall.day", view.day());
         int bw = 50, bx = x1 - 12 - bw, by = y0 + 9;

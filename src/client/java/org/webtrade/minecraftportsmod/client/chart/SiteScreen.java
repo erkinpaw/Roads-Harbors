@@ -73,7 +73,7 @@ public class SiteScreen extends UiScreen {
         Ui.frame(g, x0, y0, x1, y1);
         BuildingType t = BuildingType.values()[view.kind()];
         g.text(font, Component.translatable("minecraftportsmod.site.header", t.displayName(), view.villageName()), x0 + 10, y0 + 7,
-                ChartStyle.TEXT_LIGHT, true);
+                ChartStyle.TEXT_LIGHT, false);
         int px0 = x0 + 8, py0 = y0 + 20, px1 = x1 - 8, py1 = y1 - 34;
         Ui.blit(g, Ui.PARCHMENT, px0 - 1, py0 - 1, px1 + 1, py1 + 1);
         int x = px0 + 6, y = py0 + 6;

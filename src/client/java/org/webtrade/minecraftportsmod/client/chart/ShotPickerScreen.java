@@ -76,7 +76,7 @@ public class ShotPickerScreen extends UiScreen {
         // a few small pictures a frame
         for (int n = 0; n < 2 && loaded < files.size(); n++, loaded++) thumb(files.get(loaded));
         Ui.frame(g, fx0, fy0, fx1, fy1);
-        g.text(font, title, fx0 + 12, fy0 + 8, ChartStyle.TEXT_LIGHT, true);
+        g.text(font, title, fx0 + 12, fy0 + 8, ChartStyle.TEXT_LIGHT, false);
         int y0 = fy0 + 24;
         g.fill(fx0 + 4, y0 - 2, fx1 - 4, fy1 - 4, ChartStyle.PARCHMENT_DARK);
         g.enableScissor(fx0 + 4, y0 - 2, fx1 - 4, fy1 - 4);

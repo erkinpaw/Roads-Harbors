@@ -39,7 +39,7 @@ public class UiButton extends Button.Plain {
         int color = open ? ChartStyle.TEXT : !active && style == Style.PLANK ? 0xFFB0A590 : hover ? 0xFFFFF4D6 : ChartStyle.TEXT_LIGHT;
         String text = Ui.fit(font, getMessage().getString(), getWidth() - 6);
         int x = getX() + (getWidth() - font.width(text)) / 2, y = getY() + (getHeight() - 8) / 2 + (style == Style.PLANK ? 0 : 1);
-        g.text(font, text, x, y, color, !open);
+        g.text(font, text, x, y, color, false);
     }
 
     public static Maker make(Component message, OnPress onPress) {

@@ -82,6 +82,7 @@ public class MarketScreen extends UiScreen {
         slider = addRenderableWidget(new QtySlider(px, cy0 + 46, pw, 18));
         qtyBox = addRenderableWidget(new net.minecraft.client.gui.components.EditBox(font, px, cy0 + 70, 56, 16,
                 Component.translatable("minecraftportsmod.market.qty")));
+        qtyBox.setTextShadow(false);
         qtyBox.setMaxLength(5);
         qtyBox.setResponder(this::typed);
         confirm = addRenderableWidget(UiButton.make(Component.empty(), b -> {
@@ -242,7 +243,7 @@ public class MarketScreen extends UiScreen {
         Ui.frame(g, x0, y0, x1, y1);
 
         Profession prof = Profession.values()[Math.min(view.profession(), Profession.values().length - 1)];
-        g.text(font, Component.literal(view.name()).withStyle(ChatFormatting.BOLD), x0 + 10, y0 + 7, ChartStyle.TEXT_LIGHT, true);
+        g.text(font, Component.literal(view.name()).withStyle(ChatFormatting.BOLD), x0 + 10, y0 + 7, ChartStyle.TEXT_LIGHT, false);
         g.text(font, Component.translatable("minecraftportsmod.market.greeting", view.resident(), prof.displayName()),
                 x0 + 10, y0 + 19, ChartStyle.PARCHMENT_SHADE, false);
         String em = String.valueOf(view.emeralds());

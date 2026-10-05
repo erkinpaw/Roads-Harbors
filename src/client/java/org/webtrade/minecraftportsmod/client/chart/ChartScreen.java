@@ -638,7 +638,7 @@ public class ChartScreen extends UiScreen {
                 : mode == ChartPayloads.MODE_BOAT && boat != null
                 ? Component.translatable("minecraftportsmod.chart.title_boat", boat.name())
                 : Component.translatable("minecraftportsmod.chart.title");
-        g.text(font, title, fx0 + 12, fy0 + 8, ChartStyle.TEXT_LIGHT, true);
+        g.text(font, title, fx0 + 12, fy0 + 8, ChartStyle.TEXT_LIGHT, false);
 
         Component hints = Component.translatable("minecraftportsmod.chart.hints");
         int hw = font.width(hints);

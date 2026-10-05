@@ -164,7 +164,7 @@ public class VillageScreen extends UiScreen {
     protected void draw(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         Ui.frame(g, x0, y0, x1, y1);
         if (view == null) {
-            g.centeredText(font, Component.translatable("minecraftportsmod.hall.loading"), (x0 + x1) / 2, (y0 + y1) / 2, ChartStyle.TEXT_LIGHT);
+            Ui.centered(g,font, Component.translatable("minecraftportsmod.hall.loading"), (x0 + x1) / 2, (y0 + y1) / 2, ChartStyle.TEXT_LIGHT);
             widgets(g, mouseX, mouseY, partialTick);
             return;
         }
@@ -199,7 +199,7 @@ public class VillageScreen extends UiScreen {
         Component day = Component.translatable("minecraftportsmod.hall.day", view.day());
         int bw = 70, bx = x1 - 50 - bw, by = y0 + 9;
         Ui.bar(g, bx, by - 1, bx + bw, by + 7, view.progress(), ChartStyle.BRASS);
-        g.text(font, day, bx - 6 - font.width(day), y0 + 9, ChartStyle.TEXT_LIGHT, true);
+        g.text(font, day, bx - 6 - font.width(day), y0 + 9, ChartStyle.TEXT_LIGHT, false);
     }
 
     private void drawSummary(GuiGraphicsExtractor g, int mouseX, int mouseY) {
@@ -258,7 +258,7 @@ public class VillageScreen extends UiScreen {
             boolean active = t == tab;
             boolean hover = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + TAB_HEIGHT;
             Ui.blit(g, active ? Ui.TAB_OPEN : hover ? Ui.TAB_HOVER : Ui.TAB, x, y, x + w, y + TAB_HEIGHT + (active ? 1 : 0));
-            g.text(font, label, x + 7, y + 6, active ? ChartStyle.TEXT : ChartStyle.PARCHMENT_SHADE, !active);
+            g.text(font, label, x + 7, y + 6, active ? ChartStyle.TEXT : ChartStyle.PARCHMENT_SHADE, false);
             x += w + 2;
         }
     }
@@ -311,7 +311,7 @@ public class VillageScreen extends UiScreen {
         Ui.bar(g, bx0, y, bx1, y + 12, Math.min(1F, tonight / 0.5F), 0xFF6FA8DC);
         Component growth = bed ? Component.translatable("minecraftportsmod.vboard.growth_val", Math.round(tonight * 100), Math.round(view.gain() * 100))
                 : Component.translatable("minecraftportsmod.vboard.growth_wait");
-        g.text(font, growth, (bx0 + bx1 - font.width(growth)) / 2, y + 2, ChartStyle.TEXT_LIGHT, true);
+        g.text(font, growth, (bx0 + bx1 - font.width(growth)) / 2, y + 2, ChartStyle.TEXT_LIGHT, false);
         y += 16;
 
         // building sites, on the right
@@ -355,8 +355,8 @@ public class VillageScreen extends UiScreen {
             if (q == null) continue;
             BuildingType t = BuildingType.values()[q.type()];
             g.item(new ItemStack(t.icon), cx + 2, cy(y));
-            if (q.kind() == 2) g.text(font, String.valueOf(q.level()), cx + size - 6, y + size - 8, ChartStyle.INK, true);
-            if (q.kind() == 0) g.text(font, "?", cx + size - 6, y + size - 8, 0xFFB07A10, true);
+            if (q.kind() == 2) g.text(font, String.valueOf(q.level()), cx + size - 6, y + size - 8, ChartStyle.INK, false);
+            if (q.kind() == 0) g.text(font, "?", cx + size - 6, y + size - 8, 0xFFB07A10, false);
             // how far it has come, under it
             g.fill(cx + 1, y + size - 2, cx + 1 + Math.round((size - 2) * Math.max(0, Math.min(1, q.progress()))), y + size - 1, ChartStyle.GOOD);
             if (mouseX >= cx && mouseX < cx + size && mouseY >= y && mouseY < y + size) {
@@ -386,7 +386,7 @@ public class VillageScreen extends UiScreen {
         int bx0 = x + font.width(title) + 10;
         Ui.bar(g, bx0, y, x + w, y + 12, fill, fill >= 1 ? ChartStyle.BAD : fill >= 0.85F ? 0xFFC9A038 : ChartStyle.GOOD);
         Component st = Component.translatable("minecraftportsmod.vboard.store_val", view.stored(), view.room());
-        g.text(font, st, (bx0 + x + w - font.width(st)) / 2, y + 2, ChartStyle.TEXT_LIGHT, true);
+        g.text(font, st, (bx0 + x + w - font.width(st)) / 2, y + 2, ChartStyle.TEXT_LIGHT, false);
         y += 22;
         // the columns: the thing, in store, made, spent, the day's balance
         int cName = x + 24, cHave = x + w * 45 / 100, cGot = x + w * 60 / 100, cSpent = x + w * 75 / 100, cNet = x + w * 90 / 100;
@@ -567,7 +567,7 @@ public class VillageScreen extends UiScreen {
         int w = cx1 - cx0, h = cy1 - cy0;
         int mx = (cx0 + cx1) / 2, my = (cy0 + cy1) / 2;
         if (mapTexture == null || mapSize == 0) {
-            g.centeredText(font, Component.translatable("minecraftportsmod.hall.loading"), mx, my, ChartStyle.TEXT_MUTED);
+            Ui.centered(g,font, Component.translatable("minecraftportsmod.hall.loading"), mx, my, ChartStyle.TEXT_MUTED);
             return;
         }
         int r = mapSize / 2;
@@ -654,7 +654,7 @@ public class VillageScreen extends UiScreen {
                     if (q.kind() == 0 && k < 2) continue;
                     int bxk = ax + k * 16, byk = y + 2;
                     g.fill(bxk, byk, bxk + 14, byk + 12, 0x40000000);
-                    g.centeredText(font, Component.literal(marks[k]), bxk + 7, byk + 2, k == 2 ? 0xFFB0403A : ChartStyle.TEXT);
+                    Ui.centered(g,font, Component.literal(marks[k]), bxk + 7, byk + 2, k == 2 ? 0xFFB0403A : ChartStyle.TEXT);
                     queueButtons.add(new int[]{bxk, byk, acts[k], q.id()});
                 }
             }

@@ -98,6 +98,19 @@ public final class Ui {
     }
 
     /** Text cut to a width, with "…" if it was cut. */
+    /** Text centred on {@code x}, with no shadow (the mod's text has none). */
+    public static void centered(GuiGraphicsExtractor g, Font font, String text, int x, int y, int color) {
+        g.text(font, text, x - font.width(text) / 2, y, color, false);
+    }
+
+    public static void centered(GuiGraphicsExtractor g, Font font, net.minecraft.network.chat.Component text, int x, int y, int color) {
+        g.text(font, text, x - font.width(text) / 2, y, color, false);
+    }
+
+    public static void centered(GuiGraphicsExtractor g, Font font, FormattedCharSequence text, int x, int y, int color) {
+        g.text(font, text, x - font.width(text) / 2, y, color, false);
+    }
+
     static String fit(Font font, String s, int w) {
         if (font.width(s) <= w) return s;
         return font.plainSubstrByWidth(s, Math.max(0, w - font.width("…"))) + "…";
@@ -126,7 +139,7 @@ public final class Ui {
             if (active) blit(g, KNOB, kx, getY(), kx + 8, getY() + getHeight());
             Font font = net.minecraft.client.Minecraft.getInstance().font;
             String t = fit(font, getMessage().getString(), getWidth() - 6);
-            g.text(font, t, getX() + (getWidth() - font.width(t)) / 2, getY() + (getHeight() - 8) / 2, active ? ChartStyle.TEXT_LIGHT : 0xFFB0A590, true);
+            g.text(font, t, getX() + (getWidth() - font.width(t)) / 2, getY() + (getHeight() - 8) / 2, active ? ChartStyle.TEXT_LIGHT : 0xFFB0A590, false);
         }
     }
 }

@@ -161,6 +161,7 @@ public class WorldMapScreen extends UiScreen {
         confirmDelete = false;
         if (open != null && open.mine()) {
             nameBox = addRenderableWidget(new EditBox(font, px0 + 8, my0 + 8, PANEL - 16, 12, Component.translatable("minecraftportsmod.worldmap.name")));
+            nameBox.setTextShadow(false);
             nameBox.setBordered(false);
             nameBox.setTextColor(ChartStyle.TEXT);
             nameBox.setMaxLength(40);
@@ -251,7 +252,7 @@ public class WorldMapScreen extends UiScreen {
     protected void draw(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         ChartTileCache.uploadReady();
         Ui.frame(g, fx0, fy0, fx1, fy1);
-        g.text(font, title, fx0 + 12, fy0 + 8, ChartStyle.TEXT_LIGHT, true);
+        g.text(font, title, fx0 + 12, fy0 + 8, ChartStyle.TEXT_LIGHT, false);
         Component layerTip = layerButtons(g, mouseX, mouseY);
         g.fill(mx0 - 2, my0 - 2, mx1 + 2, my1 + 2, ChartStyle.PARCHMENT_SHADE);
         g.fill(mx0, my0, mx1, my1, UNKNOWN);
