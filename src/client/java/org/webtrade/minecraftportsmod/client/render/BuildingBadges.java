@@ -36,7 +36,7 @@ public final class BuildingBadges {
         people.add(new Person(x, y, z, title, jobIcon, doing, icon, progress, light));
     }
     /** Badges are drawn this near the camera. */
-    private static final double NEAR = 40, IDLE = 20;
+    private static final double NEAR = 40;
 
     public static void init() {
         ClientPlayNetworking.registerGlobalReceiver(ColonyPayloads.BadgeView.TYPE, (payload, ctx) -> {
@@ -63,12 +63,28 @@ public final class BuildingBadges {
                 pose.popPose();
             }
             people.clear();
+            // only the badge of the building looked at (the nearest one the eye's line goes into, up to where its badge hangs)
+            Shown looked = null;
+            var eye = Minecraft.getInstance().getCameraEntity();
+            if (eye != null) {
+                net.minecraft.world.phys.Vec3 from = camera.pos, to = from.add(eye.getViewVector(1F).scale(NEAR));
+                double best = Double.MAX_VALUE;
+                for (Shown s : shown) {
+                    int[] k = s.badge().box();
+                    var box = new net.minecraft.world.phys.AABB(k[0], k[1], k[2], k[3], Math.max(k[4], s.badge().y() + 0.8), k[5]);
+                    var hit = box.contains(from) ? java.util.Optional.of(from) : box.clip(from, to);
+                    if (hit.isEmpty()) continue;
+                    double d = hit.get().distanceToSqr(from);
+                    if (d < best) {
+                        best = d;
+                        looked = s;
+                    }
+                }
+            }
             for (Shown s : shown) {
+                if (s != looked) continue;
                 ColonyPayloads.Badge b = s.badge();
                 double dx = b.x() - camera.pos.x, dy = b.y() - camera.pos.y, dz = b.z() - camera.pos.z;
-                // (an idle building's badge only close by; one at work from farther off)
-                double near = b.progress() >= 0 ? NEAR : IDLE;
-                if (dx * dx + dy * dy + dz * dz > near * near) continue;
                 pose.pushPose();
                 pose.translate(dx, dy, dz);
                 Badge.submit(pose, ctx.submitNodeCollector(), camera.orientation, b.title(), null, b.doing(), s.icon(), b.progress(),

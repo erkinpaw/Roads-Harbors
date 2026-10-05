@@ -346,8 +346,8 @@ public final class ColonyPayloads {
         }
     }
 
-    /** A building's badge: where it hangs, its icon, how far its work is (below 0: none), what it is doing, its name. */
-    public record Badge(float x, float y, float z, net.minecraft.world.item.ItemStack icon, float progress, Component doing, Component title) {
+    /** A building's badge: where it hangs, the building's box (x0 y0 z0 x1 y1 z1), its icon, how far its work is (below 0: none), what it is doing, its name. */
+    public record Badge(float x, float y, float z, int[] box, net.minecraft.world.item.ItemStack icon, float progress, Component doing, Component title) {
     }
 
     /** The badges over the buildings near a player (every second). */
@@ -359,6 +359,7 @@ public final class ColonyPayloads {
                 buf.writeFloat(b.x);
                 buf.writeFloat(b.y);
                 buf.writeFloat(b.z);
+                for (int k = 0; k < 6; k++) buf.writeVarInt(b.box[k]);
                 net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, b.icon);
                 buf.writeFloat(b.progress);
                 comp(buf, b.doing);
@@ -369,9 +370,11 @@ public final class ColonyPayloads {
             List<Badge> out = new ArrayList<>();
             for (int i = 0; i < n; i++) {
                 float x = buf.readFloat(), y = buf.readFloat(), z = buf.readFloat();
+                int[] box = new int[6];
+                for (int k = 0; k < 6; k++) box[k] = buf.readVarInt();
                 var icon = net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf);
                 float p = buf.readFloat();
-                out.add(new Badge(x, y, z, icon, p, comp(buf), comp(buf)));
+                out.add(new Badge(x, y, z, box, icon, p, comp(buf), comp(buf)));
             }
             return new BadgeView(out);
         });
