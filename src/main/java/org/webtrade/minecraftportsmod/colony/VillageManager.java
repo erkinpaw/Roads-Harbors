@@ -88,6 +88,7 @@ public final class VillageManager {
         ServerLevel level = srv.overworld();
         Plots.tick(srv);
         Helping.tick(srv);
+        if (srv.getTickCount() % 10 == 0) Wallet.tick(srv);
         if (data.dayLength == VillageData.DEFAULT_DAY_LENGTH) {
             // a village day is a Minecraft day: it starts at sunrise (and when the time is set back)
             long tod = Math.floorMod(level.getOverworldClockTime(), 24000L);

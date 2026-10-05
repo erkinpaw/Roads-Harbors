@@ -106,17 +106,7 @@ public final class Plots {
     static boolean buy(ServerPlayer p, VillageData data, Village v) {
         if (of(v, p.getUUID()) != null) return false;
         int price = price(v, p.getUUID());
-        if (Trade.emeralds(p) < price) return false;
-        int need = price;
-        var inv = p.getInventory();
-        for (int i = 0; i < inv.getContainerSize() && need > 0; i++) {
-            ItemStack s = inv.getItem(i);
-            if (!s.is(Items.EMERALD)) continue;
-            int take = Math.min(need, s.getCount());
-            inv.removeItem(i, take);
-            need -= take;
-        }
-        inv.setChanged();
+        if (Trade.emeralds(p) < price || !Wallet.pay(p, price)) return false;
         v.emeralds += price;
         Quests.give(p, stone(v));
         data.changed();

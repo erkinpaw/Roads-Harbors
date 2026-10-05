@@ -447,18 +447,11 @@ public final class Voyages {
         int[] lane = target == null ? null : lane(data, v.id, target.id);
         if (target == null || ship < 0 || pier == null || lane == null || s.away || s.job != Job.SAILOR) return false;
         int fare = fare(lane);
-        var inv = player.getInventory();
-        if (inv.countItem(net.minecraft.world.item.Items.EMERALD) < fare) return false;
+        if (org.webtrade.minecraftportsmod.colony.Trade.emeralds(player) < fare) return false;
         Voyage t = setOut(data, v, s, ship, data.day, target);
         if (t == null) return false;
-        int left = fare;
-        for (int i = 0; i < inv.getContainerSize() && left > 0; i++) {
-            var st = inv.getItem(i);
-            if (!st.is(net.minecraft.world.item.Items.EMERALD)) continue;
-            int n = Math.min(left, st.getCount());
-            st.shrink(n);
-            left -= n;
-        }
+        Wallet.pay(player, fare);
+
         v.emeralds += fare;
         ServerLevel level = (ServerLevel) player.level();
         TradeShipEntity e = org.webtrade.minecraftportsmod.registry.ModContent.TRADE_SHIP.create(level, net.minecraft.world.entity.EntitySpawnReason.MOB_SUMMONED);

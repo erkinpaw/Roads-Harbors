@@ -311,6 +311,52 @@ public final class ColonyPayloads {
 
     // ------------------------------------------------------------------ a resident
 
+    /** A task the player has taken, as the inventory's panel shows it: what, whose, how far along, days left. */
+    public record PanelQuest(net.minecraft.world.item.ItemStack icon, Component who, int have, int need, int days) {
+    }
+
+    /** The inventory's panel: the purse, the tasks taken, the plot, the trade hired at. */
+    public record PanelView(int purse, List<PanelQuest> quests, Component plot, Component hired) implements CustomPacketPayload {
+        public static final Type<PanelView> TYPE = new Type<>(Minecraftportsmod.id("panel_view"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, PanelView> CODEC = StreamCodec.of((buf, v) -> {
+            buf.writeVarInt(v.purse);
+            buf.writeVarInt(v.quests.size());
+            for (PanelQuest q : v.quests) {
+                net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, q.icon);
+                comp(buf, q.who);
+                buf.writeVarInt(q.have);
+                buf.writeVarInt(q.need);
+                buf.writeVarInt(q.days);
+            }
+            comp(buf, v.plot);
+            comp(buf, v.hired);
+        }, buf -> {
+            int purse = buf.readVarInt(), n = buf.readVarInt();
+            List<PanelQuest> qs = new ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                var icon = net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf);
+                qs.add(new PanelQuest(icon, comp(buf), buf.readVarInt(), buf.readVarInt(), buf.readVarInt()));
+            }
+            return new PanelView(purse, qs, comp(buf), comp(buf));
+        });
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /** The client asks for the inventory's panel. */
+    public record RequestPanel() implements CustomPacketPayload {
+        public static final Type<RequestPanel> TYPE = new Type<>(Minecraftportsmod.id("request_panel"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, RequestPanel> CODEC = StreamCodec.unit(new RequestPanel());
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
     /** A harbour a skipper will sail a player to, and what it costs (emeralds). */
     public record Passage(int village, String name, int price) {
     }

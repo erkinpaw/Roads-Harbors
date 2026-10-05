@@ -80,7 +80,7 @@ public final class MarketService {
         }
         ServerPlayNetworking.send(player, new MarketPayloads.View(refresh, s.id(), EconomyManager.name(srv, s), s.spec().ordinal(),
                 r.getCustomName() == null ? "" : r.getCustomName().getString(), r.profession().ordinal(), (float) s.treasury(),
-                count(player, Items.EMERALD), rows, orders));
+                org.webtrade.minecraftportsmod.colony.Trade.emeralds(player), rows, orders));
     }
 
     public static void handle(ServerPlayer player, MarketPayloads.Action a) {
@@ -101,10 +101,10 @@ public final class MarketService {
                 int cost = Market.buyQuote(s, g, a.qty());
                 if (cost < 0) {
                     fail(player, "minecraftportsmod.market.not_enough_stock");
-                } else if (count(player, Items.EMERALD) < cost) {
+                } else if (org.webtrade.minecraftportsmod.colony.Trade.emeralds(player) < cost) {
                     fail(player, "minecraftportsmod.market.not_enough_emeralds");
                 } else {
-                    remove(player, Items.EMERALD, cost);
+                    org.webtrade.minecraftportsmod.colony.Wallet.pay(player, cost);
                     give(player, g.item, a.qty());
                     Market.bought(s, g, a.qty(), cost, data.day(), who);
                     player.sendSystemMessage(Component.translatable("minecraftportsmod.market.bought", a.qty(), g.displayName(), cost)
@@ -123,7 +123,7 @@ public final class MarketService {
                     fail(player, "minecraftportsmod.market.wont_buy");
                 } else {
                     remove(player, g.item, a.qty());
-                    give(player, Items.EMERALD, pay);
+                    org.webtrade.minecraftportsmod.colony.Wallet.add(player, pay);
                     Market.sold(s, g, a.qty(), pay, data.day(), who);
                     player.sendSystemMessage(Component.translatable("minecraftportsmod.market.sold", a.qty(), g.displayName(), pay)
                             .withStyle(ChatFormatting.GREEN));
@@ -139,7 +139,7 @@ public final class MarketService {
                 }
                 remove(player, o.good().item, units);
                 int pay = Market.deliver(s, o, units, data.day(), who);
-                if (pay > 0) give(player, Items.EMERALD, pay);
+                if (pay > 0) org.webtrade.minecraftportsmod.colony.Wallet.add(player, pay);
                 player.sendSystemMessage(Component.translatable(o.remaining() == 0 ? "minecraftportsmod.market.order_done"
                         : "minecraftportsmod.market.delivered", units, o.good().displayName(), pay).withStyle(ChatFormatting.GOLD));
             }
