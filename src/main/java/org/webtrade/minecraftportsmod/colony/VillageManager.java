@@ -141,6 +141,7 @@ public final class VillageManager {
                 if (t % 40 == 0) bodies(level, data, v);
                 if (t % 200 == 0) Greening.step(level, v, 60);
                 if (t % 100 == 0) Tidy.survey(level, v, RND, 120);
+                if (t % 40 == 20) Harbour.launch(level, data, v);
                 if (t % 20 == 0) Tidy.catchUp(level, v, RND);
                 if (t % 200 == 100) Herds.step(level, v);
             }
@@ -374,8 +375,9 @@ public final class VillageManager {
                 }
             }
             Construction.advance(level, v, b, CATCH_UP);
-            // a player's house up and all its blocks in place: the player's now, no more the village's
-            if (b.owner != null && b.state == Building.State.BUILT && b.placed >= b.blueprint(v.wood).pieces.size()) {
+            // a player's house up and all its blocks in place: the player's now, no more the village's (a player's ship
+            // is no blocks: hers is the stocks, then the launch, see Harbour)
+            if (b.owner != null && b.type != BuildingType.SHIP && b.state == Building.State.BUILT && b.placed >= b.blueprint(v.wood).pieces.size()) {
                 Construction.post(level, v, b, false);
                 Plots.handOver(level, data, v, b);
                 continue;

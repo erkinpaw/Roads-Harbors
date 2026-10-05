@@ -89,6 +89,14 @@ public class TradeScreen extends UiScreen {
         return selling ? r.maxSell() : r.maxBuy();
     }
 
+    /** What the deal comes to, lot by lot (the price moving as the village's store does), in hundredths. */
+    private long dealTotal() {
+        ColonyPayloads.TradeRow r = selectedRow();
+        if (r == null) return 0;
+        long t = Trade.total(selling ? r.sellLots() : r.buyLots(), qty);
+        return t < 0 ? (long) Math.max(0, cents()) * qty : t;
+    }
+
     private int cents() {
         ColonyPayloads.TradeRow r = selectedRow();
         return r == null ? -1 : selling ? r.buyCents() : r.sellCents();
@@ -154,7 +162,7 @@ public class TradeScreen extends UiScreen {
         qtyBox.active = on;
         confirm.active = on && qty > 0;
         confirm.setMessage(Component.translatable(selling ? "minecraftportsmod.trade.sell_n" : "minecraftportsmod.trade.buy_n",
-                Trade.money((long) Math.max(0, cents()) * qty)));
+                Trade.money(dealTotal())));
     }
 
     /** Sets the quantity (clamped to 1..max, or 0 if nothing can be dealt) and moves slider and field with it. */
@@ -275,7 +283,7 @@ public class TradeScreen extends UiScreen {
             Component what = Component.translatable(selling ? "minecraftportsmod.trade.selling" : "minecraftportsmod.trade.buying");
             g.text(font, what, px0 + 36, dy, ChartStyle.TEXT_MUTED, false);
             g.text(font, Ui.fit(font, r.name().getString(), 140), px0 + 36, dy + 11, ChartStyle.INK, false);
-            String total = Trade.money((long) Math.max(0, cents()) * qty);
+            String total = Trade.money(dealTotal());
             Component sum = maxQty() <= 0
                     ? Component.translatable(selling ? "minecraftportsmod.trade.cant_sell" : "minecraftportsmod.trade.cant_buy")
                     : Component.translatable("minecraftportsmod.trade.total", qty, price(Math.max(0, cents())), total);

@@ -93,7 +93,8 @@ public final class ColonyService {
                 d.elder && Plots.of(v, player.getUUID()) == null ? Plots.price(v, player.getUUID()) : -1,
                 Helping.hired(v, player.getUUID()) == null ? -1 : Helping.hired(v, player.getUUID()).ordinal(), Helping.brought(v, player.getUUID()),
                 Helping.hired(v, player.getUUID()) == null ? 0 : Helping.quota(v, Helping.hired(v, player.getUUID())),
-                d.job == Job.SAILOR ? Voyages.passages(data, v, d) : java.util.List.of()));
+                d.job == Job.SAILOR ? Voyages.passages(data, v, d) : java.util.List.of(),
+                d.job == Job.SAILOR && Harbour.canOrder(v) ? Harbour.playerShipPrice(v) : -1));
     }
 
     /** A person's task as this player sees it: 0 none, 1 one to take, 2 taken by them, 3 taken by someone else. */
@@ -490,6 +491,15 @@ public final class ColonyService {
                 player.level().playSound(null, player.blockPosition(), ok ? SoundEvents.VILLAGER_YES : SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 0.6F, 1.0F);
                 if (ok) player.closeContainer();
             }
+            case ColonyPayloads.VillageAction.SHIP_ORDER -> {
+                Dweller d = v.dweller(a.a());
+                Component why = d == null || d.job != Job.SAILOR ? Component.translatable("minecraftportsmod.ship.no_pier") : Harbour.order(player, data, v);
+                player.sendSystemMessage(why == null ? Component.translatable("minecraftportsmod.ship.ordered", Harbour.PLAYER_SHIP_DAYS)
+                        .withStyle(ChatFormatting.GREEN) : why.copy().withStyle(ChatFormatting.RED), true);
+                player.level().playSound(null, player.blockPosition(), why == null ? SoundEvents.VILLAGER_YES : SoundEvents.VILLAGER_NO,
+                        SoundSource.NEUTRAL, 0.6F, 1.0F);
+                if (why == null) player.closeContainer();
+            }
             case ColonyPayloads.VillageAction.PLOT_BUY -> {
                 boolean ok = Plots.buy(player, data, v);
                 if (!ok) player.sendSystemMessage(Component.translatable(Plots.of(v, player.getUUID()) != null ? "minecraftportsmod.plot.have_one"
@@ -788,7 +798,8 @@ public final class ColonyService {
             Res r = w.res();
             rows.add(new ColonyPayloads.TradeRow(i, w.kind().ordinal(), Trade.piece(v, w), Trade.name(v, w),
                     r == null ? 0 : v.stock(r), r == null ? 0 : VillageLife.target(v, r), Trade.available(v, w), Trade.sellCents(v, w),
-                    Trade.buyCents(v, w), Trade.maxBuy(player, v, w), Trade.maxSell(player, v, w), Trade.carried(player, w)));
+                    Trade.buyCents(v, w), Trade.maxBuy(player, v, w), Trade.maxSell(player, v, w), Trade.carried(player, v, w),
+                    Trade.buyLots(v, w, Trade.maxBuy(player, v, w)), Trade.sellLots(v, w, Trade.maxSell(player, v, w))));
         }
         ServerPlayNetworking.send(player, new ColonyPayloads.TradeView(v.id, v.name, merchant, v.cents(), Trade.purse(player), rows,
                 note == null ? Component.empty() : note));

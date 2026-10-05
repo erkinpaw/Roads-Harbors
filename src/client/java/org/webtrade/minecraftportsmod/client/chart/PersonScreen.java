@@ -74,6 +74,14 @@ public class PersonScreen extends UiScreen {
                         new ColonyPayloads.VillageAction(view.village(), ColonyPayloads.VillageAction.PASSAGE, view.person(), p.village()));
             });
         }
+        // a skipper: a ship of the player's own, built at the pier
+        if (view.shipPrice() >= 0) {
+            labels.add(Component.translatable("minecraftportsmod.ship.order", view.shipPrice()));
+            actions.add(() -> {
+                Minecraft.getInstance().gui.setScreen(null);
+                send(ColonyPayloads.VillageAction.SHIP_ORDER, view.person());
+            });
+        }
         if (view.plotPrice() >= 0) {
             labels.add(Component.translatable("minecraftportsmod.person.plot", view.plotPrice()));
             actions.add(() -> {
