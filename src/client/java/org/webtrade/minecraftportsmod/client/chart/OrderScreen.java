@@ -1,9 +1,8 @@
 package org.webtrade.minecraftportsmod.client.chart;
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -13,30 +12,29 @@ import org.webtrade.minecraftportsmod.colony.Trade;
 import org.webtrade.minecraftportsmod.network.ColonyPayloads;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
- * A building's people taking orders (the sawyer at the sawmill): on the left what they make, each by its recipe (a
- * piece's price, how many a day); on the right the player's orders with them, how far along, and the ones ready to
- * take. A thing picked on the left, how many (slider or typed), and the order: paid now, made over the next days.
+ * A workshop's orders, laid out like crafting: on the left its recipes, each what a making takes (the store's stock of
+ * it on the mouse; red-ringed what the store is short of) -> what it gives; a click puts a piece of it in the cart
+ * (Ctrl five, Shift sixty-four; the right button takes back), and the cart paid goes to the end of the workshop's
+ * queue, on the right.
  */
 public class OrderScreen extends UiScreen {
 
-    private static final int ROW = 28;
+    private static final int ROW = 26, SLOT = 20, INS = 3;
 
     private ColonyPayloads.OrderView view;
     private int x0, y0, x1, y1;
     private int lx0, lx1, rx0, rx1, ly0, ly1, dy0;
 
-    private int selected = -1;
-    private int qty = 1;
+    /** The cart: recipe -> pieces, in the order put in. */
+    private final LinkedHashMap<Integer, Integer> cart = new LinkedHashMap<>();
     private int scrollLeft, scrollRight;
 
-    private QtySlider slider;
-    private EditBox qtyBox;
-    private UiButton confirm, buyNow, collect, tools;
+    private UiButton pay, clear, collect, tools;
     private int ticks;
-    private boolean syncing;
 
     public OrderScreen(ColonyPayloads.OrderView view) {
         super(Component.translatable("minecraftportsmod.order.title"));
@@ -48,21 +46,17 @@ public class OrderScreen extends UiScreen {
     }
 
     public void update(ColonyPayloads.OrderView v) {
-        boolean same = v.rows().size() == view.rows().size() && v.note().getString().equals(view.note().getString()) && collect != null;
         view = v;
-        // (the second-by-second refresh: the bars move, the typing is not lost)
-        if (!same) {
+        if (collect == null) {
             rebuildWidgets();
             return;
         }
-        collect.visible = anyReady();
-        tools.visible = hasTools();
         refresh();
     }
 
     // ------------------------------------------------------------------ what is shown
 
-    /** What can be ordered: the open recipes first, then the ones a higher level opens. */
+    /** The recipes: the open ones first, then the ones a higher level opens. */
     private List<ColonyPayloads.OrderRow> rows() {
         List<ColonyPayloads.OrderRow> out = new ArrayList<>();
         for (ColonyPayloads.OrderRow r : view.rows()) if (r.open()) out.add(r);
@@ -70,31 +64,23 @@ public class OrderScreen extends UiScreen {
         return out;
     }
 
-    private ColonyPayloads.OrderRow selectedRow() {
-        for (ColonyPayloads.OrderRow r : view.rows()) if (r.recipe() == selected) return r;
+    private ColonyPayloads.OrderRow row(int recipe) {
+        for (ColonyPayloads.OrderRow r : view.rows()) if (r.recipe() == recipe) return r;
         return null;
     }
 
-    /** The most pieces the player can pay for as an order (and no more than an order takes). */
-    private int maxOrder() {
-        ColonyPayloads.OrderRow r = selectedRow();
-        if (r == null || !r.open()) return 0;
-        int n = Orders.MAX_PIECES;
-        while (n > 0 && Trade.total(r.cents(), n) * 100L > view.playerEmeralds()) n--;
-        return n;
+    /** What the cart costs, in hundredths. */
+    private long total() {
+        long t = 0;
+        for (var e : cart.entrySet()) {
+            ColonyPayloads.OrderRow r = row(e.getKey());
+            if (r != null) t += (long) r.cents() * e.getValue();
+        }
+        return t;
     }
 
-    /** The most pieces the player can buy now: what the village has to spare, and the emeralds. */
-    private int maxNow() {
-        ColonyPayloads.OrderRow r = selectedRow();
-        if (r == null || r.nowCents() < 0) return 0;
-        int n = Math.min(r.stock(), Orders.MAX_PIECES);
-        while (n > 0 && Trade.total(r.nowCents(), n) * 100L > view.playerEmeralds()) n--;
-        return n;
-    }
-
-    private int maxQty() {
-        return Math.max(maxOrder(), maxNow());
+    private boolean canPay() {
+        return !cart.isEmpty() && total() <= view.playerEmeralds();
     }
 
     /** Has the player any tools to put in the slot (wooden, stone, iron)? */
@@ -149,145 +135,65 @@ public class OrderScreen extends UiScreen {
         x1 = x0 + w;
         y1 = y0 + h;
         scaleButtons(x1 - 8, y0 + 6);
-        int px0 = x0 + Ui.BORDER + 8, px1 = x1 - Ui.BORDER - 8;
-        ly0 = y0 + Ui.TITLE + 52;
-        dy0 = y1 - Ui.BORDER - 58;
-        ly1 = dy0 - 10;
+        int px1 = x1 - Ui.BORDER - 8;
+        ly0 = y0 + Ui.TITLE + 40;
+        dy0 = y1 - Ui.BORDER - 46;
+        ly1 = dy0 - 8;
         int mid = (x0 + x1) / 2;
-        lx0 = px0;
+        lx0 = x0 + Ui.BORDER + 8;
         lx1 = mid + 40;
         rx0 = mid + 52;
         rx1 = px1;
         collect = addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.order.collect"),
                 b -> ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(), ColonyPayloads.VillageAction.COLLECT, view.building(), 0)))
                 .bounds(rx1 - 130, ly0 - 24, 130, 20).build());
-        // (only what can be done: no greyed-out buttons)
-        collect.visible = anyReady();
         tools = addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.order.put_tools"),
                 b -> ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(), ColonyPayloads.VillageAction.TOOLS, view.building(), 0)))
                 .bounds(rx1 - 150, ly1 - 22, 146, 18).build());
-        tools.visible = hasTools();
-        int dy = dy0 + 10;
-        int sx = px0 + 190;
-        slider = addRenderableWidget(new QtySlider(sx, dy, Math.max(80, px1 - sx - 442), 20));
-        qtyBox = addRenderableWidget(new EditBox(font, px1 - 434, dy + 2, 48, 16, Component.translatable("minecraftportsmod.market.qty")));
-        qtyBox.setTextShadow(false);
-        qtyBox.setMaxLength(4);
-        qtyBox.setResponder(this::typed);
-        confirm = addRenderableWidget(UiButton.make(Component.empty(), b -> order()).bounds(px1 - 186, dy, 186, 20).build());
-        buyNow = addRenderableWidget(UiButton.make(Component.empty(), b -> buy()).bounds(px1 - 378, dy, 186, 20).build());
-        setQty(qty);
-        refresh();
-    }
-
-    private void order() {
-        if (qty <= 0 || selected < 0) return;
-        ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(), ColonyPayloads.VillageAction.ORDER, view.building(),
-                selected * 1000 + qty));
-    }
-
-    private void buy() {
-        if (qty <= 0 || selected < 0) return;
-        ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(), ColonyPayloads.VillageAction.BUY_NOW, view.building(),
-                selected * 1000 + qty));
-    }
-
-    /** Days the order takes at the people's pace (the orders before it come first). */
-    private int days() {
-        ColonyPayloads.OrderRow r = selectedRow();
-        return r == null || r.perDay() <= 0 ? 0 : Math.max(1, (qty + r.perDay() - 1) / r.perDay());
-    }
-
-    private void refresh() {
-        ColonyPayloads.OrderRow r = selectedRow();
-        boolean on = r != null && maxQty() > 0;
-        for (AbstractWidget w : new AbstractWidget[]{slider, qtyBox, confirm}) w.visible = r != null && (r.open() || r.stock() > 0);
-        buyNow.visible = r != null && r.nowCents() >= 0 && r.stock() > 0;
-        if (r == null) return;
-        slider.active = maxQty() > 1;
-        qtyBox.active = on;
-        confirm.visible = r.open();
-        confirm.active = on && qty > 0 && qty <= maxOrder();
-        confirm.setMessage(Component.translatable("minecraftportsmod.order.order_n", Trade.total(r.cents(), qty)));
-        buyNow.active = qty > 0 && qty <= maxNow();
-        buyNow.setMessage(Component.translatable("minecraftportsmod.order.buy_now_n", r.nowCents() < 0 ? 0 : Trade.total(r.nowCents(), qty)));
-    }
-
-    private void setQty(int n) {
-        int max = maxQty();
-        qty = max <= 0 ? 0 : Math.max(1, Math.min(n, max));
-        syncing = true;
-        if (slider != null) slider.show(qty, max);
-        if (qtyBox != null && !qtyBox.getValue().equals(String.valueOf(qty))) qtyBox.setValue(String.valueOf(qty));
-        syncing = false;
-        if (confirm != null) refresh();
-    }
-
-    private void typed(String text) {
-        if (syncing) return;
-        String digits = text.replaceAll("[^0-9]", "");
-        if (!digits.equals(text)) {
-            qtyBox.setValue(digits);
-            return;
-        }
-        if (digits.isEmpty()) return;
-        int n;
-        try {
-            n = Integer.parseInt(digits);
-        } catch (NumberFormatException e) {
-            n = Integer.MAX_VALUE;
-        }
-        int max = maxQty();
-        qty = max <= 0 ? 0 : Math.max(1, Math.min(n, max));
-        syncing = true;
-        slider.show(qty, max);
-        syncing = false;
-        refresh();
-    }
-
-    private final class QtySlider extends Ui.Slider {
-        private int max;
-
-        QtySlider(int x, int y, int w, int h) {
-            super(x, y, w, h, Component.empty(), 0);
-        }
-
-        void show(int n, int max) {
-            this.max = max;
-            setValue(max <= 1 ? 1 : (n - 1) / (double) (max - 1));
-            updateMessage();
-        }
-
-        @Override
-        protected void updateMessage() {
-            setMessage(Component.translatable("minecraftportsmod.market.qty_slider", qty, max));
-        }
-
-        @Override
-        protected void applyValue() {
-            if (syncing) return;
-            qty = max <= 0 ? 0 : 1 + (int) Math.round(value * (max - 1));
-            syncing = true;
-            if (qtyBox != null) qtyBox.setValue(String.valueOf(qty));
-            syncing = false;
+        int by = dy0 + 12;
+        pay = addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.order.pay"), b -> pay()).bounds(px1 - 120, by, 120, 20).build());
+        clear = addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.order.clear"), b -> {
+            cart.clear();
             refresh();
+        }).bounds(px1 - 210, by, 84, 20).build());
+        refresh();
+    }
+
+    /** Only what can be done shows: no greyed-out buttons. */
+    private void refresh() {
+        if (collect == null) return;
+        collect.visible = anyReady();
+        tools.visible = hasTools();
+        pay.visible = canPay();
+        clear.visible = !cart.isEmpty();
+    }
+
+    /** The cart paid: each line an order at the end of the queue. */
+    private void pay() {
+        if (!canPay()) return;
+        for (var e : cart.entrySet()) {
+            ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(), ColonyPayloads.VillageAction.ORDER, view.building(),
+                    e.getKey() * 1000 + e.getValue()));
         }
+        cart.clear();
+        refresh();
     }
 
-    /** For tests: a recipe picked, and how many. */
+    private void put(int recipe, int n) {
+        int now = cart.getOrDefault(recipe, 0) + n;
+        if (now <= 0) cart.remove(recipe);
+        else cart.put(recipe, Math.min(now, Orders.MAX_PIECES));
+        refresh();
+    }
+
+    /** For tests: {@code n} pieces of a recipe in the cart. */
     public void pick(int recipe, int n) {
-        selected = recipe;
-        setQty(n);
+        put(recipe, n);
     }
 
-    /** For tests: the order button pressed. */
+    /** For tests: the cart paid. */
     public void press() {
-        if (confirm.active) order();
-    }
-
-    /** For tests: the buy-now button pressed. */
-    public void pressBuy() {
-        if (buyNow.active) buy();
+        pay();
     }
 
     /** For tests: the recipe (index) of the first open row that makes an item whose id contains {@code part}. */
@@ -310,94 +216,165 @@ public class OrderScreen extends UiScreen {
         Ui.slot(g, px1 - 22, py0, 22, new ItemStack(Items.EMERALD));
         g.text(font, yours, yx, py0 + 2, ChartStyle.TEXT_MUTED, false);
         g.text(font, Trade.money(view.playerEmeralds()), yx, py0 + 12, ChartStyle.INK, false);
-        Ui.rule(g, px0, px1, ly0 - 30);
+        if (!view.note().getString().isEmpty()) g.text(font, view.note(), px0, py0 + 8, ChartStyle.TEXT, false);
 
-        recipes(g, mouseX, mouseY);
-        mine(g);
-
-        // the order
-        Ui.inset(g, px0 - 2, dy0, px1 + 2, y1 - Ui.BORDER - 6);
-        int dy = dy0 + 10;
-        ColonyPayloads.OrderRow r = selectedRow();
-        if (r == null) {
-            g.text(font, Component.translatable("minecraftportsmod.order.pick"), px0 + 8, dy + 6, ChartStyle.TEXT_MUTED, false);
-        } else {
-            Ui.slot(g, px0 + 4, dy - 2, 26, r.icon());
-            g.text(font, Component.translatable("minecraftportsmod.order.ordering"), px0 + 36, dy, ChartStyle.TEXT_MUTED, false);
-            g.text(font, Ui.fit(font, r.name().getString(), 140), px0 + 36, dy + 11, ChartStyle.INK, false);
-            Component sum;
-            int color = ChartStyle.TEXT;
-            if (!r.open() && r.stock() <= 0) {
-                sum = Component.translatable("minecraftportsmod.order.closed", r.lvl());
-                color = ChartStyle.BAD;
-            } else if (!r.open()) {
-                sum = Component.translatable("minecraftportsmod.order.now_only", r.stock(), TradeScreen.price(r.nowCents()));
-            } else if (maxQty() <= 0 && !r.open()) {
-                sum = Component.translatable("minecraftportsmod.order.cant_pay");
-                color = ChartStyle.BAD;
-            } else {
-                sum = r.stock() > 0 && r.nowCents() >= 0
-                        ? Component.translatable("minecraftportsmod.order.total_both", qty, Trade.total(r.cents(), qty), days(), r.stock(),
-                        TradeScreen.price(r.nowCents()))
-                        : Component.translatable("minecraftportsmod.order.total", qty, TradeScreen.price(r.cents()), Trade.total(r.cents(), qty), days());
-            }
-            g.text(font, sum, px0 + 8, dy + 28, color, false);
-        }
-        if (!view.note().getString().isEmpty()) g.text(font, view.note(), px1 - 6 - font.width(view.note()), dy + 28, ChartStyle.TEXT, false);
+        List<Component> tip = recipes(g, mouseX, mouseY);
+        queue(g);
+        List<Component> cartTip = cart(g, mouseX, mouseY);
         widgets(g, mouseX, mouseY, partialTick);
+        if (tip == null) tip = cartTip;
+        if (tip != null) g.setComponentTooltipForNextFrame(font, tip, mouseX, mouseY);
     }
 
-    /** What can be ordered: a slot, the name, what a making takes, pieces a day, the price of a piece. */
-    private void recipes(GuiGraphicsExtractor g, int mouseX, int mouseY) {
+    /** Where a row's parts are: the inputs, the arrow, the output. */
+    private int insX(int k) {
+        return lx0 + 6 + k * (SLOT + 2);
+    }
+
+    private int arrowX() {
+        return insX(INS) + 2;
+    }
+
+    private int outX() {
+        return arrowX() + 26;
+    }
+
+    /**
+     * The recipes, each like a crafting: what a making takes -> what it gives; the price of a piece; how many in the
+     * cart. Returns the tip for what is under the mouse, if anything.
+     */
+    private List<Component> recipes(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         List<ColonyPayloads.OrderRow> rows = rows();
-        Component head = Component.translatable("minecraftportsmod.order.col.price");
-        g.text(font, Component.translatable("minecraftportsmod.order.makes"), lx0 + 2, ly0 - 12, ChartStyle.INK, false);
-        g.text(font, head, lx1 - 4 - font.width(head), ly0 - 12, ChartStyle.TEXT_MUTED, false);
         Ui.inset(g, lx0, ly0, lx1, ly1);
-        if (rows.isEmpty()) {
-            g.text(font, Component.translatable("minecraftportsmod.order.none"), lx0 + 8, ly0 + 10, ChartStyle.TEXT_MUTED, false);
-            return;
-        }
         int y = ly0 + 3;
+        List<Component> tip = null;
         for (int i = scrollLeft; i < rows.size() && y + ROW <= ly1 - 2; i++, y += ROW) {
             ColonyPayloads.OrderRow r = rows.get(i);
-            boolean sel = r.recipe() == selected;
             boolean hover = mouseX >= lx0 && mouseX < lx1 && mouseY >= y && mouseY < y + ROW;
-            if (sel) g.fill(lx0 + 2, y, lx1 - 2, y + ROW, 0x50E6B43A);
-            else if (hover) g.fill(lx0 + 2, y, lx1 - 2, y + ROW, 0x18000000);
+            if (hover && r.open()) g.fill(lx0 + 2, y, lx1 - 2, y + ROW, 0x18000000);
             if (i > scrollLeft) g.fill(lx0 + 6, y, lx1 - 6, y + 1, 0x20000000);
-            Ui.slot(g, lx0 + 5, y + 3, 22, r.icon());
-            String p = TradeScreen.price(r.cents());
-            int pw = font.width(p) + 12;
-            int nameW = lx1 - lx0 - 44 - pw;
-            int ink = r.open() ? ChartStyle.INK : ChartStyle.TEXT_MUTED;
-            g.text(font, Ui.fit(font, r.name().getString(), nameW), lx0 + 32, y + 4, ink, false);
-            Component line = r.open() && r.gathered()
-                    ? Component.translatable("minecraftportsmod.order.line_gathered", r.perDay())
-                    : r.open()
-                    ? Component.translatable("minecraftportsmod.order.line", r.takes(), r.perMaking(), r.perDay())
-                    : Component.translatable("minecraftportsmod.order.from_level", r.lvl());
-            g.text(font, Ui.fit(font, line.getString(), nameW), lx0 + 32, y + 15, r.open() && !r.supplied() ? ChartStyle.BAD : ChartStyle.TEXT_MUTED, false);
-            g.text(font, p, lx1 - 8 - pw, y + 9, ink, false);
-            if (r.stock() > 0) {
-                String st = "×" + r.stock();
-                g.text(font, st, lx1 - 8 - pw - 10 - font.width(st), y + 9, ChartStyle.GOOD, false);
+            int sy = y + 3;
+            // what a making takes: red-ringed what the store has too little of
+            for (int k = 0; k < Math.min(INS, r.ins().size()); k++) {
+                ItemStack in = r.ins().get(k);
+                int sx = insX(k);
+                boolean short_ = r.inStock()[k] < in.getCount();
+                if (short_ && r.open()) g.fill(sx - 1, sy - 1, sx + SLOT + 1, sy + SLOT + 1, 0xFFC0302A);
+                Ui.slot(g, sx, sy, SLOT, in.copyWithCount(1));
+                count(g, in.getCount(), sx, sy);
+                if (mouseX >= sx && mouseX < sx + SLOT && mouseY >= sy && mouseY < sy + SLOT) {
+                    tip = List.of(in.getHoverName(),
+                            Component.translatable("minecraftportsmod.order.tip.in_store", r.inStock()[k])
+                                    .withStyle(short_ ? ChatFormatting.RED : ChatFormatting.GRAY),
+                            Component.translatable("minecraftportsmod.order.tip.per_making", in.getCount()).withStyle(ChatFormatting.GRAY));
+                }
             }
+            // the arrow, the seconds a making takes under it
+            arrow(g, arrowX(), sy + 3, r.open() ? ChartStyle.INK_SOFT : 0x60000000);
+            String sec = r.seconds() + "s";
+            g.text(font, sec, arrowX() + 9 - font.width(sec) / 2, sy + 13, ChartStyle.TEXT_MUTED, false);
+            // what it gives
+            int ox = outX();
+            Ui.slot(g, ox, sy, SLOT, r.icon().copyWithCount(1));
+            count(g, r.icon().getCount(), ox, sy);
+            if (!r.open()) {
+                g.fill(insX(0) - 1, sy - 1, ox + SLOT + 1, sy + SLOT + 1, 0x70D8CBB0);
+                lock(g, ox + SLOT - 6, sy + SLOT - 8);
+            }
+            int nx = ox + SLOT + 8;
+            String price = TradeScreen.price(r.cents());
+            int pw = font.width(price) + 12;
+            Integer inCart = cart.get(r.recipe());
+            String c = inCart == null ? "" : "+" + inCart;
+            int cw = c.isEmpty() ? 0 : font.width(c) + 8;
+            g.text(font, Ui.fit(font, r.name().getString(), lx1 - nx - pw - cw - 10), nx, y + 9, r.open() ? ChartStyle.INK : ChartStyle.TEXT_MUTED, false);
+            if (!c.isEmpty()) {
+                int cx = lx1 - 8 - pw - cw;
+                g.fill(cx, y + 6, cx + cw - 3, y + 19, 0xFFE6B43A);
+                g.text(font, c, cx + 3, y + 9, 0xFF3A2610, false);
+            }
+            g.text(font, price, lx1 - 8 - pw, y + 9, r.open() ? ChartStyle.INK : ChartStyle.TEXT_MUTED, false);
             g.item(new ItemStack(Items.EMERALD), lx1 - 8 - 10, y + 5);
-            if (hover && mouseX >= lx0 + 5 && mouseX < lx0 + 27) g.setTooltipForNextFrame(font, r.icon(), mouseX, mouseY);
+            if (mouseX >= ox && mouseX < ox + SLOT && mouseY >= sy && mouseY < sy + SLOT) {
+                List<Component> t = new ArrayList<>();
+                t.add(r.name());
+                if (r.open()) {
+                    t.add(Component.translatable("minecraftportsmod.order.tip.makes", r.perMaking(), r.seconds()).withStyle(ChatFormatting.GRAY));
+                    t.add(Component.translatable("minecraftportsmod.order.tip.price", TradeScreen.price(r.cents())).withStyle(ChatFormatting.GREEN));
+                    t.add(Component.translatable("minecraftportsmod.order.tip.ready", r.stock()).withStyle(ChatFormatting.GRAY));
+                } else {
+                    t.add(Component.translatable("minecraftportsmod.order.tip.level", r.lvl()).withStyle(ChatFormatting.RED));
+                }
+                tip = t;
+            }
         }
+        return tip;
+    }
+
+    /** A count in a slot's corner, as on a stack (none for one). */
+    private void count(GuiGraphicsExtractor g, int n, int x, int y) {
+        if (n <= 1) return;
+        String s = String.valueOf(n);
+        g.nextStratum();
+        g.text(font, s, x + SLOT - 1 - font.width(s), y + SLOT - 8, 0xFF1C1408, false);
+    }
+
+    /** An arrow to the right, as in a crafting table. */
+    private static void arrow(GuiGraphicsExtractor g, int x, int y, int color) {
+        g.fill(x, y + 3, x + 12, y + 6, color);
+        for (int k = 0; k < 5; k++) g.fill(x + 12 + k, y + k, x + 13 + k, y + 9 - k, color);
+    }
+
+    /** A small padlock: a recipe a higher level opens. */
+    private static void lock(GuiGraphicsExtractor g, int x, int y) {
+        g.fill(x + 1, y, x + 6, y + 1, 0xFF4A4038);
+        g.fill(x + 1, y, x + 2, y + 4, 0xFF4A4038);
+        g.fill(x + 5, y, x + 6, y + 4, 0xFF4A4038);
+        g.fill(x, y + 3, x + 7, y + 9, 0xFF4A4038);
+        g.fill(x + 1, y + 4, x + 6, y + 8, 0xFFC9922A);
+        g.fill(x + 3, y + 5, x + 4, y + 7, 0xFF4A4038);
+    }
+
+    private int cartX(int k) {
+        return x0 + Ui.BORDER + 12 + k * (SLOT + 4);
+    }
+
+    /** The cart: what is in it (a click takes back), what it all costs. Returns the tip for what is under the mouse. */
+    private List<Component> cart(GuiGraphicsExtractor g, int mouseX, int mouseY) {
+        int px0 = x0 + Ui.BORDER + 8, px1 = x1 - Ui.BORDER - 8;
+        Ui.inset(g, px0 - 2, dy0, px1 + 2, y1 - Ui.BORDER - 6);
+        int y = dy0 + 11, k = 0;
+        List<Component> tip = null;
+        for (var e : cart.entrySet()) {
+            ColonyPayloads.OrderRow r = row(e.getKey());
+            int x = cartX(k++);
+            if (r == null || x + SLOT > px1 - 320) continue;
+            Ui.slot(g, x, y, SLOT, r.icon().copyWithCount(1));
+            count(g, e.getValue(), x, y);
+            if (mouseX >= x && mouseX < x + SLOT && mouseY >= y && mouseY < y + SLOT) {
+                tip = List.of(Component.literal(e.getValue() + " × ").append(r.name()),
+                        Component.literal(Trade.money((long) r.cents() * e.getValue())).withStyle(ChatFormatting.GREEN));
+            }
+        }
+        if (cart.isEmpty()) return tip;
+        long t = total();
+        Component sum = Component.translatable("minecraftportsmod.order.cart_total", Trade.money(t));
+        int sx = px1 - 230 - font.width(sum) - 16;
+        g.text(font, sum, sx, y + 6, t <= view.playerEmeralds() ? ChartStyle.INK : ChartStyle.BAD, false);
+        g.item(new ItemStack(Items.EMERALD), sx + font.width(sum) + 2, y + 2);
+        return tip;
     }
 
     /**
      * The workshop's queue, whoever's, the oldest first: the one being made with its bar (how far along the making in
      * hand is) and the seconds left; the rest, made of ordered and whose. Under it, the tools in the slot.
      */
-    private void mine(GuiGraphicsExtractor g) {
+    private void queue(GuiGraphicsExtractor g) {
         g.text(font, Component.translatable("minecraftportsmod.order.queue"), rx0 + 2, ly0 - 12, ChartStyle.INK, false);
-        int qy1 = ly1 - 28;
+        int qy1 = ly1 - 28, qrow = 28;
         Ui.inset(g, rx0, ly0, rx1, qy1);
         int y = ly0 + 3;
-        for (int i = scrollRight; i < view.queue().size() && y + ROW <= qy1 - 2; i++, y += ROW) {
+        for (int i = scrollRight; i < view.queue().size() && y + qrow <= qy1 - 2; i++, y += qrow) {
             ColonyPayloads.WorkRow q = view.queue().get(i);
             if (i > scrollRight) g.fill(rx0 + 6, y, rx1 - 6, y + 1, 0x20000000);
             Ui.slot(g, rx0 + 5, y + 3, 22, q.icon());
@@ -435,13 +412,26 @@ public class OrderScreen extends UiScreen {
     protected boolean uiClick(MouseButtonEvent event, boolean doubleClick) {
         if (super.uiClick(event, doubleClick)) return true;
         double mx = event.x(), my = event.y();
-        if (my < ly0 || my >= ly1 || mx < lx0 || mx >= lx1) return false;
-        List<ColonyPayloads.OrderRow> rows = rows();
-        int i = scrollLeft + (int) ((my - ly0 - 3) / ROW);
-        if (i < 0 || i >= rows.size()) return false;
-        selected = rows.get(i).recipe();
-        setQty(Math.max(1, qty));
-        return true;
+        int n = event.hasShiftDown() ? 64 : event.hasControlDown() ? 5 : 1;
+        boolean back = event.button() == 1;
+        // a recipe: into the cart (the right button: out of it)
+        if (my >= ly0 && my < ly1 && mx >= lx0 && mx < lx1) {
+            List<ColonyPayloads.OrderRow> rows = rows();
+            int i = scrollLeft + (int) ((my - ly0 - 3) / ROW);
+            if (i < 0 || i >= rows.size() || !rows.get(i).open()) return false;
+            put(rows.get(i).recipe(), back ? -n : n);
+            return true;
+        }
+        // the cart: a click takes back
+        int y = dy0 + 11, k = 0;
+        for (var e : new ArrayList<>(cart.entrySet())) {
+            int x = cartX(k++);
+            if (mx >= x && mx < x + SLOT && my >= y && my < y + SLOT) {
+                put(e.getKey(), -n);
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -449,7 +439,7 @@ public class OrderScreen extends UiScreen {
         int step = (int) -Math.signum(scrollY);
         int visible = Math.max(1, (ly1 - ly0 - 4) / ROW);
         if (mouseX < lx1) scrollLeft = Math.max(0, Math.min(Math.max(0, rows().size() - visible), scrollLeft + step));
-        else scrollRight = Math.max(0, Math.min(Math.max(0, view.queue().size() - visible), scrollRight + step));
+        else scrollRight = Math.max(0, Math.min(Math.max(0, view.queue().size() - 1), scrollRight + step));
         return true;
     }
 }

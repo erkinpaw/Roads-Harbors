@@ -742,7 +742,8 @@ public final class ColonyPayloads {
      * piece in hundredths of an emerald, and whether the store has what a making takes right now.
      */
     public record OrderRow(int recipe, net.minecraft.world.item.ItemStack icon, Component name, int lvl, boolean open, int perMaking,
-                           int perDay, int cents, boolean supplied, Component takes, boolean gathered, int stock, int nowCents) {
+                           int perDay, int cents, boolean supplied, Component takes, boolean gathered, int stock, int nowCents,
+                           List<net.minecraft.world.item.ItemStack> ins, int[] inStock, int seconds) {
     }
 
     /** One of the player's orders at the building: pieces ordered and made, days left (0 ready, -1 nobody to make it). */
@@ -784,6 +785,12 @@ public final class ColonyPayloads {
                 buf.writeBoolean(r.gathered);
                 buf.writeVarInt(r.stock);
                 buf.writeVarInt(r.nowCents + 1);
+                buf.writeVarInt(r.ins.size());
+                for (int k = 0; k < r.ins.size(); k++) {
+                    net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, r.ins.get(k));
+                    buf.writeVarInt(r.inStock[k]);
+                }
+                buf.writeVarInt(r.seconds);
             }
             buf.writeVarInt(v.mine.size());
             for (MineRow m : v.mine) {
@@ -824,8 +831,15 @@ public final class ColonyPayloads {
                 boolean supplied = buf.readBoolean();
                 Component takes = comp(buf);
                 boolean gathered = buf.readBoolean();
-                rows.add(new OrderRow(recipe, icon, name, lvl, open, perMaking, perDay, cents, supplied, takes, gathered, buf.readVarInt(),
-                        buf.readVarInt() - 1));
+                int stock = buf.readVarInt(), now = buf.readVarInt() - 1, k = buf.readVarInt();
+                List<net.minecraft.world.item.ItemStack> ins = new ArrayList<>();
+                int[] inStock = new int[k];
+                for (int j = 0; j < k; j++) {
+                    ins.add(net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf));
+                    inStock[j] = buf.readVarInt();
+                }
+                rows.add(new OrderRow(recipe, icon, name, lvl, open, perMaking, perDay, cents, supplied, takes, gathered, stock, now, ins, inStock,
+                        buf.readVarInt()));
             }
             int m = buf.readVarInt();
             List<MineRow> mine = new ArrayList<>();

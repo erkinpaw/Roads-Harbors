@@ -635,12 +635,13 @@ public final class ColonyService {
                 if (b == null || a.b() < 0) return;
                 int recipe = a.b() / 1000, pieces = a.b() % 1000;
                 Workshops.Recipe r = Orders.recipe(b, recipe);
-                int paid = Orders.place(player, v, b, recipe, pieces, data.day);
+                long paid = Orders.place(player, v, b, recipe, pieces, data.day);
                 Component note;
                 if (paid > 0 && r != null) {
                     Component what = piece(v, r).getHoverName();
-                    note = Component.translatable("minecraftportsmod.order.placed", pieces, what, paid).withStyle(ChatFormatting.DARK_GREEN);
-                    v.log(data.day, Component.translatable("minecraftportsmod.vlog.ordered", player.getName(), pieces, what, b.type.displayName(), paid));
+                    note = Component.translatable("minecraftportsmod.order.placed", pieces, what, Trade.money(paid)).withStyle(ChatFormatting.DARK_GREEN);
+                    v.log(data.day, Component.translatable("minecraftportsmod.vlog.ordered", player.getName(), pieces, what, b.type.displayName(),
+                            Trade.money(paid)));
                     player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 0.6F, 1.0F);
                     data.changed();
                 } else {
@@ -738,10 +739,18 @@ public final class ColonyService {
         double work = Workshops.workSeconds(data);
         for (Workshops.Recipe r : Orders.recipes(b)) {
             Map<Res, Integer> takes = new java.util.LinkedHashMap<>(r.in());
-            rows.add(new ColonyPayloads.OrderRow(r.index(), piece(v, r), piece(v, r).getHoverName(), r.lvl(),
+            // what a making takes, each with what the store has of it
+            List<net.minecraft.world.item.ItemStack> ins = new ArrayList<>();
+            int[] inStock = new int[takes.size()];
+            int k = 0;
+            for (var e : takes.entrySet()) {
+                ins.add(Trade.piece(v, Trade.WARES.get(e.getKey().ordinal())).copyWithCount(e.getValue()));
+                inStock[k++] = v.stock(e.getKey());
+            }
+            rows.add(new ColonyPayloads.OrderRow(r.index(), piece(v, r).copyWithCount(r.n()), piece(v, r).getHoverName(), r.lvl(),
                     Orders.open(b, r), r.n(), Orders.perDay(v, b, r, work), Orders.cents(r), Orders.supplied(v, r),
                     takes.isEmpty() ? Component.translatable("minecraftportsmod.order.takes_nothing") : VillageText.amounts(takes), takes.isEmpty(),
-                    Orders.inStock(v, r), Orders.nowCents(v, r)));
+                    Orders.inStock(v, r), Orders.nowCents(v, r), ins, inStock, r.seconds()));
         }
         List<ColonyPayloads.MineRow> mine = new ArrayList<>();
         for (Orders.Order o : Orders.of(v, player.getUUID(), b.id)) {
