@@ -22,6 +22,9 @@ public final class Badges {
     private Badges() {
     }
 
+    /** The players who were last sent some badges. */
+    private static final java.util.Set<java.util.UUID> SHOWN = new java.util.HashSet<>();
+
     /** Buildings this near a player have a badge. */
     static final int NEAR = 48;
 
@@ -41,6 +44,9 @@ public final class Badges {
                     if (badge != null) out.add(badge);
                 }
             }
+            // (nothing near, as a second ago: nothing sent)
+            if (out.isEmpty() && !SHOWN.remove(p.getUUID())) continue;
+            if (!out.isEmpty()) SHOWN.add(p.getUUID());
             ServerPlayNetworking.send(p, new ColonyPayloads.BadgeView(out));
         }
     }
