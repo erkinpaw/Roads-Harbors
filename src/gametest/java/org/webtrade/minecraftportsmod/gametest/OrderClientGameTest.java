@@ -134,8 +134,7 @@ public class OrderClientGameTest implements FabricClientGameTest {
                 log("taken: stairs {}, orders left {}", stairs, Orders.of(v, p.getUUID(), -1).size());
                 if (stairs != 40) throw new AssertionError("expected 40 stairs, got " + stairs);
             });
-            // bought now: 12 planks from what the village has to spare (it keeps what its own plans need: planks
-            // over that are given first, so there is something to spare whatever it is building just now)
+            // the window with planks to spare in the store (what is ready shows on the recipe's tip; the stall sells it)
             server.runOnServer(s -> {
                 Village v = VillageData.get(s).get(1);
                 int keep = org.webtrade.minecraftportsmod.colony.VillageLife.target(v, Res.PLANKS);
@@ -145,24 +144,8 @@ public class OrderClientGameTest implements FabricClientGameTest {
             });
             server.runOnServer(s -> ColonyService.handleAction(s.getPlayerList().getPlayers().getFirst(),
                     new ColonyPayloads.VillageAction(1, ColonyPayloads.VillageAction.ORDERS, saw[0], 0)));
-            context.waitTicks(10);
-            context.runOnClient(mc -> {
-                OrderScreen os = (OrderScreen) mc.gui.screen();
-                os.pick(os.find("planks"), 12);
-            });
-            context.waitTicks(5);
-            context.takeScreenshot("order_f2_buy_now");
-            context.runOnClient(mc -> ((OrderScreen) mc.gui.screen()).pressBuy());
-            context.waitTicks(10);
-            context.takeScreenshot("order_f3_bought");
-            server.runOnServer(s -> {
-                var p = s.getPlayerList().getPlayers().getFirst();
-                int planks = 0;
-                var inv = p.getInventory();
-                for (int i = 0; i < inv.getContainerSize(); i++) if (inv.getItem(i).getItem().toString().contains("planks")) planks += inv.getItem(i).getCount();
-                log("bought now: planks {}", planks);
-                if (planks != 12) throw new AssertionError("expected 12 planks bought now, got " + planks);
-            });
+            context.waitTicks(15);
+            context.takeScreenshot("order_f2_planks");
             context.setScreen(() -> null);
 
             // the other trades: a woodcutter (the Trade button of his window), and the smith

@@ -20,7 +20,7 @@ import java.util.UUID;
 public final class Orders {
 
     /** Orders a player can have open at one village. */
-    public static final int MAX_OPEN = 4;
+    public static final int MAX_OPEN = 12;
     /** Pieces in one order at most. */
     public static final int MAX_PIECES = 256;
     /** Whose an order of the village's own is. */
@@ -215,19 +215,19 @@ public final class Orders {
 
     // ------------------------------------------------------------------ the player's side
 
-    /** A player orders pieces of a recipe: at the end of the workshop's queue. Returns the emeralds paid, 0 if it did not happen. */
-    static int place(ServerPlayer p, Village v, Building b, int recipe, int count, long today) {
+    /** A player orders pieces of a recipe: at the end of the workshop's queue. Returns what was paid (hundredths), 0 if it did not happen. */
+    static long place(ServerPlayer p, Village v, Building b, int recipe, int count, long today) {
         Workshops.Recipe r = recipe(b, recipe);
         if (r == null || !open(b, r)) return 0;
         Job j = worker(b.type);
         if (j == null || v.workers(j) == 0) return 0;
         if (of(v, p.getUUID(), -1).size() >= MAX_OPEN) return 0;
         count = Math.max(1, Math.min(count, MAX_PIECES));
-        int price = Trade.total(cents(r), count);
-        if (Trade.emeralds(p) < price) return 0;
-        pay(p, price);
-        v.emeralds += price;
-        v.orders.add(new Order(nextId(v), b.id, recipe, count, 0, p.getUUID(), p.getName().getString(), price, today));
+        // (paid to the hundredth, as the purse keeps it)
+        long price = (long) cents(r) * count;
+        if (!Wallet.payCents(p, price)) return 0;
+        v.receive(price);
+        v.orders.add(new Order(nextId(v), b.id, recipe, count, 0, p.getUUID(), p.getName().getString(), (int) Math.round(price / 100.0), today));
         return price;
     }
 
