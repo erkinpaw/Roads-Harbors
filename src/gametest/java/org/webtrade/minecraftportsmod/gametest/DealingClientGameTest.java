@@ -82,6 +82,12 @@ public class DealingClientGameTest implements FabricClientGameTest {
                 int[] back = Dealing.round(home, List.of(a, dear), Map.of(), purse);
                 log("home again with {} emeralds (set out with {}), {} carried; bought to sell on {}, made {} hundredths", back[0], purse, back[1],
                         Dealing.carriedOn, Dealing.madeOn);
+                // a player at the cheap village's stall, then at the dear one's: the cheap one's prices remembered there
+                var player = s.getPlayerList().getPlayers().getFirst();
+                org.webtrade.minecraftportsmod.colony.ColonyService.sendTrade(player, cheap, null);
+                var known = org.webtrade.minecraftportsmod.colony.PriceBook.known(player, VillageData.get(s), dear);
+                log("prices known at the dear village's stall: {}", known.stream().map(k -> k.village() + " (" + k.daysAgo() + " d)").toList());
+                if (known.stream().noneMatch(k -> k.village().equals(cheap.name))) failed[0] = "the prices seen at a stall were not remembered";
                 if (Dealing.carriedOn <= 0) failed[0] = "nothing bought where cheap to sell on";
                 else if (back[0] <= purse) failed[0] = "the round made nothing: " + back[0] + " from " + purse;
             });

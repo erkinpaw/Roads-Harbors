@@ -225,7 +225,18 @@ public final class ColonyService {
                 v.focus == null ? -1 : v.focus.ordinal(), center, queueRows(data, v), v.sub == null ? -1 : v.sub.ordinal(),
                 (float) v.ready, (float) VillageLife.readyGain(data, v, today), v.stored(), v.capacity(), got, spent,
                 Harbour.ships(v) > 0 ? Caravans.status(data, v).copy().append(" ").append(Component.translatable("minecraftportsmod.sea.ships",
-                        Voyages.status(data, v))) : Caravans.status(data, v), Caravans.wants(v, true), Caravans.wants(v, false), deals, VillageLife.queueSize(v), v.cents()));
+                        Voyages.status(data, v))) : Caravans.status(data, v), Caravans.wants(v, true), Caravans.wants(v, false), deals, VillageLife.queueSize(v), v.cents(), works(v)));
+    }
+
+    /** The workshops, each with what it makes now (or what it lacks), and how far along: as their badges say. */
+    static List<ColonyPayloads.Badge> works(Village v) {
+        List<ColonyPayloads.Badge> out = new ArrayList<>();
+        for (Building b : v.buildings) {
+            if (!Workshops.workshop(b.type) || !b.standing()) continue;
+            ColonyPayloads.Badge badge = Badges.badge(v, b);
+            if (badge != null) out.add(badge);
+        }
+        return out;
     }
 
     /** The village's queue as the board shows it: the research in hand, the building sites in order, the trails being made. */
@@ -801,8 +812,12 @@ public final class ColonyService {
                     Trade.buyCents(v, w), Trade.maxBuy(player, v, w), Trade.maxSell(player, v, w), Trade.carried(player, v, w),
                     Trade.buyLots(v, w, Trade.maxBuy(player, v, w)), Trade.sellLots(v, w, Trade.maxSell(player, v, w))));
         }
+        // (what the player has seen at the other villages' stalls; and this one's prices, seen now)
+        VillageData data = data(player);
+        List<ColonyPayloads.KnownPrices> known = PriceBook.known(player, data, v);
+        PriceBook.see(player, v, data.day);
         ServerPlayNetworking.send(player, new ColonyPayloads.TradeView(v.id, v.name, merchant, v.cents(), Trade.purse(player), rows,
-                note == null ? Component.empty() : note));
+                note == null ? Component.empty() : note, known));
     }
 
     public static void handleSite(ServerPlayer player, ColonyPayloads.SiteAction a) {

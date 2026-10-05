@@ -371,7 +371,24 @@ public class VillageScreen extends UiScreen {
         g.text(font, growth, (bx0 + bx1 - font.width(growth)) / 2, y + 2, ChartStyle.TEXT_LIGHT, false);
         y += 22;
         // what the village is short of: what a player could bring
-        wantList(g, x, y, colW, Component.translatable("minecraftportsmod.trade.short"), view.shortOf(), ChartStyle.BAD, mouseX, mouseY);
+        y = wantList(g, x, y, colW, Component.translatable("minecraftportsmod.trade.short"), view.shortOf(), ChartStyle.BAD, mouseX, mouseY) + 8;
+        // the workshops: what each makes now (or what it lacks), and how far along
+        if (!view.works().isEmpty() && y + 40 < cy1) {
+            Ui.heading(g, font, Component.translatable("minecraftportsmod.vboard.works"), x, y, colW);
+            y += 18;
+            for (ColonyPayloads.Badge w : view.works()) {
+                if (y + 24 > cy1 - 4) break;
+                Ui.slot(g, x, y, 22, w.icon());
+                g.text(font, Ui.fit(font, w.title().getString(), colW - 30), x + 28, y + 1, ChartStyle.INK, false);
+                String doing = w.doing().getString();
+                // (short of what its making takes: red)
+                boolean shortOf = w.doing().getContents() instanceof net.minecraft.network.chat.contents.TranslatableContents tc
+                        && tc.getKey().equals("minecraftportsmod.badge.short");
+                g.text(font, Ui.fit(font, doing.isEmpty() ? "—" : doing, colW - 30), x + 28, y + 11, shortOf ? ChartStyle.BAD : ChartStyle.TEXT_MUTED, false);
+                if (w.progress() > 0) Ui.bar(g, x + 28, y + 20, x + colW, y + 23, w.progress(), ChartStyle.GOOD);
+                y += 27;
+            }
+        }
 
         // on the right: the queue, one list - what the village has taken on, in its order: the building sites, the
         // levels being raised, what comes down, the building being saved for, the trails' work; each with how far it

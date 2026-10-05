@@ -328,10 +328,17 @@ public class TradeScreen extends UiScreen {
                 g.text(font, state, lx0 + 32, y + 15, shortOf ? ChartStyle.BAD : ChartStyle.TEXT_MUTED, false);
             }
             g.text(font, n, lx1 - 10 - pw - nw - 8, y + 9, ChartStyle.TEXT_MUTED, false);
-            int color = cents < 0 ? ChartStyle.TEXT_MUTED : player && r.target() > 0 && r.stock() < r.target() ? ChartStyle.GOOD : ChartStyle.INK;
+            // the price against what was seen at the other villages: cheap here (green) or dear (red); as yet nothing
+            // seen elsewhere, what the village is short of shows dear to it
+            double seen = seen(r.ware(), !player);
+            int color = cents < 0 ? ChartStyle.TEXT_MUTED : seen > 0 ? judge(cents, seen, player)
+                    : player && r.target() > 0 && r.stock() < r.target() ? ChartStyle.GOOD : ChartStyle.INK;
             g.text(font, p, lx1 - 8 - pw, y + 9, color, false);
             if (cents >= 0) g.item(new ItemStack(Items.EMERALD), lx1 - 8 - 10, y + 5);
             if (hover && mouseX >= lx0 + 5 && mouseX < lx0 + 27) g.setTooltipForNextFrame(font, r.icon(), mouseX, mouseY);
+            else if (hover && mouseX >= lx1 - 8 - pw - 4 && cents >= 0 && !view.known().isEmpty()) {
+                g.setComponentTooltipForNextFrame(font, priceTip(r, player), mouseX, mouseY);
+            }
         }
         if (rows.size() * ROW > ly1 - ly0 - 4) {
             // a scroll bar
@@ -340,6 +347,45 @@ public class TradeScreen extends UiScreen {
             int by = ly0 + 2 + (ly1 - ly0 - 4 - bh) * scroll / Math.max(1, rows.size() - visible);
             g.fill(lx1 - 5, by, lx1 - 2, by + bh, ChartStyle.BRASS_DARK);
         }
+    }
+
+    // ------------------------------------------------------------------ the prices seen elsewhere
+
+    /** The mean of what the other villages asked ({@code ask}) or paid for a ware, as last seen; 0 if never seen. */
+    private double seen(int ware, boolean ask) {
+        double sum = 0;
+        int n = 0;
+        for (ColonyPayloads.KnownPrices k : view.known()) {
+            int[] a = ask ? k.ask() : k.bid();
+            if (ware < a.length && a[ware] > 0) {
+                sum += a[ware];
+                n++;
+            }
+        }
+        return n == 0 ? 0 : sum / n;
+    }
+
+    /** A price told against what was seen elsewhere: a tenth better, green; a tenth worse, red. */
+    private static int judge(int cents, double seen, boolean selling) {
+        double r = cents / seen;
+        boolean good = selling ? r >= 1.1 : r <= 0.9, bad = selling ? r <= 0.9 : r >= 1.1;
+        return good ? ChartStyle.GOOD : bad ? ChartStyle.BAD : ChartStyle.INK;
+    }
+
+    /** The prices of a ware at the other villages, as last seen there (and how long ago). */
+    private List<Component> priceTip(ColonyPayloads.TradeRow r, boolean selling) {
+        List<Component> out = new java.util.ArrayList<>();
+        out.add(r.name());
+        int here = selling ? r.buyCents() : r.sellCents();
+        out.add(Component.translatable(selling ? "minecraftportsmod.trade.seen_here_pays" : "minecraftportsmod.trade.seen_here_asks", price(here))
+                .withStyle(net.minecraft.ChatFormatting.WHITE));
+        for (ColonyPayloads.KnownPrices k : view.known()) {
+            int a = r.ware() < k.ask().length ? k.ask()[r.ware()] : -1, b = r.ware() < k.bid().length ? k.bid()[r.ware()] : -1;
+            if (a < 0 && b < 0) continue;
+            out.add(Component.translatable("minecraftportsmod.trade.seen_line", k.village(), a < 0 ? "—" : price(a), b < 0 ? "—" : price(b), k.daysAgo())
+                    .withStyle(net.minecraft.ChatFormatting.GRAY));
+        }
+        return out;
     }
 
     // ------------------------------------------------------------------ input
