@@ -22,7 +22,7 @@ public final class InventoryPanel {
 
     private static ColonyPayloads.PanelView view;
     private static int ticks;
-    static final int W = 150;
+    static final int W = 220, ROW = 34;
 
     public static void init() {
         ClientPlayNetworking.registerGlobalReceiver(ColonyPayloads.PanelView.TYPE, (payload, ctx) -> view = payload);
@@ -60,7 +60,8 @@ public final class InventoryPanel {
         }
         if (W < 80) return;
         int rows = Math.min(6, view.quests().size());
-        int y1 = y0 + 34 + (rows > 0 ? 6 + rows * 24 : 0) + (view.plot().getString().isEmpty() ? 0 : 14) + (view.hired().getString().isEmpty() ? 0 : 14);
+        int y1 = y0 + 34 + (rows > 0 ? 6 + rows * ROW : 0) + (view.plot().getString().isEmpty() && view.hired().getString().isEmpty() ? 0 : 6)
+                + (view.plot().getString().isEmpty() ? 0 : 20) + (view.hired().getString().isEmpty() ? 0 : 20) + 4;
         panel(g, x0, y0, x1, Math.max(y1, y0 + 40));
         // the purse
         slot(g, x0 + 8, y0 + 9, new ItemStack(Items.EMERALD));
@@ -71,28 +72,41 @@ public final class InventoryPanel {
             y += 6;
             for (int i = 0; i < rows; i++) {
                 ColonyPayloads.PanelQuest q = view.quests().get(i);
-                slot(g, x0 + 8, y + 1, q.icon());
-                g.text(font, Ui.fit(font, q.who().getString(), W - 44), x0 + 32, y + 1, INK, false);
-                int bx0 = x0 + 32, bx1 = x1 - 30, by = y + 12;
-                g.fill(bx0, by, bx1, by + 4, 0x30000000);
-                g.fill(bx0, by, bx0 + (bx1 - bx0) * Math.min(q.have(), q.need()) / Math.max(1, q.need()), by + 4, ChartStyle.GOOD);
+                slot(g, x0 + 8, y + 2, q.icon());
+                int tx = x0 + 32, rx = x1 - 8;
+                // what is wanted, and how many of it there are already
                 String n = q.have() + "/" + q.need();
-                g.text(font, n, x1 - 8 - font.width(n), y + 9, MUTED, false);
-                y += 24;
+                g.text(font, n, rx - font.width(n), y + 1, q.have() >= q.need() ? DONE : INK, false);
+                g.text(font, Ui.fit(font, q.what().getString(), rx - tx - font.width(n) - 6), tx, y + 1, INK, false);
+                // whose it is, and where
+                g.text(font, Ui.fit(font, q.giver() + " · " + q.village(), rx - tx), tx, y + 12, MUTED, false);
+                // how far along, and the days left
+                String d = Component.translatable("minecraftportsmod.panel.days", q.days()).getString();
+                g.text(font, d, rx - font.width(d), y + 23, q.days() <= 1 ? LATE : MUTED, false);
+                int by = y + 24, bx = rx - font.width(d) - 5;
+                g.fill(tx, by, bx, by + 6, 0xFF373737);
+                g.fill(tx + 1, by + 1, bx - 1, by + 5, 0xFF6B6B6B);
+                int w = (bx - tx - 2) * Math.min(q.have(), q.need()) / Math.max(1, q.need());
+                if (w > 0) g.fill(tx + 1, by + 1, tx + 1 + w, by + 5, BAR);
+                y += ROW;
             }
         }
+        if (!view.plot().getString().isEmpty() || !view.hired().getString().isEmpty()) {
+            g.fill(x0 + 8, y, x1 - 8, y + 1, 0x30000000);
+            y += 6;
+        }
         if (!view.plot().getString().isEmpty()) {
-            g.item(new ItemStack(org.webtrade.minecraftportsmod.registry.ModContent.PLOT_MARKER_ITEM), x0 + 8, y - 4);
-            g.text(font, Ui.fit(font, view.plot().getString(), W - 36), x0 + 28, y, INK, false);
-            y += 14;
+            slot(g, x0 + 8, y, new ItemStack(org.webtrade.minecraftportsmod.registry.ModContent.PLOT_MARKER_ITEM));
+            g.text(font, Ui.fit(font, view.plot().getString(), W - 44), x0 + 32, y + 5, INK, false);
+            y += 20;
         }
         if (!view.hired().getString().isEmpty()) {
-            g.item(new ItemStack(Items.IRON_AXE), x0 + 8, y - 4);
-            g.text(font, Ui.fit(font, view.hired().getString(), W - 36), x0 + 28, y, INK, false);
+            slot(g, x0 + 8, y, new ItemStack(Items.IRON_AXE));
+            g.text(font, Ui.fit(font, view.hired().getString(), W - 44), x0 + 32, y + 5, INK, false);
         }
     }
 
-    private static final int INK = 0xFF404040, MUTED = 0xFF707070;
+    private static final int INK = 0xFF2A2A2A, MUTED = 0xFF505050, DONE = 0xFF1E6B26, LATE = 0xFF9A1E1E, BAR = 0xFF2F9A3A;
 
     /** A panel like the inventory's own: light grey, a white edge top-left, a dark one bottom-right, a black rim. */
     private static void panel(GuiGraphicsExtractor g, int x0, int y0, int x1, int y1) {
