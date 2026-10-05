@@ -30,7 +30,7 @@ public final class InventoryPanel {
         ScreenEvents.AFTER_INIT.register((mc, screen, width, height) -> {
             if (!(screen instanceof InventoryScreen)) return;
             ask();
-            ScreenEvents.afterExtract(screen).register((s, g, mx, my, pt) -> draw(s, g));
+            ScreenEvents.afterExtract(screen).register((s, g, mx, my, pt) -> draw(s, g, mx, my));
             ScreenEvents.afterTick(screen).register(s -> {
                 if (++ticks % 40 == 0) ask();
             });
@@ -41,7 +41,10 @@ public final class InventoryPanel {
         if (Minecraft.getInstance().getConnection() != null) ClientPlayNetworking.send(new ColonyPayloads.RequestPanel());
     }
 
-    private static void draw(Screen screen, GuiGraphicsExtractor g) {
+    /** Where each task is in the panel as last drawn: {x0, y0, x1, y1} by task. */
+    private static final java.util.List<int[]> ROWS = new java.util.ArrayList<>();
+
+    private static void draw(Screen screen, GuiGraphicsExtractor g, int mx, int my) {
         if (view == null) return;
         var font = Minecraft.getInstance().font;
         // left of the inventory's window (176 wide, in the middle)
@@ -64,7 +67,44 @@ public final class InventoryPanel {
         int h = body(null, font, x0, x1, 0);
         y0 = Math.max(2, Math.min(y0, screen.height - 2 - h));
         panel(g, x0, y0, x1, y0 + h);
+        ROWS.clear();
         body(g, font, x0, x1, y0);
+        // the task under the mouse: all of it
+        for (int i = 0; i < ROWS.size(); i++) {
+            int[] r = ROWS.get(i);
+            if (mx < r[0] || mx >= r[2] || my < r[1] || my >= r[3]) continue;
+            // (drawn now, on top: the frame's own tips are drawn already by the time the panel is)
+            g.nextStratum();
+            g.tooltip(font, tip(font, view.quests().get(i)).stream()
+                            .map(net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent::create).toList(), mx, my,
+                    net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner.INSTANCE, null);
+        }
+    }
+
+    /** A task in full: what is asked, how far along, what is carried, the reward, the days left, whose and where. */
+    private static java.util.List<net.minecraft.util.FormattedCharSequence> tip(net.minecraft.client.gui.Font font, ColonyPayloads.PanelQuest q) {
+        java.util.List<net.minecraft.util.FormattedCharSequence> out = new java.util.ArrayList<>();
+        out.addAll(font.split(q.full().copy().withStyle(net.minecraft.ChatFormatting.WHITE), 220));
+        java.util.List<Component> more = new java.util.ArrayList<>();
+        Quests.Kind kind = Quests.Kind.values()[Math.min(q.kind(), Quests.Kind.values().length - 1)];
+        switch (kind) {
+            case HUNT -> more.add(Component.translatable("minecraftportsmod.panel.tip.killed", q.done(), q.need()));
+            case LETTER -> {
+                if (!q.to().isEmpty()) more.add(Component.translatable("minecraftportsmod.panel.tip.letter", q.to()));
+            }
+            default -> {
+                more.add(Component.translatable("minecraftportsmod.panel.tip.done", q.done(), q.need()));
+                more.add(Component.translatable("minecraftportsmod.panel.tip.carried", q.carried()));
+            }
+        }
+        more.add(Component.translatable("minecraftportsmod.panel.tip.reward", q.reward()).withStyle(net.minecraft.ChatFormatting.GREEN));
+        more.add(Component.translatable("minecraftportsmod.panel.tip.days", q.days())
+                .withStyle(q.days() <= 1 ? net.minecraft.ChatFormatting.RED : net.minecraft.ChatFormatting.GRAY));
+        Component who = q.trade().getString().isEmpty() ? Component.literal(q.giver())
+                : Component.literal(q.giver() + ", ").append(q.trade());
+        more.add(who.copy().append(" · " + q.village()).withStyle(net.minecraft.ChatFormatting.GRAY));
+        for (Component c : more) out.addAll(font.split(c, 220));
+        return out;
     }
 
     /** The panel's insides from {@code y0}; drawn unless {@code g} is null. Returns how tall it all is. */
@@ -82,6 +122,7 @@ public final class InventoryPanel {
             for (int i = 0; i < rows; i++) {
                 ColonyPayloads.PanelQuest q = view.quests().get(i);
                 int top = y, tx = x0 + 32, rx = x1 - 8;
+                if (g != null) ROWS.add(new int[]{x0 + 4, top, x1 - 4, 0});
                 if (g != null) slot(g, x0 + 8, y + 2, q.icon());
                 // what is wanted, and how many of it there are already
                 String n = q.have() + "/" + q.need();
@@ -101,6 +142,7 @@ public final class InventoryPanel {
                     if (w > 0) g.fill(tx + 1, by + 1, tx + 1 + w, by + 5, BAR);
                 }
                 y = by + 10;
+                if (g != null) ROWS.getLast()[3] = y;
             }
         }
         boolean plot = !view.plot().getString().isEmpty(), hired = !view.hired().getString().isEmpty();
@@ -147,6 +189,11 @@ public final class InventoryPanel {
         g.fill(x + 1, y + 1, x + 18, y + 18, 0xFFFFFFFF);
         g.fill(x + 1, y + 1, x + 17, y + 17, 0xFF8B8B8B);
         if (!stack.isEmpty()) g.item(stack, x + 1, y + 1);
+    }
+
+    /** For tests: where the tasks are in the panel as last drawn ({x0, y0, x1, y1}, in the screen's scaled units). */
+    public static java.util.List<int[]> rows() {
+        return java.util.List.copyOf(ROWS);
     }
 
     /** For tests: what the panel shows now. */
