@@ -41,6 +41,7 @@
       "org.webtrade.minecraftportsmod.gametest.IslandClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.WorkshopClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.DealingClientGameTest",
+      "org.webtrade.minecraftportsmod.gametest.PlayerShipClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.LongRunClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.WorldRunClientGameTest"
     ]

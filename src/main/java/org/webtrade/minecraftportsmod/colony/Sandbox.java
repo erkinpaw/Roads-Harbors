@@ -18,9 +18,9 @@ public final class Sandbox {
     private Sandbox() {
     }
 
-    /** What goes up, in this order (where there is room): the stores, the workshops, the farms, the homes. */
+    /** What goes up, in this order (where there is room): a pier (on a coast), the stores, the workshops, the farms, the homes. */
     private static final BuildingType[] BUILDINGS = {
-            BuildingType.STOREHOUSE, BuildingType.STOREHOUSE_2, BuildingType.SMITHY, BuildingType.SAWMILL, BuildingType.CARPENTER,
+            BuildingType.PIER, BuildingType.STOREHOUSE, BuildingType.STOREHOUSE_2, BuildingType.SMITHY, BuildingType.SAWMILL, BuildingType.CARPENTER,
             BuildingType.CARPENTER, BuildingType.LOCKSMITH, BuildingType.WEAVER, BuildingType.SMELTER, BuildingType.GLASSWORKS,
             BuildingType.MARKET, BuildingType.WOOD_HUT, BuildingType.MINE_HOUSE, BuildingType.FIELD, BuildingType.FARM, BuildingType.FARMYARD,
             BuildingType.FARMYARD, BuildingType.HOUSE, BuildingType.HOUSE, BuildingType.HOUSE_TALL, BuildingType.HOUSE_TALL, BuildingType.STONE_HOUSE,
@@ -29,7 +29,7 @@ public final class Sandbox {
     /** The people: so many of each trade. */
     private static final Map<Job, Integer> PEOPLE = Map.ofEntries(Map.entry(Job.SMITH, 1), Map.entry(Job.SAWYER, 1), Map.entry(Job.JOINER, 2),
             Map.entry(Job.LOCKSMITH, 1), Map.entry(Job.WEAVER, 1), Map.entry(Job.SMELTER, 1), Map.entry(Job.GLASSBLOWER, 1),
-            Map.entry(Job.MERCHANT, 1), Map.entry(Job.WOODCUTTER, 2), Map.entry(Job.MINER, 2), Map.entry(Job.FARMER, 2), Map.entry(Job.HERDER, 2));
+            Map.entry(Job.MERCHANT, 1), Map.entry(Job.SAILOR, 1), Map.entry(Job.WOODCUTTER, 2), Map.entry(Job.MINER, 2), Map.entry(Job.FARMER, 2), Map.entry(Job.HERDER, 2));
 
     public static Village build(ServerLevel level, BlockPos at, Direction facing, String name, boolean russian) {
         Village v = VillageManager.foundCamp(level, at.relative(facing, 10), facing, name, russian, "oak");
@@ -43,6 +43,14 @@ public final class Sandbox {
                 continue;
             }
             Building b = new Building(v.nextBuilding++, t, f.origin(), f.front(), level.getRandom().nextLong()).look(VillageLife.look(v));
+            // (a pier: its jetty out to deep water, as the village works it out)
+            if (t == BuildingType.PIER) {
+                b.jetty = Harbour.jetty(level, v, f.origin(), t.half);
+                if (b.jetty == null) {
+                    Minecraftportsmod.LOGGER.info("[sandbox] no jetty for the pier");
+                    continue;
+                }
+            }
             b.level = t.maxLevel;
             if (t == BuildingType.FARMYARD && herds++ == 1) b.setOption("herd:2;");
             b.state = Building.State.BUILT;

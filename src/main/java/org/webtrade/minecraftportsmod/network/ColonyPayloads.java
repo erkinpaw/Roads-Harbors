@@ -453,7 +453,7 @@ public final class ColonyPayloads {
     /** @param quest the person's task: 0 none, 1 one to take, 2 taken by this player, 3 taken by someone else */
     public record PersonView(int village, int person, String villageName, int level, String name, int job, boolean child, boolean elder,
                              Component activity, Component home, long days, int orders, int quest, int plotPrice,
-                             int hired, int brought, int quota, List<Passage> passages) implements CustomPacketPayload {
+                             int hired, int brought, int quota, List<Passage> passages, int shipPrice) implements CustomPacketPayload {
         public static final Type<PersonView> TYPE = new Type<>(Minecraftportsmod.id("person_view"));
         public static final StreamCodec<RegistryFriendlyByteBuf, PersonView> CODEC = StreamCodec.of((buf, v) -> {
             buf.writeVarInt(v.village);
@@ -479,9 +479,10 @@ public final class ColonyPayloads {
                 buf.writeUtf(p.name(), 64);
                 buf.writeVarInt(p.price());
             }
+            buf.writeVarInt(v.shipPrice + 1);
         }, buf -> new PersonView(buf.readVarInt(), buf.readVarInt(), buf.readUtf(64), buf.readVarInt(), buf.readUtf(64),
                 buf.readVarInt() - 1, buf.readBoolean(), buf.readBoolean(), comp(buf), comp(buf), buf.readVarLong(), buf.readVarInt() - 1,
-                buf.readVarInt(), buf.readVarInt() - 1, buf.readVarInt() - 1, buf.readVarInt(), buf.readVarInt(), passages(buf)));
+                buf.readVarInt(), buf.readVarInt() - 1, buf.readVarInt() - 1, buf.readVarInt(), buf.readVarInt(), passages(buf), buf.readVarInt() - 1));
 
         private static List<Passage> passages(RegistryFriendlyByteBuf buf) {
             int n = buf.readVarInt();
@@ -687,8 +688,21 @@ public final class ColonyPayloads {
      * hundredths of an emerald (-1: not selling / not buying); the most the player can buy and sell in one deal, and
      * the pieces the player carries.
      */
+    /** Lot prices on the wire: -1 (none) sent as 0. */
+    private static int[] shift(int[] a) {
+        int[] o = new int[a.length];
+        for (int i = 0; i < a.length; i++) o[i] = a[i] + 1;
+        return o;
+    }
+
+    private static int[] unshift(int[] a) {
+        int[] o = new int[a.length];
+        for (int i = 0; i < a.length; i++) o[i] = a[i] - 1;
+        return o;
+    }
+
     public record TradeRow(int ware, int kind, net.minecraft.world.item.ItemStack icon, Component name, int stock, int target,
-                           int available, int sellCents, int buyCents, int maxBuy, int maxSell, int carried) {
+                           int available, int sellCents, int buyCents, int maxBuy, int maxSell, int carried, int[] buyLots, int[] sellLots) {
     }
 
     public record TradeView(int village, String villageName, String merchant, long purse, long playerEmeralds, List<TradeRow> rows,
@@ -714,6 +728,8 @@ public final class ColonyPayloads {
                 buf.writeVarInt(r.maxBuy);
                 buf.writeVarInt(r.maxSell);
                 buf.writeVarInt(r.carried);
+                buf.writeVarIntArray(shift(r.buyLots));
+                buf.writeVarIntArray(shift(r.sellLots));
             }
             comp(buf, v.note);
         }, buf -> {
@@ -727,7 +743,8 @@ public final class ColonyPayloads {
                 var icon = net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf);
                 Component wname = comp(buf);
                 rows.add(new TradeRow(ware, kind, icon, wname, buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), buf.readVarInt() - 1,
-                        buf.readVarInt() - 1, buf.readVarInt(), buf.readVarInt(), buf.readVarInt()));
+                        buf.readVarInt() - 1, buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), unshift(buf.readVarIntArray()),
+                        unshift(buf.readVarIntArray())));
             }
             return new TradeView(village, name, merchant, purse, em, rows, comp(buf));
         });
@@ -890,7 +907,8 @@ public final class ColonyPayloads {
                 /** a = person: take what one carries to the store; hire on at a trade (or leave it) */ DEPOSIT = 25, HIRE = 26,
                 /** a = person (a skipper), b = village: a passage there on his ship */ PASSAGE = 27,
                 /** a = workshop: the player's tools put in its slot */ TOOLS = 28,
-                /** a = BuildingType ordinal: the village builds that house on the player's plot */ PLOT_HOUSE = 29;
+                /** a = BuildingType ordinal: the village builds that house on the player's plot */ PLOT_HOUSE = 29,
+                /** a = person (a skipper): a ship of the player's own ordered at the village's pier */ SHIP_ORDER = 30;
         public static final Type<VillageAction> TYPE = new Type<>(Minecraftportsmod.id("village_action"));
         public static final StreamCodec<FriendlyByteBuf, VillageAction> CODEC = StreamCodec.of((buf, p) -> {
             buf.writeVarInt(p.village);

@@ -456,7 +456,7 @@ public final class VillageLife {
                 int give = Math.min(b.missing(r), v.stock(r));
                 // (a ship gets what is left over, the other sites and the reserve first; an island, building its first
                 // ship, its only way out, eats into the reserve by half)
-                if (b.type == BuildingType.SHIP && b.missing(r) > 0) {
+                if (b.type == BuildingType.SHIP && b.owner() == null && b.missing(r) > 0) {
                     int keep = Math.max(0, target(v, r) - b.missing(r));
                     if (v.island && v.ships == 0) keep /= 2;
                     give = Math.min(b.missing(r), v.stock(r) - keep);

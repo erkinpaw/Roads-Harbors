@@ -64,6 +64,12 @@ public class WarshipEntity extends Boat {
 
     private final ShipClass cls;
 
+    /** Whose ship she is (a player's, bought at a village's pier): only the owner sails her and opens her hold. Null: anyone's. */
+    private java.util.UUID owner;
+    /** Her hold: what her owner carries to trade (six rows, as a big chest). */
+    private final net.minecraft.world.SimpleContainer hold = new net.minecraft.world.SimpleContainer(HOLD);
+    public static final int HOLD = 54;
+
     public WarshipEntity(EntityType<? extends Boat> type, Level level) {
         super(type, level, () -> Items.OAK_BOAT);
         cls = org.webtrade.minecraftportsmod.registry.ModContent.shipClass(type);
@@ -176,9 +182,10 @@ public class WarshipEntity extends Boat {
         return getFirstPassenger() instanceof Player p ? p : null;
     }
 
-    /** The captain's orders, as his client sent them. */
+    /** The captain's orders, as his client sent them (a player's ship: only its owner sails her). */
     public void order(ServerPlayer from, int sailsChange, int rudder, int fire, float elevation) {
         if (captain() != from || sinking() > 0) return;
+        if (owner != null && !owner.equals(from.getUUID())) return;
         if (sailsChange != 0) setSails(sails() + Integer.signum(sailsChange));
         setRudder(rudder);
         if (fire != 0) fire(fire, elevation);
@@ -270,6 +277,10 @@ public class WarshipEntity extends Boat {
             drop(level, new ItemStack(Items.GOLD_INGOT, gold));
             if (random.nextInt(3) == 0) drop(level, new ItemStack(Items.GUNPOWDER, 2 + random.nextInt(4)));
         }
+        for (int i = 0; i < hold.getContainerSize(); i++) {
+            ItemStack st = hold.removeItemNoUpdate(i);
+            if (!st.isEmpty()) drop(level, st);
+        }
         Pirates.sunk(level, this, by);
     }
 
@@ -305,8 +316,48 @@ public class WarshipEntity extends Boat {
     @Override
     public InteractionResult interact(Player player, InteractionHand hand, Vec3 location) {
         if (isPirate() || sinking() > 0) return InteractionResult.PASS;
+        // her owner, crouching: her hold
+        if (owner != null && player.isShiftKeyDown() && hand == InteractionHand.MAIN_HAND) {
+            if (!owner.equals(player.getUUID())) return InteractionResult.PASS;
+            if (player instanceof ServerPlayer sp) openHold(sp);
+            return InteractionResult.SUCCESS;
+        }
         if (hire(player, hand)) return InteractionResult.SUCCESS;
         return super.interact(player, hand, location);
+    }
+
+    // ------------------------------------------------------------------ a player's ship: the owner, the hold
+
+    public java.util.UUID owner() {
+        return owner;
+    }
+
+    public void setOwner(java.util.UUID owner) {
+        this.owner = owner;
+    }
+
+    public net.minecraft.world.SimpleContainer hold() {
+        return hold;
+    }
+
+    /** The hold opened for her owner: its slots, the player's inventory below. */
+    public void openHold(ServerPlayer player) {
+        player.openMenu(new net.fabricmc.fabric.api.menu.v1.ExtendedMenuProvider<Integer>() {
+            @Override
+            public Integer getScreenOpeningData(ServerPlayer p) {
+                return HOLD;
+            }
+
+            @Override
+            public net.minecraft.network.chat.Component getDisplayName() {
+                return net.minecraft.network.chat.Component.translatable("minecraftportsmod.ship.hold");
+            }
+
+            @Override
+            public net.minecraft.world.inventory.AbstractContainerMenu createMenu(int id, net.minecraft.world.entity.player.Inventory inv, Player p) {
+                return new org.webtrade.minecraftportsmod.vessel.HoldMenu(id, inv, hold);
+            }
+        });
     }
 
     @Override
@@ -763,6 +814,8 @@ public class WarshipEntity extends Boat {
         output.putBoolean("pirate", isPirate());
         crew(SailorEntity.Role.HAND);
         output.putIntArray("crew", crew.clone());
+        if (owner != null) output.putString("owner", owner.toString());
+        net.minecraft.world.ContainerHelper.saveAllItems(output, hold.getItems());
     }
 
     @Override
@@ -774,5 +827,12 @@ public class WarshipEntity extends Boat {
             for (int i = 0; i < Math.min(a.length, crew.length); i++) crew[i] = a[i];
             crewSet = true;
         });
+        String o = input.getStringOr("owner", "");
+        try {
+            owner = o.isEmpty() ? null : java.util.UUID.fromString(o);
+        } catch (IllegalArgumentException e) {
+            owner = null;
+        }
+        net.minecraft.world.ContainerHelper.loadAllItems(input, hold.getItems());
     }
 }
