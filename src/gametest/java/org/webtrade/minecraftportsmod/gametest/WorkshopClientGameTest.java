@@ -194,6 +194,41 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
                 }
                 log("fences taken: {}", fences);
             });
+            // the player at the bench, at night (the joiners at home): crouching, using the workshop, the order goes on
+            double[] bench = {0, 0};
+            server.runOnServer(s -> {
+                s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), "time set 18000");
+                Village v = VillageData.get(s).get(ids[0]);
+                var p = s.getPlayerList().getPlayers().getFirst();
+                Building b = v.building(ids[1]);
+                int fence = -1;
+                for (var r : Orders.recipes(b)) if (r.out() == Res.FENCE) fence = r.index();
+                ColonyService.handleAction(p, new ColonyPayloads.VillageAction(v.id, ColonyPayloads.VillageAction.ORDER, b.id, fence * 1000 + 6));
+                p.teleportTo(b.origin.getX() + 0.5, b.origin.getY() + 1, b.origin.getZ() + b.type.half + 2.5);
+            });
+            context.waitTicks(40);
+            server.runOnServer(s -> {
+                Village v = VillageData.get(s).get(ids[0]);
+                bench[0] = work(v, s.getPlayerList().getPlayers().getFirst(), v.building(ids[1]));
+                log("at night, before the bench: {}", Workshops.describe(v));
+            });
+            for (int k = 0; k < 20; k++) {
+                context.waitTicks(4);
+                server.runOnServer(s -> {
+                    Village v = VillageData.get(s).get(ids[0]);
+                    var p = s.getPlayerList().getPlayers().getFirst();
+                    p.setShiftKeyDown(true);
+                    org.webtrade.minecraftportsmod.colony.Helping.bench(p, s.overworld(), v.building(ids[1]).origin);
+                });
+            }
+            context.takeScreenshot("workshop_bench");
+            server.runOnServer(s -> {
+                Village v = VillageData.get(s).get(ids[0]);
+                s.getPlayerList().getPlayers().getFirst().setShiftKeyDown(false);
+                bench[1] = work(v, s.getPlayerList().getPlayers().getFirst(), v.building(ids[1]));
+                log("after 4 s at the bench: work {} -> {}; {}", String.format("%.2f", bench[0]), String.format("%.2f", bench[1]), Workshops.describe(v));
+            });
+            if (bench[1] <= bench[0]) throw new AssertionError("the player's work at the bench did not move the order on");
             // a day: the village's own orders for what it keeps
             server.runCommand("village day");
             context.waitTicks(40);
@@ -203,5 +238,12 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
             context.takeScreenshot("workshop_village");
             if (moved < 2) throw new AssertionError("the order did not move on (made " + (int) last[0] + ")");
         }
+    }
+
+    /** How far the player's orders at a workshop have come: fences made, and the making in hand (three a making). */
+    private static double work(Village v, net.minecraft.server.level.ServerPlayer p, Building b) {
+        double n = 0;
+        for (var o : Orders.of(v, p.getUUID(), b.id)) n += o.made();
+        return n + 3 * Workshops.progress(v, b)[1];
     }
 }
