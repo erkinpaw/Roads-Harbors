@@ -44,8 +44,20 @@ public final class InventoryPanel {
         if (view == null) return;
         var font = Minecraft.getInstance().font;
         // left of the inventory's window (176 wide, in the middle)
-        // (as wide as there is room for, down to a narrow one)
-        int x1 = (screen.width - 176) / 2 - 4, W = Math.min(InventoryPanel.W, x1 - 2), x0 = x1 - W, y0 = (screen.height - 166) / 2;
+        // (as wide as there is room for, down to a narrow one; with the recipe book open beside the inventory, right of it)
+        var player = Minecraft.getInstance().player;
+        boolean book = player != null && screen.width >= 379
+                && player.getRecipeBook().isOpen(net.minecraft.world.inventory.RecipeBookType.CRAFTING);
+        int y0 = (screen.height - 166) / 2, x0, x1, W;
+        if (book) {
+            x0 = (screen.width - 176) / 2 + 77 + 176 + 4;
+            W = Math.min(InventoryPanel.W, screen.width - 2 - x0);
+            x1 = x0 + W;
+        } else {
+            x1 = (screen.width - 176) / 2 - 4;
+            W = Math.min(InventoryPanel.W, x1 - 2);
+            x0 = x1 - W;
+        }
         if (W < 80) return;
         int rows = Math.min(6, view.quests().size());
         int y1 = y0 + 34 + (rows > 0 ? 6 + rows * 24 : 0) + (view.plot().getString().isEmpty() ? 0 : 14) + (view.hired().getString().isEmpty() ? 0 : 14);
