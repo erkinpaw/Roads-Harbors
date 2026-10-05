@@ -41,11 +41,12 @@ public final class VillageManager {
 
     public static void init() {
         ServerTickEvents.END_SERVER_TICK.register(org.webtrade.minecraftportsmod.Perf.timed("Villages", VillageManager::tick));
-        // crouching at a building site, using its blocks: building by hand
+        // crouching at a building site, using its blocks: building by hand; at a workshop: working at its bench
         net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register((player, world, hand, hit) -> {
             if (hand != net.minecraft.world.InteractionHand.MAIN_HAND || !(player instanceof net.minecraft.server.level.ServerPlayer sp)
                     || !(world instanceof ServerLevel sl)) return net.minecraft.world.InteractionResult.PASS;
-            return Helping.build(sp, sl, hit.getBlockPos()) ? net.minecraft.world.InteractionResult.SUCCESS : net.minecraft.world.InteractionResult.PASS;
+            return Helping.build(sp, sl, hit.getBlockPos()) || Helping.bench(sp, sl, hit.getBlockPos())
+                    ? net.minecraft.world.InteractionResult.SUCCESS : net.minecraft.world.InteractionResult.PASS;
         });
         // a boundary stone: only its owner takes it up
         net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, be) ->

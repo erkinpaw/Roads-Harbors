@@ -99,6 +99,65 @@ public final class Helping {
         return true;
     }
 
+    // ------------------------------------------------------------------ at a workshop's bench
+
+    /** The tick each player last worked at a bench (the work counts the time between strokes, a stroke every few ticks). */
+    private static final Map<UUID, Long> STROKE = new HashMap<>();
+
+    /** The workshop standing here, on its plot or at its work spot (null: none). */
+    static Building workshop(Village v, BlockPos pos) {
+        for (Building b : v.buildings) {
+            if (!Workshops.workshop(b.type) || !b.standing() || b.owner() != null) continue;
+            int h = b.type.half + 1;
+            if (Math.abs(pos.getX() - b.origin.getX()) <= h && Math.abs(pos.getZ() - b.origin.getZ()) <= h) return b;
+            BlockPos spot = b.blueprint(v.wood).workSpot;
+            if (Math.abs(pos.getX() - spot.getX()) <= 1 && Math.abs(pos.getZ() - spot.getZ()) <= 1) return b;
+        }
+        return null;
+    }
+
+    /**
+     * A player, crouching, uses a block of a workshop that has an order in hand: they work at its bench as one of its
+     * hands, for as long as they keep at it, with the tools in its slot. Returns true if it was bench work.
+     */
+    public static boolean bench(ServerPlayer p, ServerLevel level, BlockPos pos) {
+        if (!p.isShiftKeyDown()) return false;
+        VillageData data = VillageData.get(level.getServer());
+        Village v = data.near(pos, 160);
+        if (v == null) return false;
+        Building b = workshop(v, pos);
+        if (b == null) return false;
+        Orders.Order o = Workshops.current(v, b);
+        Workshops.Recipe r = o == null ? null : Workshops.recipe(b.type, o.recipe);
+        if (r == null) return false;
+        long now = level.getServer().getTickCount();
+        Long last = STROKE.put(p.getUUID(), now);
+        double seconds = last == null || now - last > 10 ? 0.2 : (now - last) / 20.0;
+        boolean began = b.taken;
+        int made = o.made;
+        Workshops.work(v, b, 1, seconds, data.day);
+        // (what one making takes not in the store: nothing to work on)
+        boolean short_ = !began && !b.taken && o.made == made;
+        p.swing(InteractionHand.MAIN_HAND, true);
+        if (!short_ && now % 8 < 4) level.playSound(null, pos, net.minecraft.sounds.SoundEvents.VILLAGER_WORK_TOOLSMITH, SoundSource.BLOCKS, 0.4F, 1.1F);
+        float done = (float) Workshops.progress(v, b)[1];
+        Bar bar = BARS.get(p.getUUID());
+        if (bar == null || bar.village != v.id || bar.building != b.id) {
+            if (bar != null) bar.bar.removeAllPlayers();
+            ServerBossEvent e = new ServerBossEvent(UUID.randomUUID(), Component.empty(), BossEvent.BossBarColor.GREEN, BossEvent.BossBarOverlay.PROGRESS);
+            e.addPlayer(p);
+            bar = new Bar(e, new int[]{0}, v.id, b.id);
+            BARS.put(p.getUUID(), bar);
+        }
+        bar.idle[0] = 0;
+        Component what = r.out().displayName();
+        bar.bar.setColor(short_ ? BossEvent.BossBarColor.RED : BossEvent.BossBarColor.GREEN);
+        bar.bar.setName(short_ ? Component.translatable("minecraftportsmod.badge.short", what)
+                : Component.empty().append(what).append(" " + o.made + "/" + o.count + " · " + Math.round(done * 100) + "%"));
+        bar.bar.setProgress(short_ ? 0F : done);
+        return true;
+    }
+
     /** The bars of players who stopped building go away after a few seconds. */
     static void tick(MinecraftServer srv) {
         if (BARS.isEmpty() || srv.getTickCount() % 5 != 0) return;
@@ -115,6 +174,7 @@ public final class Helping {
     static void clear() {
         for (Bar b : BARS.values()) b.bar.removeAllPlayers();
         BARS.clear();
+        STROKE.clear();
     }
 
     // ------------------------------------------------------------------ the store
