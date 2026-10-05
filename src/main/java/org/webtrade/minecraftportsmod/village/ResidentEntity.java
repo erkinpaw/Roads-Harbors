@@ -56,6 +56,9 @@ public class ResidentEntity extends PathfinderMob {
     /** The marker over the head: 0 none, 1 a task to take, 2 a task taken. */
     private static final EntityDataAccessor<Integer> DATA_QUEST = SynchedEntityData.defineId(ResidentEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Component> DATA_ACTIVITY = SynchedEntityData.defineId(ResidentEntity.class, EntityDataSerializers.COMPONENT);
+    /** How far along the work in hand is (0..1), for the ring over the head; below 0: no work with an end to it. */
+    private static final EntityDataAccessor<Float> DATA_PROGRESS = SynchedEntityData.defineId(ResidentEntity.class, EntityDataSerializers.FLOAT);
+    private int progressAt = -1000;
 
     /** What kind of place the resident works at. */
     public enum Work {
@@ -123,6 +126,7 @@ public class ResidentEntity extends PathfinderMob {
 
     @Override
     protected void customServerAiStep(ServerLevel level) {
+        if (tickCount - progressAt > 40 && entityData.get(DATA_PROGRESS) >= 0) entityData.set(DATA_PROGRESS, -1F);
         if (colony() && tickCount % 20 == 0) org.webtrade.minecraftportsmod.colony.Routine.apply(this);
         super.customServerAiStep(level);
     }
@@ -138,6 +142,7 @@ public class ResidentEntity extends PathfinderMob {
         builder.define(DATA_COLONY, false);
         builder.define(DATA_ACTIVITY, Component.empty());
         builder.define(DATA_QUEST, 0);
+        builder.define(DATA_PROGRESS, -1F);
     }
 
     /** Sets who this is; called once when the village is settled. */
@@ -201,6 +206,17 @@ public class ResidentEntity extends PathfinderMob {
 
     public Component activity() {
         return entityData.get(DATA_ACTIVITY);
+    }
+
+    /** How far along the work in hand is (0..1), or below 0. */
+    public float progress() {
+        return entityData.get(DATA_PROGRESS);
+    }
+
+    /** The work in hand is so far along (it lapses if not told again within two seconds). */
+    public void setProgress(float p) {
+        progressAt = tickCount;
+        if (Math.abs(entityData.get(DATA_PROGRESS) - p) > 0.004F) entityData.set(DATA_PROGRESS, p);
     }
 
     public void setActivity(Component c) {

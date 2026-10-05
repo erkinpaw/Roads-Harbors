@@ -165,6 +165,9 @@ public final class Building {
     int making = -1;
     /** A workshop's tools: uses left of wooden, stone, iron ones (see {@link Workshops}). */
     final int[] tools = new int[3];
+    /** Where its badge hangs (the middle of its top), worked out for this blueprint (not saved). */
+    transient int[] badgeAt;
+    transient Blueprint badgeOf;
 
     public int[] tools() {
         return tools.clone();

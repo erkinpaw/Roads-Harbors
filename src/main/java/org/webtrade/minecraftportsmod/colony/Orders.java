@@ -151,6 +151,11 @@ public final class Orders {
     }
 
     /** An order of the village's own, at the end of a workshop's queue. */
+    /** One of a made thing, as the village makes it (its doors of its own wood). */
+    static ItemStack piece(Village v, Res r) {
+        return Trade.piece(v, ware(r));
+    }
+
     static Order villageOrder(Village v, Building b, int recipe, int count, long today) {
         return new Order(nextId(v), b.id, recipe, count, 0, VILLAGE, "", 0, today);
     }
