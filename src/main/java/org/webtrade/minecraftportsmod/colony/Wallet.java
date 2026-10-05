@@ -65,6 +65,8 @@ public final class Wallet extends SavedData {
     /** Pays {@code n} out of the purse; false (and nothing paid) if there is not so much in it. */
     public static boolean pay(ServerPlayer p, int n) {
         if (n <= 0) return true;
+        // (what was just picked up counts too)
+        absorb(p);
         Wallet w = get(p.level().getServer());
         long have = w.purses.getOrDefault(p.getUUID(), 0L);
         if (have < n) return false;

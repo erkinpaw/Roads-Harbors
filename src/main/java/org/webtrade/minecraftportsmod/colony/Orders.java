@@ -151,7 +151,15 @@ public final class Orders {
     }
 
     /** An order of the village's own, at the end of a workshop's queue. */
+    /** What a player pays the village for so much of its goods (emeralds, rounded up). */
+    static int price(Village v, java.util.Map<Res, Integer> goods) {
+        long cents = 0;
+        for (var e : goods.entrySet()) cents += (long) Trade.sellCents(v, ware(e.getKey())) * e.getValue();
+        return (int) Math.max(1, (cents + 99) / 100);
+    }
+
     /** One of a made thing, as the village makes it (its doors of its own wood). */
+
     static ItemStack piece(Village v, Res r) {
         return Trade.piece(v, ware(r));
     }

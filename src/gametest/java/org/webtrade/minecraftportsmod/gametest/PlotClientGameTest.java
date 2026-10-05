@@ -24,7 +24,8 @@ import org.webtrade.minecraftportsmod.registry.ModContent;
 /**
  * A player's plot: a boundary stone bought from the head of the village is set down too near the square (refused,
  * back in the hand), then in a good place: the plot is marked (corner lanterns), the village grows for some days
- * and builds nothing on it, a path is laid to its front; a bed and a door in it make a home (achievement); the stone
+ * and builds nothing on it, a path is laid to its front; the stone used shows the houses the village would build; a
+ * hut paid for goes up as the village's site and, built, is handed over: the player's home (achievement); the stone
  * taken up gives the plot back.
  */
 public class PlotClientGameTest implements FabricClientGameTest {
@@ -172,24 +173,78 @@ public class PlotClientGameTest implements FabricClientGameTest {
             context.waitTicks(30);
             context.takeScreenshot("plot_b_village_round_it");
 
-            // a home on it: a bed and a door
+            // the stone used: the houses to choose from
+            context.waitForScreen(org.webtrade.minecraftportsmod.client.chart.PlotScreen.class);
+            context.takeScreenshot("plot_c_houses");
+            context.setScreen(() -> null);
+            // a hut chosen and paid for: the village builds it, first in its queue; the stone moves to the front edge
+            BlockPos[] stone = {null};
+            int[] house = {-1};
             server.runOnServer(s -> {
-                ServerLevel level = s.overworld();
+                Village v = VillageData.get(s).get(1);
                 var p = player(s);
-                BlockPos bed = at[0].offset(2, 0, 2);
-                level.setBlockAndUpdate(bed, Blocks.BED.red().defaultBlockState());
-                level.setBlockAndUpdate(at[0].offset(-2, 0, 2), Blocks.OAK_DOOR.defaultBlockState());
-                Plots.use(p, level, at[0]);
-                log("home: achievement {}", has(s, "home"));
-                if (!has(s, "home")) throw new AssertionError("no home achievement");
+                p.getInventory().add(new ItemStack(Items.EMERALD, 64));
+                ColonyService.handleAction(p, new ColonyPayloads.VillageAction(1, ColonyPayloads.VillageAction.PLOT_HOUSE,
+                        org.webtrade.minecraftportsmod.colony.BuildingType.HUT.ordinal(), 0));
+                Plots.Plot plot = Plots.of(v, p.getUUID());
+                stone[0] = plot.stone();
+                house[0] = plot.house();
+                Building b = v.building(plot.house());
+                log("hut ordered: house #{}, stone moved to {} ({}), purse {}", plot.house(), plot.stone().toShortString(),
+                        s.overworld().getBlockState(plot.stone()).is(ModContent.PLOT_MARKER), org.webtrade.minecraftportsmod.colony.Wallet.balance(p));
+                if (b == null || b.owner() == null || stone[0].equals(at[0]) || !s.overworld().getBlockState(stone[0]).is(ModContent.PLOT_MARKER)
+                        || s.overworld().getBlockState(at[0]).is(ModContent.PLOT_MARKER)) {
+                    throw new AssertionError("the house was not begun");
+                }
+                // (not the stone to take up while it goes up)
+                if (Plots.mayBreak(p, s.overworld(), stone[0])) throw new AssertionError("the stone should stay while the house goes up");
             });
-            // taken up: the plot is the village's again, the stone back in the hand
+            context.waitTicks(10);
+            context.setScreen(() -> null);
+            // the days go by: the hut goes up and is handed over
+            boolean[] done = {false};
+            for (int day = 0; day < 12 && !done[0]; day++) {
+                server.runCommand("village day");
+                context.waitTicks(60);
+                final int d = day;
+                server.runOnServer(s -> {
+                    Village v = VillageData.get(s).get(1);
+                    Plots.Plot plot = Plots.of(v, player(s).getUUID());
+                    Building b = v.building(house[0]);
+                    log("day {}: house {} {}", d + 1, b == null ? "gone from the village" : b.state().name(), b == null ? "" : b.work() + " work");
+                    done[0] = plot.home() && plot.house() < 0 && b == null;
+                });
+            }
+            server.runOnServer(s -> {
+                ServerLevel level = s.overworld();
+                Village v = VillageData.get(s).get(1);
+                int beds = 0, doors = 0;
+                for (int x = -Plots.HALF; x <= Plots.HALF; x++) {
+                    for (int z = -Plots.HALF; z <= Plots.HALF; z++) {
+                        for (int y = -3; y <= 8; y++) {
+                            BlockState st = level.getBlockState(at[0].offset(x, y, z));
+                            if (st.is(net.minecraft.tags.BlockTags.BEDS)) beds++;
+                            if (st.is(net.minecraft.tags.BlockTags.DOORS)) doors++;
+                        }
+                    }
+                }
+                int homes = 0;
+                for (Building b : v.buildings()) if (b.type == org.webtrade.minecraftportsmod.colony.BuildingType.HUT && b.overlaps(at[0], 1, 0)) homes++;
+                log("handed over {}: bed blocks {}, door blocks {}, the village's buildings on the plot {}, achievement home {}", done[0], beds, doors,
+                        homes, has(s, "home"));
+                if (!done[0] || beds == 0 || doors == 0 || homes > 0 || !has(s, "home")) throw new AssertionError("the hut was not built and handed over");
+                var p = player(s);
+                p.teleportTo(level, at[0].getX() + 9.5, at[0].getY() + 6, at[0].getZ() + 9.5, java.util.Set.of(), 135, 25, false);
+            });
+            context.waitTicks(40);
+            context.takeScreenshot("plot_d_house");
+            // taken up: the plot is the village's again (the house stays), the stone back in the hand
             server.runOnServer(s -> {
                 ServerLevel level = s.overworld();
                 var p = player(s);
-                BlockState st = level.getBlockState(at[0]);
-                st.getBlock().playerWillDestroy(level, at[0], st, p);
-                level.setBlockAndUpdate(at[0], Blocks.AIR.defaultBlockState());
+                BlockState st = level.getBlockState(stone[0]);
+                st.getBlock().playerWillDestroy(level, stone[0], st, p);
+                level.setBlockAndUpdate(stone[0], Blocks.AIR.defaultBlockState());
                 Village v = VillageData.get(s).get(1);
                 log("taken up: plots {}, stones {}", v.tasks().plots().size(), stones(p));
                 if (!v.tasks().plots().isEmpty() || stones(p) != 1) throw new AssertionError("the plot should be given back");

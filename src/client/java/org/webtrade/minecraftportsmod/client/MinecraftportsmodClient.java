@@ -104,6 +104,9 @@ public class MinecraftportsmodClient implements ClientModInitializer {
                 vs.update(payload);
             }
         });
+        ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.ColonyPayloads.PlotView.TYPE, (payload, ctx) -> {
+            if (ctx.client().gui.screen() == null) ctx.client().gui.setScreen(new org.webtrade.minecraftportsmod.client.chart.PlotScreen(payload));
+        });
         ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.ColonyPayloads.SiteView.TYPE, (payload, ctx) -> {
             if (ctx.client().gui.screen() instanceof org.webtrade.minecraftportsmod.client.chart.SiteScreen ss) {
                 if (ss.shows(payload)) ss.update(payload);

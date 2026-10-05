@@ -496,7 +496,7 @@ public final class Village {
 
     public int count(BuildingType type, boolean standingOnly) {
         int n = 0;
-        for (Building b : buildings) if (b.type == type && (!standingOnly || b.standing())) n++;
+        for (Building b : buildings) if (b.type == type && b.owner == null && (!standingOnly || b.standing())) n++;
         return n;
     }
 
