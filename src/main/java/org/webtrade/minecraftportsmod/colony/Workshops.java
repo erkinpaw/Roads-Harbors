@@ -190,16 +190,28 @@ public final class Workshops {
         List<Dweller> out = new ArrayList<>();
         Job j = b.type.job;
         if (j == null) return out;
-        Building first = null;
-        for (Building o : v.buildings) if (o.type == b.type && o.standing()) {
-            first = o;
-            break;
-        }
+        // (those who live at a workshop of the kind work there; the rest of the trade shared out among the workshops)
+        List<Building> shops = new ArrayList<>();
+        for (Building o : v.buildings) if (o.type == b.type && o.standing()) shops.add(o);
+        if (shops.isEmpty()) return out;
+        int[] count = new int[shops.size()];
+        List<Dweller> rest = new ArrayList<>();
         for (Dweller d : v.dwellers) {
             if (d.job != j || d.away) continue;
-            Building home = v.building(d.home);
-            boolean here = d.home == b.id || (home == null || home.type != b.type) && first == b;
-            if (here) out.add(d);
+            int at = -1;
+            for (int k = 0; k < shops.size(); k++) if (shops.get(k).id == d.home) at = k;
+            if (at < 0) {
+                rest.add(d);
+                continue;
+            }
+            count[at]++;
+            if (shops.get(at) == b) out.add(d);
+        }
+        for (Dweller d : rest) {
+            int at = 0;
+            for (int k = 1; k < shops.size(); k++) if (count[k] < count[at]) at = k;
+            count[at]++;
+            if (shops.get(at) == b) out.add(d);
         }
         return out;
     }

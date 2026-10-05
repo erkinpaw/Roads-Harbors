@@ -40,6 +40,7 @@ public final class ColonyCommand {
                 .then(Commands.literal("list").executes(ColonyCommand::list))
                 .then(Commands.literal("info").then(Commands.argument("id", IntegerArgumentType.integer(1)).executes(ColonyCommand::info)))
                 .then(Commands.literal("camp").executes(ColonyCommand::camp))
+                .then(Commands.literal("sandbox").executes(ColonyCommand::sandbox))
                 .then(Commands.literal("remove").then(Commands.argument("id", IntegerArgumentType.integer(1)).executes(ColonyCommand::remove)))
                 .then(Commands.literal("tp").then(Commands.argument("id", IntegerArgumentType.integer(1)).executes(ColonyCommand::tp)))
                 .then(Commands.literal("day")
@@ -237,6 +238,17 @@ public final class ColonyCommand {
         // the camp is set up in front of whoever calls it: "facing" is where the water would be
         Village v = VillageManager.foundCamp(level, at.relative(facing, 10), facing, name, ru, "oak");
         src.sendSuccess(() -> Component.literal("founded #" + v.id + " " + v.name), true);
+        return v.id;
+    }
+
+    /** A test village with every workshop, farms, homes and people, its store full: to try the workshops' queues out. */
+    private static int sandbox(CommandContext<CommandSourceStack> ctx) {
+        var src = ctx.getSource();
+        BlockPos at = BlockPos.containing(src.getPosition());
+        Direction facing = src.getEntity() == null ? Direction.NORTH : src.getEntity().getDirection();
+        boolean ru = java.util.Locale.getDefault().getLanguage().startsWith("ru");
+        Village v = org.webtrade.minecraftportsmod.colony.Sandbox.build(src.getLevel(), at, facing, ru ? "Тестовая деревня" : "Test Village", ru);
+        src.sendSuccess(() -> Component.literal("sandbox #" + v.id + " " + v.name + ": " + v.buildings().size() + " buildings, " + v.population() + " people"), true);
         return v.id;
     }
 

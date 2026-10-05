@@ -127,7 +127,8 @@ public class MinecraftportsmodClient implements ClientModInitializer {
             var screen = ctx.client().gui.screen();
             if (screen instanceof org.webtrade.minecraftportsmod.client.chart.OrderScreen os && os.shows(payload)) os.update(payload);
             // (another building's orders open: this one's instead)
-            else if (screen == null || screen instanceof org.webtrade.minecraftportsmod.client.chart.OrderScreen)
+            else if ((screen == null || screen instanceof org.webtrade.minecraftportsmod.client.chart.OrderScreen)
+                    && !org.webtrade.minecraftportsmod.client.chart.OrderScreen.justClosed(payload))
                 ctx.client().gui.setScreen(new org.webtrade.minecraftportsmod.client.chart.OrderScreen(payload));
         });
         ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.ColonyPayloads.MapView.TYPE, (payload, ctx) -> {

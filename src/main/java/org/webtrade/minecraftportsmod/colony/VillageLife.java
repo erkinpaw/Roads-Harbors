@@ -540,7 +540,8 @@ public final class VillageLife {
         int t = Math.min(wanted(v, r), v.capacity() * 3 / 4);
         // (the goods only some trades use: none kept unless the village has a use for them)
         if (r.optional() && t == 0) return 0;
-        return r.toolLevel() > 0 ? t : Math.max(10, t);
+        // (the workshops' things: only what is wanted, no stock of ten of each)
+        return r.toolLevel() > 0 || r.made() ? t : Math.max(10, t);
     }
 
     /**
