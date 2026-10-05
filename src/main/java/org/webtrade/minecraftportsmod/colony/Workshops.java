@@ -167,14 +167,21 @@ public final class Workshops {
         return SPEED[toolTier(b)] * (1 + 0.2 * (Math.max(1, b.level) - 1));
     }
 
-    /** The order in hand at a workshop: the oldest one not done (null: nothing to make). */
+    /**
+     * The order in hand at a workshop: the one a making is begun for; else the oldest that can be begun now (what it
+     * takes in the store: one short of something does not hold up the queue behind it); else the oldest (null:
+     * nothing to make).
+     */
     public static Orders.Order current(Village v, Building b) {
-        Orders.Order best = null;
+        Orders.Order oldest = null, ready = null;
         for (Orders.Order o : v.orders) {
             if (o.building != b.id || o.done()) continue;
-            if (best == null || o.id < best.id) best = o;
+            if (b.taken && o.id == b.making) return o;
+            if (oldest == null || o.id < oldest.id) oldest = o;
+            Recipe r = recipe(b.type, o.recipe);
+            if (r != null && open(b, r) && Orders.supplied(v, r) && (ready == null || o.id < ready.id)) ready = o;
         }
-        return best;
+        return ready != null ? ready : oldest;
     }
 
     /** The orders of a workshop, oldest first (done ones aside). */
@@ -296,6 +303,7 @@ public final class Workshops {
                 v.workshop(b.type, e.getKey(), 0, e.getValue());
             }
             b.taken = true;
+            b.making = o.id;
             b.progress = 0;
         }
         refill(v, b);
@@ -306,6 +314,7 @@ public final class Workshops {
         if (tier > 0) b.tools[tier - 1]--;
         b.progress = 0;
         b.taken = false;
+        b.making = -1;
         int n = Math.min(r.n(), o.count - o.made);
         o.made += n;
         if (o.village()) {
@@ -361,6 +370,8 @@ public final class Workshops {
                 }
             }
             if (at == null) continue;
+            // (one whose makings the village has not got waits in the queue, the others go on; what it takes is wanted
+            // meanwhile, and the merchant buys it: see VillageLife.wanted)
             // (a few makings at a time: the queue moves on to other things between them)
             int count = Math.min(want - ordered, how.n() * 6);
             v.orders.add(Orders.villageOrder(v, at, how.index(), count, today));
