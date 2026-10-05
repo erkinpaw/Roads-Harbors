@@ -32,7 +32,7 @@ public final class Building {
 
     /** The part of a building added with the levels: its level, the one it is growing to, kept from demolition. */
     private record Grade(int level, int goal, boolean keep, int look, List<Integer> jetty, double progress, boolean taken, List<Integer> tools,
-                         int making) {
+                         int making, String owner) {
         static final com.mojang.serialization.MapCodec<Grade> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
                 Codec.INT.optionalFieldOf("level", 1).forGetter(Grade::level),
                 Codec.INT.optionalFieldOf("goal", 0).forGetter(Grade::goal),
@@ -42,7 +42,8 @@ public final class Building {
                 Codec.DOUBLE.optionalFieldOf("progress", 0.0).forGetter(Grade::progress),
                 Codec.BOOL.optionalFieldOf("taken", false).forGetter(Grade::taken),
                 Codec.INT.listOf().optionalFieldOf("tools", List.of()).forGetter(Grade::tools),
-                Codec.INT.optionalFieldOf("making", -1).forGetter(Grade::making)
+                Codec.INT.optionalFieldOf("making", -1).forGetter(Grade::making),
+                Codec.STRING.optionalFieldOf("owner", "").forGetter(Grade::owner)
         ).apply(i, Grade::new));
     }
 
@@ -121,10 +122,14 @@ public final class Building {
         b.taken = g.taken();
         b.making = g.making();
         for (int k = 0; k < Math.min(3, g.tools().size()); k++) b.tools[k] = g.tools().get(k);
+        try {
+            b.owner = g.owner().isEmpty() ? null : java.util.UUID.fromString(g.owner());
+        } catch (IllegalArgumentException ignored) {
+        }
         return b;
     }, b -> com.mojang.datafixers.util.Pair.of(b, new Grade(b.level, b.goal, b.keep, b.look,
             b.jetty == null ? List.of() : List.of(b.jetty[0], b.jetty[1], b.jetty[2]), b.progress, b.taken,
-            List.of(b.tools[0], b.tools[1], b.tools[2]), b.making))).codec();
+            List.of(b.tools[0], b.tools[1], b.tools[2]), b.making, b.owner == null ? "" : b.owner.toString()))).codec();
 
     public final int id;
     public final BuildingType type;
@@ -165,6 +170,8 @@ public final class Building {
     int making = -1;
     /** A workshop's tools: uses left of wooden, stone, iron ones (see {@link Workshops}). */
     final int[] tools = new int[3];
+    /** A player's house the village builds on the player's plot (null: the village's own): once up, it is the player's. */
+    java.util.UUID owner;
     /** Where its badge hangs (the middle of its top), worked out for this blueprint (not saved). */
     transient int[] badgeAt;
     transient Blueprint badgeOf;
@@ -284,7 +291,12 @@ public final class Building {
 
     /** Is it (or will it be) a place to live that stands? */
     public boolean standing() {
-        return state == State.BUILT;
+        // (a player's house is never the village's to live in, count or raise)
+        return state == State.BUILT && owner == null;
+    }
+
+    public java.util.UUID owner() {
+        return owner;
     }
 
     /** Does the plot take room (anything but a demolished building that is already gone)? */

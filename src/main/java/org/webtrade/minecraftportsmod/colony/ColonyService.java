@@ -669,6 +669,11 @@ public final class ColonyService {
                 }
                 sendOrders(player, v, b, note);
             }
+            case ColonyPayloads.VillageAction.PLOT_HOUSE -> {
+                if (a.a() < 0 || a.a() >= BuildingType.values().length) return;
+                Component why = Plots.build(player, data, v, BuildingType.values()[a.a()]);
+                if (why != null) player.sendSystemMessage(why.copy().withStyle(ChatFormatting.RED), true);
+            }
             case ColonyPayloads.VillageAction.TOOLS -> {
                 Building b = v.building(a.a());
                 if (b == null || !Workshops.workshop(b.type)) return;

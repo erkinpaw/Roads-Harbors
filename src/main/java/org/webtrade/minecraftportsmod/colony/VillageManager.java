@@ -373,6 +373,12 @@ public final class VillageManager {
                 }
             }
             Construction.advance(level, v, b, CATCH_UP);
+            // a player's house up and all its blocks in place: the player's now, no more the village's
+            if (b.owner != null && b.state == Building.State.BUILT && b.placed >= b.blueprint(v.wood).pieces.size()) {
+                Construction.post(level, v, b, false);
+                Plots.handOver(level, data, v, b);
+                continue;
+            }
             if (b.state == Building.State.BUILT && b.placed >= b.blueprint(v.wood).pieces.size() && (!b.paths || relink(level, v, b))) {
                 // (no way found now: tried again a little later)
                 long now = level.getGameTime();
