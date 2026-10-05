@@ -202,34 +202,94 @@ public class VillageScreen extends UiScreen {
         g.text(font, day, bx - 6 - font.width(day), y0 + 9, ChartStyle.TEXT_LIGHT, false);
     }
 
+    /**
+     * The strip under the name: the level, the people and beds, the mood, the purse, the food (days it lasts), the
+     * stores; the mouse on one shows its numbers, what it does and how to raise it.
+     */
     private void drawSummary(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         int sy0 = y0 + 26, sy1 = sy0 + 30;
         Ui.inset(g, x0 + 10, sy0 - 1, x1 - 10, sy1 + 1);
+        List<net.minecraft.util.FormattedCharSequence> tip = null;
         int x = x0 + 16;
+        // the level, the people
         Component lvl = Component.translatable("minecraftportsmod.vboard.level", level().number(), level().displayName());
-        g.text(font, lvl, x, sy0 + 4, ChartStyle.TEXT, false);
         Component people = Component.translatable("minecraftportsmod.vboard.people", view.people().size(), view.beds());
-        g.text(font, people, x, sy0 + 16, ChartStyle.TEXT_MUTED, false);
-        // mood
-        int mx = x + Math.max(font.width(lvl), font.width(people)) + 18, mw = 80;
-        g.text(font, Component.translatable("minecraftportsmod.hall.mood"), mx, sy0 + 4, ChartStyle.TEXT, false);
-        bar(g, mx, sy0 + 16, mw, 6, view.mood() / 100F);
-        // the stores, at the right
-        int rx = x1 - 14, limit = mx + mw + 12;
-        for (int i = Res.values().length - 1; i >= 0; i--) {
-            Res r = Res.values()[i];
-            String n = String.valueOf(view.stock()[i]);
-            // (a narrow window: the ones that don't fit are on the overview)
-            if (rx - font.width(n) - 18 < limit) break;
-            rx -= font.width(n);
-            g.text(font, n, rx, sy0 + 10, ChartStyle.TEXT, false);
-            rx -= 18;
-            g.item(new ItemStack(r.icon), rx, sy0 + 6);
-            if (mouseX >= rx && mouseX < rx + 18 + font.width(n) && mouseY >= sy0 && mouseY < sy1) {
-                g.setComponentTooltipForNextFrame(font, stockTip(r), mouseX, mouseY);
-            }
-            rx -= 10;
+        g.text(font, lvl, x, sy0 + 4, ChartStyle.TEXT, false);
+        g.text(font, people, x, sy0 + 16, view.beds() > view.people().size() ? ChartStyle.TEXT_MUTED : ChartStyle.BAD, false);
+        if (in(mouseX, mouseY, x, sy0 + 2, x + font.width(lvl), sy0 + 13)) tip = levelTip();
+        if (in(mouseX, mouseY, x, sy0 + 14, x + font.width(people), sy0 + 26)) tip = tip("people", List.of(
+                Component.translatable("minecraftportsmod.hdr.people.title", view.people().size(), view.beds())),
+                new Object[]{}, new Object[]{org.webtrade.minecraftportsmod.colony.VillageLife.BIRTH_MOOD});
+        x += Math.max(font.width(lvl), font.width(people)) + 18;
+        // the mood
+        int mw = 80;
+        g.text(font, Component.translatable("minecraftportsmod.hall.mood"), x, sy0 + 4, ChartStyle.TEXT, false);
+        bar(g, x, sy0 + 16, mw, 6, view.mood() / 100F);
+        if (in(mouseX, mouseY, x, sy0 + 2, x + mw, sy0 + 24)) tip = tip("mood", List.of(
+                Component.translatable("minecraftportsmod.hdr.mood.title", view.mood())),
+                new Object[]{org.webtrade.minecraftportsmod.colony.VillageLife.BIRTH_MOOD}, new Object[]{});
+        x += mw + 18;
+        // the purse
+        String money = org.webtrade.minecraftportsmod.colony.Trade.money(view.purse());
+        g.item(new ItemStack(Items.EMERALD), x, sy0 + 7);
+        g.text(font, money, x + 19, sy0 + 11, ChartStyle.TEXT, false);
+        if (in(mouseX, mouseY, x, sy0 + 4, x + 19 + font.width(money), sy0 + 24)) tip = tip("purse", List.of(
+                Component.translatable("minecraftportsmod.hdr.purse.title", money)), new Object[]{}, new Object[]{});
+        x += 19 + font.width(money) + 18;
+        // the food: the days it lasts
+        int food = view.stock()[Res.FOOD.ordinal()], eat = Math.max(1, view.foodNeed()), days = food / eat;
+        String fd = Component.translatable("minecraftportsmod.hdr.food.short", days).getString();
+        g.item(new ItemStack(Items.BREAD), x, sy0 + 7);
+        g.text(font, fd, x + 19, sy0 + 11, days < 3 ? ChartStyle.BAD : ChartStyle.TEXT, false);
+        if (in(mouseX, mouseY, x, sy0 + 4, x + 19 + font.width(fd), sy0 + 24)) tip = tip("food", List.of(
+                Component.translatable("minecraftportsmod.hdr.food.title", food, view.foodNeed()),
+                Component.translatable("minecraftportsmod.hdr.food.days", days)), new Object[]{}, new Object[]{});
+        x += 19 + font.width(fd) + 18;
+        // the stores: how full
+        int sw = Math.max(60, Math.min(140, x1 - 16 - x - 19));
+        if (x + 19 + sw <= x1 - 14) {
+            float fill = view.room() <= 0 ? 0 : view.stored() / (float) view.room();
+            g.item(new ItemStack(Items.CHEST), x, sy0 + 7);
+            Ui.bar(g, x + 19, sy0 + 9, x + 19 + sw, sy0 + 21, fill, fill >= 1 ? ChartStyle.BAD : fill >= 0.85F ? 0xFFC9A038 : ChartStyle.GOOD);
+            String st = view.stored() + " / " + view.room();
+            g.text(font, st, x + 19 + (sw - font.width(st)) / 2, sy0 + 11, ChartStyle.TEXT_LIGHT, false);
+            if (in(mouseX, mouseY, x, sy0 + 4, x + 19 + sw, sy0 + 24)) tip = tip("store", List.of(
+                    Component.translatable("minecraftportsmod.hdr.store.title", view.stored(), view.room())), new Object[]{}, new Object[]{});
         }
+        if (tip != null) g.setTooltipForNextFrame(font, tip, mouseX, mouseY);
+    }
+
+    private static boolean in(int mx, int my, int ax, int ay, int bx, int by) {
+        return mx >= ax && mx < bx && my >= ay && my < by;
+    }
+
+    /** A header part's tip: its numbers; what it does (grey); how to raise it (green), wrapped. */
+    private List<net.minecraft.util.FormattedCharSequence> tip(String key, List<Component> numbers, Object[] effectArgs, Object[] howArgs) {
+        List<net.minecraft.util.FormattedCharSequence> out = new ArrayList<>();
+        for (Component c : numbers) out.addAll(font.split(c.copy().withStyle(ChatFormatting.WHITE), 260));
+        out.addAll(font.split(Component.translatable("minecraftportsmod.hdr." + key + ".effect", effectArgs).withStyle(ChatFormatting.GRAY), 260));
+        out.addAll(font.split(Component.translatable("minecraftportsmod.hdr." + key + ".how", howArgs).withStyle(ChatFormatting.GREEN), 260));
+        return out;
+    }
+
+    /** The level's tip: what the next one asks (as the overview shows it), what levels do. */
+    private List<net.minecraft.util.FormattedCharSequence> levelTip() {
+        List<Component> numbers = new ArrayList<>();
+        numbers.add(Component.translatable("minecraftportsmod.vboard.level", level().number(), level().displayName()));
+        Village.Level next = level().next();
+        if (next != null) {
+            numbers.add(Component.translatable("minecraftportsmod.hdr.level.next", next.number(), next.displayName()));
+            for (ColonyPayloads.Req r : view.reqs()) {
+                boolean ok = r.have() >= r.need();
+                numbers.add(Component.literal(ok ? "✔ " : "✘ ").append(r.label()).append(": " + r.have() + " / " + r.need())
+                        .withStyle(ok ? ChatFormatting.GREEN : ChatFormatting.RED));
+            }
+        }
+        List<net.minecraft.util.FormattedCharSequence> out = new ArrayList<>();
+        for (int i = 0; i < numbers.size(); i++) out.addAll(font.split(i == 0 ? numbers.get(i).copy().withStyle(ChatFormatting.WHITE) : numbers.get(i), 260));
+        out.addAll(font.split(Component.translatable("minecraftportsmod.hdr.level.effect", view.slots()).withStyle(ChatFormatting.GRAY), 260));
+        out.addAll(font.split(Component.translatable("minecraftportsmod.hdr.level.how").withStyle(ChatFormatting.GREEN), 260));
+        return out;
     }
 
     private List<Component> stockTip(Res r) {
@@ -300,8 +360,6 @@ public class VillageScreen extends UiScreen {
         }
         y += 8;
         int colW = mid - x - 12;
-        // the queue: as many places as the village takes on at once; what is in each
-        y = drawSlots(g, x, y, colW, mouseX, mouseY) + 10;
         // how near the next child (the chance tonight: what was built up, and what tonight adds)
         int labelW = font.width(Component.translatable("minecraftportsmod.vboard.growth"));
         int bx0 = x + labelW + 8, bx1 = x + colW;
@@ -312,11 +370,15 @@ public class VillageScreen extends UiScreen {
         Component growth = bed ? Component.translatable("minecraftportsmod.vboard.growth_val", Math.round(tonight * 100), Math.round(view.gain() * 100))
                 : Component.translatable("minecraftportsmod.vboard.growth_wait");
         g.text(font, growth, (bx0 + bx1 - font.width(growth)) / 2, y + 2, ChartStyle.TEXT_LIGHT, false);
-        y += 16;
+        y += 22;
+        // what the village is short of: what a player could bring
+        wantList(g, x, y, colW, Component.translatable("minecraftportsmod.trade.short"), view.shortOf(), ChartStyle.BAD, mouseX, mouseY);
 
-        // building sites, on the right
+        // on the right: the queue (its places: open ones, the rest locked till a level opens them), the building sites
         g.fill(mid, cy0 + 4, mid + 1, cy1 - 4, ChartStyle.PARCHMENT_SHADE);
         int rx = mid + 8, ry = cy0 + 6;
+        Ui.heading(g, font, Component.translatable("minecraftportsmod.vboard.slots"), rx, ry, cx1 - rx - 8);
+        ry = drawSlots(g, rx, ry + 18, cx1 - rx - 8, mouseX, mouseY) + 10;
         Ui.heading(g, font, Component.translatable("minecraftportsmod.vboard.sites"), rx, ry, cx1 - rx - 8);
         ry += 18;
         boolean any = false;
@@ -329,37 +391,55 @@ public class VillageScreen extends UiScreen {
             g.text(font, font.plainSubstrByWidth(stateText(b).getString(), cx1 - rx - 36), rx + 30, ry + 10, stateColor(b), false);
             int bw = cx1 - rx - 12;
             boolean waiting = b.state() == Building.State.PLANNED.ordinal() || b.state() == Building.State.BUILT.ordinal() && b.progress() < 0.5F;
+            // (what it still needs: wrapped, not cut)
+            int rowH = 28;
             if (!waiting) Ui.bar(g, rx + 30, ry + 20, rx + bw, ry + 28, b.progress(), ChartStyle.GOOD);
-            else g.text(font, missingText(b), rx + 30, ry + 20, ChartStyle.TEXT_MUTED, false);
-            if (mouseX >= rx && mouseX < cx1 && mouseY >= ry && mouseY < ry + 28) {
+            else rowH = Math.max(28, 20 + Ui.wrap(g, font, missingText(b), rx + 30, ry + 20, cx1 - rx - 38, ChartStyle.TEXT_MUTED));
+            if (mouseX >= rx && mouseX < cx1 && mouseY >= ry && mouseY < ry + rowH) {
                 g.setComponentTooltipForNextFrame(font, buildingTip(b), mouseX, mouseY);
             }
-            ry += 32;
+            ry += rowH + 4;
         }
         if (!any) g.textWithWordWrap(font, Component.translatable("minecraftportsmod.vboard.no_sites"), rx, ry, cx1 - rx - 6, ChartStyle.TEXT_MUTED, false);
     }
 
-    /** The queue's places, in a row: what is in each (its icon; the level it is raised to), the free ones empty. */
+    /** The most places a queue has (a town's). */
+    private static final int ALL_SLOTS = 10;
+
+    /**
+     * The queue's places, in rows: what is in each (its icon; the level it is raised to; how far along), the free
+     * ones empty, the ones a higher level opens with a padlock. Returns where they end.
+     */
     private int drawSlots(GuiGraphicsExtractor g, int x, int y, int w, int mouseX, int mouseY) {
-        Component title = Component.translatable("minecraftportsmod.vboard.slots");
-        g.text(font, title, x, y + 6, ChartStyle.INK, false);
         List<ColonyPayloads.QueueRow> steps = new ArrayList<>();
         for (ColonyPayloads.QueueRow q : view.queue()) if (q.kind() != 4) steps.add(q);
-        int sx = x + font.width(title) + 8, size = 20;
-        for (int i = 0; i < view.slots(); i++) {
-            int cx = sx + i * (size + 3);
-            if (cx + size > x + w) break;
-            ColonyPayloads.QueueRow q = i < steps.size() ? steps.get(i) : null;
-            g.fill(cx, y, cx + size, y + size, q == null ? ChartStyle.PARCHMENT_SHADE : 0xFFF3E6C4);
-            g.outline(cx, y, size, size, q == null ? 0x60000000 : ChartStyle.INK_SOFT);
+        int size = 22, per = Math.max(1, Math.min(ALL_SLOTS, (w + 3) / (size + 3)));
+        int bottom = y;
+        for (int i = 0; i < ALL_SLOTS; i++) {
+            int cx = x + (i % per) * (size + 3), cy = y + (i / per) * (size + 3);
+            bottom = cy + size;
+            boolean open = i < view.slots();
+            ColonyPayloads.QueueRow q = open && i < steps.size() ? steps.get(i) : null;
+            boolean hot = mouseX >= cx && mouseX < cx + size && mouseY >= cy && mouseY < cy + size;
+            g.fill(cx, cy, cx + size, cy + size, !open ? 0xFFCDBF9F : q == null ? ChartStyle.PARCHMENT_SHADE : 0xFFF3E6C4);
+            g.outline(cx, cy, size, size, q == null ? 0x60000000 : ChartStyle.INK_SOFT);
+            if (!open) {
+                lock(g, cx + (size - 7) / 2, cy + (size - 9) / 2);
+                if (hot) {
+                    Village.Level opens = Village.Level.values()[Math.min(Village.Level.values().length - 1, i / 2)];
+                    g.setComponentTooltipForNextFrame(font, List.of(Component.translatable("minecraftportsmod.vboard.slot_locked", opens.number(),
+                            opens.displayName())), mouseX, mouseY);
+                }
+                continue;
+            }
             if (q == null) continue;
             BuildingType t = BuildingType.values()[q.type()];
-            g.item(new ItemStack(t.icon), cx + 2, cy(y));
-            if (q.kind() == 2) g.text(font, String.valueOf(q.level()), cx + size - 6, y + size - 8, ChartStyle.INK, false);
-            if (q.kind() == 0) g.text(font, "?", cx + size - 6, y + size - 8, 0xFFB07A10, false);
+            g.item(new ItemStack(t.icon), cx + 3, cy + 3);
+            if (q.kind() == 2) g.text(font, String.valueOf(q.level()), cx + size - 6, cy + size - 9, ChartStyle.INK, false);
+            if (q.kind() == 0) g.text(font, "?", cx + size - 6, cy + size - 9, 0xFFB07A10, false);
             // how far it has come, under it
-            g.fill(cx + 1, y + size - 2, cx + 1 + Math.round((size - 2) * Math.max(0, Math.min(1, q.progress()))), y + size - 1, ChartStyle.GOOD);
-            if (mouseX >= cx && mouseX < cx + size && mouseY >= y && mouseY < y + size) {
+            g.fill(cx + 1, cy + size - 2, cx + 1 + Math.round((size - 2) * Math.max(0, Math.min(1, q.progress()))), cy + size - 1, ChartStyle.GOOD);
+            if (hot) {
                 Component name = switch (q.kind()) {
                     case 0 -> Component.translatable("minecraftportsmod.queue.research", t.displayName());
                     case 2 -> Component.translatable("minecraftportsmod.queue.raise", t.displayName(), q.level());
@@ -369,7 +449,17 @@ public class VillageScreen extends UiScreen {
                 g.setComponentTooltipForNextFrame(font, List.of(name, q.status()), mouseX, mouseY);
             }
         }
-        return y + size;
+        return bottom;
+    }
+
+    /** A small padlock. */
+    private static void lock(GuiGraphicsExtractor g, int x, int y) {
+        g.fill(x + 1, y, x + 6, y + 1, 0xFF4A4038);
+        g.fill(x + 1, y, x + 2, y + 4, 0xFF4A4038);
+        g.fill(x + 5, y, x + 6, y + 4, 0xFF4A4038);
+        g.fill(x, y + 3, x + 7, y + 9, 0xFF4A4038);
+        g.fill(x + 1, y + 4, x + 6, y + 8, 0xFFC9922A);
+        g.fill(x + 3, y + 5, x + 4, y + 7, 0xFF4A4038);
     }
 
     private static int cy(int y) {
@@ -388,22 +478,33 @@ public class VillageScreen extends UiScreen {
         Component st = Component.translatable("minecraftportsmod.vboard.store_val", view.stored(), view.room());
         g.text(font, st, (bx0 + x + w - font.width(st)) / 2, y + 2, ChartStyle.TEXT_LIGHT, false);
         y += 22;
-        // the columns: the thing, in store, made, spent, the day's balance
+        // the columns: the thing, in store, made, spent, the day's balance; a click on a column's name sorts by it
+        // (again: the other way round)
         int cName = x + 24, cHave = x + w * 45 / 100, cGot = x + w * 60 / 100, cSpent = x + w * 75 / 100, cNet = x + w * 90 / 100;
-        String[] heads = {"minecraftportsmod.vboard.col_have", "minecraftportsmod.vboard.col_got", "minecraftportsmod.vboard.col_spent", "minecraftportsmod.vboard.col_net"};
-        int[] cols = {cHave, cGot, cSpent, cNet};
+        String[] heads = {"minecraftportsmod.vboard.col_name", "minecraftportsmod.vboard.col_have", "minecraftportsmod.vboard.col_got",
+                "minecraftportsmod.vboard.col_spent", "minecraftportsmod.vboard.col_net"};
+        int[] cols = {cName, cHave, cGot, cSpent, cNet};
+        storeHeads.clear();
         for (int k = 0; k < heads.length; k++) {
             Component h = Component.translatable(heads[k]);
-            g.text(font, h, cols[k] - font.width(h), y, ChartStyle.TEXT_MUTED, false);
+            String mark = storeSort == k + 1 ? (storeDesc ? " ▼" : " ▲") : "";
+            int hw = font.width(h) + font.width(mark);
+            int hx = k == 0 ? cols[k] : cols[k] - hw;
+            boolean hot = mouseX >= hx - 2 && mouseX < hx + hw + 2 && mouseY >= y - 2 && mouseY < y + 10;
+            g.text(font, Component.empty().append(h).append(mark), hx, y, storeSort == k + 1 || hot ? ChartStyle.INK : ChartStyle.TEXT_MUTED, false);
+            storeHeads.add(new int[]{hx - 2, y - 2, hx + hw + 2, y + 10, k + 1});
         }
         y += 12;
         g.fill(x, y, x + w, y + 1, ChartStyle.PARCHMENT_SHADE);
         y += 4;
-        int rowH = Math.max(16, Math.min(20, (cy1 - y - 4) / Res.values().length));
-        int row = 0;
-        for (Res r : Res.values()) {
+        int rowH = 18, top = y, visible = Math.max(1, (cy1 - 4 - y) / rowH);
+        List<Res> order = storeOrder();
+        scroll = Math.max(0, Math.min(scroll, order.size() - visible));
+        g.enableScissor(x, top, x + w, cy1 - 2);
+        for (int row = scroll; row < order.size() && row < scroll + visible; row++) {
+            Res r = order.get(row);
             int i = r.ordinal();
-            if (row++ % 2 == 1) g.fill(x, y - 1, x + w, y + rowH - 1, 0x18000000);
+            if (row % 2 == 1) g.fill(x, y - 1, x + w - 8, y + rowH - 1, 0x18000000);
             g.item(new ItemStack(r.icon), x + 2, y + (rowH - 16) / 2);
             int ty = y + (rowH - 8) / 2;
             g.text(font, r.displayName(), cName, ty, ChartStyle.INK, false);
@@ -415,8 +516,58 @@ public class VillageScreen extends UiScreen {
             g.text(font, ss, cSpent - font.width(ss), ty, spent > 0 ? ChartStyle.BAD : ChartStyle.TEXT_MUTED, false);
             String ns = net == 0 ? "0" : (net > 0 ? "+" : "−") + Math.abs(net);
             g.text(font, ns, cNet - font.width(ns), ty, net > 0 ? ChartStyle.GOOD : net < 0 ? ChartStyle.BAD : ChartStyle.TEXT_MUTED, false);
+            if (mouseX >= x && mouseX < x + w - 8 && mouseY >= y - 1 && mouseY < y + rowH - 1 && mouseY < cy1 - 2) {
+                g.setComponentTooltipForNextFrame(font, stockTip(r), mouseX, mouseY);
+            }
             y += rowH;
         }
+        g.disableScissor();
+        // how far down the list is: a bar at the right
+        if (order.size() > visible) {
+            int sx = x + w - 5, h = cy1 - 4 - top;
+            g.fill(sx, top, sx + 4, top + h, 0x20000000);
+            int bh = Math.max(12, h * visible / order.size()), by = top + (h - bh) * scroll / Math.max(1, order.size() - visible);
+            g.fill(sx, by, sx + 4, by + bh, ChartStyle.INK_SOFT);
+        }
+    }
+
+    /** The stores' sort: 0 as the goods come (by kind), 1 by name, 2 in store, 3 made, 4 spent, 5 the day's balance. */
+    private int storeSort;
+    private boolean storeDesc;
+    /** Where the column names are, as last drawn: {x0, y0, x1, y1, sort}. */
+    private final List<int[]> storeHeads = new ArrayList<>();
+
+    private List<Res> storeOrder() {
+        List<Res> out = new ArrayList<>(List.of(Res.values()));
+        java.util.Comparator<Res> by = switch (storeSort) {
+            case 1 -> java.util.Comparator.comparing(r -> r.displayName().getString());
+            case 2 -> java.util.Comparator.comparingInt(r -> view.stock()[r.ordinal()]);
+            case 3 -> java.util.Comparator.comparingInt(r -> view.got()[r.ordinal()]);
+            case 4 -> java.util.Comparator.comparingInt(r -> view.spent()[r.ordinal()]);
+            case 5 -> java.util.Comparator.comparingInt(r -> view.got()[r.ordinal()] - view.spent()[r.ordinal()]);
+            default -> null;
+        };
+        if (by != null) out.sort(storeDesc ? by.reversed() : by);
+        return out;
+    }
+
+    /** A column's name clicked: sorted by it; the same again, the other way round; a third time, as the goods come. */
+    private boolean storeClick(double mx, double my) {
+        for (int[] h : storeHeads) {
+            if (mx < h[0] || mx >= h[2] || my < h[1] || my >= h[3]) continue;
+            if (storeSort != h[4]) {
+                storeSort = h[4];
+                // (numbers: the most first; names: from A)
+                storeDesc = h[4] != 1;
+            } else if (storeDesc == (h[4] != 1)) {
+                storeDesc = !storeDesc;
+            } else {
+                storeSort = 0;
+            }
+            scroll = 0;
+            return true;
+        }
+        return false;
     }
 
     // --- trade: where the merchant is; what the village is short of and has to spare; its deals
@@ -698,6 +849,7 @@ public class VillageScreen extends UiScreen {
             dragging = true;
             return true;
         }
+        if (tab == Tab.STORE && view != null && storeClick(event.x(), event.y())) return true;
         if (tab == Tab.TREE && view != null) return tree().click(event.x(), event.y());
         if (tab == Tab.TASKS) {
             for (int[] b : queueButtons) {
