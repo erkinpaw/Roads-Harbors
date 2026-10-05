@@ -111,7 +111,8 @@ public final class ColonyPayloads {
                               List<BuildingRow> buildings, List<LogRow> log, int mapSize, int[] map, int viewerDx, int viewerDz,
                               int boardDx, int boardDz, List<NodeRow> tree, int priority, int focus, CenterRow center,
                               List<QueueRow> queue, int sub, float ready, float gain, int stored, int room, int[] got, int[] spent,
-                              Component merchant, int[] shortOf, int[] spare, List<LogRow> deals, int slots, long purse) implements CustomPacketPayload {
+                              Component merchant, int[] shortOf, int[] spare, List<LogRow> deals, int slots, long purse,
+                              List<Badge> works) implements CustomPacketPayload {
         public static final Type<VillageView> TYPE = new Type<>(Minecraftportsmod.id("village_view"));
         public static final StreamCodec<RegistryFriendlyByteBuf, VillageView> CODEC = StreamCodec.of((buf, v) -> {
             buf.writeVarInt(v.id);
@@ -214,6 +215,13 @@ public final class ColonyPayloads {
             }
             buf.writeVarInt(v.slots);
             buf.writeVarLong(v.purse);
+            buf.writeVarInt(v.works.size());
+            for (Badge w : v.works) {
+                net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, w.icon());
+                comp(buf, w.title());
+                comp(buf, w.doing());
+                buf.writeFloat(w.progress());
+            }
         }, buf -> {
             int id = buf.readVarInt();
             String name = buf.readUtf(64);
@@ -270,9 +278,15 @@ public final class ColonyPayloads {
             for (int i = buf.readVarInt(); i > 0; i--) deals.add(new LogRow(buf.readVarLong(), comp(buf)));
             int slots = buf.readVarInt();
             long purse = buf.readVarLong();
+            List<Badge> works = new ArrayList<>();
+            for (int k = buf.readVarInt(); k > 0; k--) {
+                var icon = net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf);
+                Component wt = comp(buf), wd = comp(buf);
+                works.add(new Badge(0, 0, 0, new int[0], icon, buf.readFloat(), wd, wt));
+            }
             return new VillageView(id, name, level, mood, day, progress, beds, stock, made, capacity, eaten, foodNeed, reqs, people, buildings,
                     log, mapSize, map, vdx, vdz, bdx, bdz, tree, priority, focus, center, queue, sub, ready, gain, stored, room, got, spent,
-                    merchant, shortOf, spare, deals, slots, purse);
+                    merchant, shortOf, spare, deals, slots, purse, works);
         });
 
         @Override
@@ -688,6 +702,13 @@ public final class ColonyPayloads {
      * hundredths of an emerald (-1: not selling / not buying); the most the player can buy and sell in one deal, and
      * the pieces the player carries.
      */
+    /**
+     * Another village's prices as a player last saw them at its stall: its name, how many days ago, and each ware's
+     * ask and bid (by the ware's index; hundredths a piece, -1 none).
+     */
+    public record KnownPrices(String village, int daysAgo, int[] ask, int[] bid) {
+    }
+
     /** Lot prices on the wire: -1 (none) sent as 0. */
     private static int[] shift(int[] a) {
         int[] o = new int[a.length];
@@ -706,7 +727,7 @@ public final class ColonyPayloads {
     }
 
     public record TradeView(int village, String villageName, String merchant, long purse, long playerEmeralds, List<TradeRow> rows,
-                            Component note) implements CustomPacketPayload {
+                            Component note, List<KnownPrices> known) implements CustomPacketPayload {
         public static final Type<TradeView> TYPE = new Type<>(Minecraftportsmod.id("trade_view"));
         public static final StreamCodec<RegistryFriendlyByteBuf, TradeView> CODEC = StreamCodec.of((buf, v) -> {
             buf.writeVarInt(v.village);
@@ -732,6 +753,13 @@ public final class ColonyPayloads {
                 buf.writeVarIntArray(shift(r.sellLots));
             }
             comp(buf, v.note);
+            buf.writeVarInt(v.known.size());
+            for (KnownPrices k : v.known) {
+                buf.writeUtf(k.village(), 64);
+                buf.writeVarInt(k.daysAgo());
+                buf.writeVarIntArray(shift(k.ask()));
+                buf.writeVarIntArray(shift(k.bid()));
+            }
         }, buf -> {
             int village = buf.readVarInt();
             String name = buf.readUtf(64), merchant = buf.readUtf(64);
@@ -746,7 +774,12 @@ public final class ColonyPayloads {
                         buf.readVarInt() - 1, buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), unshift(buf.readVarIntArray()),
                         unshift(buf.readVarIntArray())));
             }
-            return new TradeView(village, name, merchant, purse, em, rows, comp(buf));
+            Component note = comp(buf);
+            List<KnownPrices> known = new ArrayList<>();
+            for (int k = buf.readVarInt(); k > 0; k--) {
+                known.add(new KnownPrices(buf.readUtf(64), buf.readVarInt(), unshift(buf.readVarIntArray()), unshift(buf.readVarIntArray())));
+            }
+            return new TradeView(village, name, merchant, purse, em, rows, note, known);
         });
 
         @Override
