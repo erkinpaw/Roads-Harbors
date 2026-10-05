@@ -31,7 +31,8 @@ public final class Building {
     }
 
     /** The part of a building added with the levels: its level, the one it is growing to, kept from demolition. */
-    private record Grade(int level, int goal, boolean keep, int look, List<Integer> jetty, double progress, boolean taken, List<Integer> tools) {
+    private record Grade(int level, int goal, boolean keep, int look, List<Integer> jetty, double progress, boolean taken, List<Integer> tools,
+                         int making) {
         static final com.mojang.serialization.MapCodec<Grade> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
                 Codec.INT.optionalFieldOf("level", 1).forGetter(Grade::level),
                 Codec.INT.optionalFieldOf("goal", 0).forGetter(Grade::goal),
@@ -40,7 +41,8 @@ public final class Building {
                 Codec.INT.listOf().optionalFieldOf("jetty", List.of()).forGetter(Grade::jetty),
                 Codec.DOUBLE.optionalFieldOf("progress", 0.0).forGetter(Grade::progress),
                 Codec.BOOL.optionalFieldOf("taken", false).forGetter(Grade::taken),
-                Codec.INT.listOf().optionalFieldOf("tools", List.of()).forGetter(Grade::tools)
+                Codec.INT.listOf().optionalFieldOf("tools", List.of()).forGetter(Grade::tools),
+                Codec.INT.optionalFieldOf("making", -1).forGetter(Grade::making)
         ).apply(i, Grade::new));
     }
 
@@ -117,11 +119,12 @@ public final class Building {
         if (g.jetty().size() == 3) b.jetty = new int[]{g.jetty().get(0), g.jetty().get(1), g.jetty().get(2)};
         b.progress = g.progress();
         b.taken = g.taken();
+        b.making = g.making();
         for (int k = 0; k < Math.min(3, g.tools().size()); k++) b.tools[k] = g.tools().get(k);
         return b;
     }, b -> com.mojang.datafixers.util.Pair.of(b, new Grade(b.level, b.goal, b.keep, b.look,
             b.jetty == null ? List.of() : List.of(b.jetty[0], b.jetty[1], b.jetty[2]), b.progress, b.taken,
-            List.of(b.tools[0], b.tools[1], b.tools[2])))).codec();
+            List.of(b.tools[0], b.tools[1], b.tools[2]), b.making))).codec();
 
     public final int id;
     public final BuildingType type;
@@ -158,6 +161,8 @@ public final class Building {
     /** A workshop's making in hand: seconds of work done on it, and whether what it takes is taken from the store. */
     double progress;
     boolean taken;
+    /** The order the making in hand is for (-1: none begun). */
+    int making = -1;
     /** A workshop's tools: uses left of wooden, stone, iron ones (see {@link Workshops}). */
     final int[] tools = new int[3];
 
