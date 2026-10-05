@@ -56,6 +56,11 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
                     if (b.type == BuildingType.CARPENTER && ids[1] < 0) ids[1] = b.id;
                     log("  {}#{} level {} at {}", b.type.id(), b.id, b.level(), b.origin.toShortString());
                 }
+                // (the joiner's workshop its joiners live at, if one: they work at their own)
+                for (var d : v.dwellers()) {
+                    Building home = v.building(d.home());
+                    if (d.job() == org.webtrade.minecraftportsmod.colony.Job.JOINER && home != null && home.type == BuildingType.CARPENTER) ids[1] = home.id;
+                }
                 // work time (a village day is the world's day)
                 s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), "time set 3000");
                 var p = s.getPlayerList().getPlayers().getFirst();
@@ -242,6 +247,11 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
                 log("after 4 s at the bench: work {} -> {}; {}", String.format("%.2f", bench[0]), String.format("%.2f", bench[1]), Workshops.describe(v));
             });
             if (bench[1] <= bench[0]) throw new AssertionError("the player's work at the bench did not move the order on");
+            // the village's overview: the workshops, what each makes now
+            server.runOnServer(s -> ColonyService.sendVillage(s.getPlayerList().getPlayers().getFirst(), ids[0], false));
+            context.waitTicks(30);
+            context.takeScreenshot("workshop_overview");
+            context.setScreen(() -> null);
             // a day: the village's own orders for what it keeps
             server.runCommand("village day");
             context.waitTicks(40);
