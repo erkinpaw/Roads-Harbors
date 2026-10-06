@@ -81,6 +81,7 @@ public final class BuildingBadges {
                     }
                 }
             }
+            lookedAt = looked == null ? null : looked.badge();
             for (Shown s : shown) {
                 if (s != looked) continue;
                 ColonyPayloads.Badge b = s.badge();
@@ -92,6 +93,13 @@ public final class BuildingBadges {
                 pose.popPose();
             }
         });
+    }
+
+    /** The building looked at (its badge), as of the last frame; null if none. */
+    private static ColonyPayloads.Badge lookedAt;
+
+    public static ColonyPayloads.Badge looked() {
+        return lookedAt;
     }
 
     /** For tests: the badges shown now. */

@@ -71,10 +71,11 @@ public final class ColonyService {
             if (pos.distSqr(v.center) > 260 * 260) continue;
             for (Building b : v.buildings) {
                 if (b.state != Building.State.BUILT || b.owner() != null) continue;
-                BlockPos post = b.blueprint(v.wood).post;
-                if (post.getX() != pos.getX() || post.getZ() != pos.getZ() || Math.abs(post.getY() - pos.getY()) > 5) continue;
                 var key = Construction.keyBlock(b.type);
                 if (key == null || !level.getBlockState(pos).is(key)) continue;
+                boolean spot = false;
+                for (BlockPos s : Construction.keySpots(v, b)) spot |= s.getX() == pos.getX() && s.getZ() == pos.getZ() && Math.abs(s.getY() - pos.getY()) <= 5;
+                if (!spot) continue;
                 if (b.upgrading() && !b.supplied()) sendSite(player, v, b);
                 else sendBuilding(player, v, b);
                 return true;

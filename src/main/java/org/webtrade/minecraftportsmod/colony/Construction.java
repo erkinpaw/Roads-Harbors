@@ -76,6 +76,43 @@ final class Construction {
         return steps;
     }
 
+    /**
+     * A building that stands, mended now and then: a few of its timbers looked over, and one gone (an empty place where
+     * a log, a plank, a fence, a stair or a slab of it should be) put back, as its people would.
+     */
+    static void mend(ServerLevel level, Village v, Building b, net.minecraft.util.RandomSource rnd) {
+        if (b.state != Building.State.BUILT || b.owner() != null || b.upgradeWork()) return;
+        Blueprint bp = b.blueprint(v.wood);
+        // (the timber laid in its ground first: the logs round a field's beds)
+        if (!bp.ground.isEmpty()) {
+            List<Long> keys = new java.util.ArrayList<>(bp.ground.keySet());
+            int y = bp.frame.origin().getY() - 1;
+            for (int k = 0; k < 6; k++) {
+                long key = keys.get(rnd.nextInt(keys.size()));
+                BlockState want = bp.ground.get(key);
+                if (!want.is(BlockTags.LOGS) && !want.is(BlockTags.PLANKS)) continue;
+                BlockPos at = new BlockPos((int) (key >> 32), y, (int) key);
+                if (!loaded(level, at) || !level.getBlockState(at).isAir()) continue;
+                level.setBlock(at, want, FLAGS);
+                effect(level, at, want, true);
+                return;
+            }
+        }
+        List<Blueprint.Piece> pieces = bp.pieces;
+        int n = Math.min(b.placed, pieces.size());
+        if (n == 0) return;
+        for (int k = 0; k < 12; k++) {
+            Blueprint.Piece p = pieces.get(rnd.nextInt(n));
+            BlockState want = p.state();
+            if (!(want.is(BlockTags.LOGS) || want.is(BlockTags.PLANKS) || want.is(BlockTags.FENCES) || want.is(BlockTags.STAIRS)
+                    || want.is(BlockTags.SLABS) || want.is(BlockTags.WALLS))) continue;
+            if (!loaded(level, p.pos()) || !level.getBlockState(p.pos()).isAir()) continue;
+            place(level, p);
+            effect(level, p.pos(), want, true);
+            return;
+        }
+    }
+
     private static void place(ServerLevel level, Blueprint.Piece p) {
         level.setBlock(p.pos(), p.state(), FLAGS);
         if (p.shaped()) level.setBlock(p.pos(), Block.updateFromNeighbourShapes(p.state(), level, p.pos()), FLAGS);
@@ -259,11 +296,9 @@ final class Construction {
         return new BlockPos(p.getX(), PlotFinder.floorAt(level, p.getX(), p.getZ()), p.getZ());
     }
 
-    /** Is this a building's post: the site's sign, or (built) the block of its trade? */
+    /** Is this a building's site sign? */
     static boolean isPost(BlockState s, Building b) {
-        if (s.is(ModContent.CONSTRUCTION_SITE)) return true;
-        Block key = keyBlock(b.type);
-        return key != null && s.is(key);
+        return s.is(ModContent.CONSTRUCTION_SITE);
     }
 
     /**
@@ -294,6 +329,28 @@ final class Construction {
         };
     }
 
+    /**
+     * Where the block of a building's trade may stand, the first free of them taken: before its front, beside the
+     * door (the post's place, then the other side), else beside the building at its front corners. Never on a path.
+     */
+    static java.util.List<BlockPos> keySpots(Village v, Building b) {
+        Blueprint.Frame f = b.blueprint(v.wood).frame;
+        int h = b.type.half;
+        return java.util.List.of(f.at(h - 1, 0, h + 1), f.at(-(h - 1), 0, h + 1), f.at(h, 0, h + 1), f.at(-h, 0, h + 1),
+                f.at(h + 1, 0, h - 1), f.at(-(h + 1), 0, h - 1));
+    }
+
+    /** Where the block of a building's trade stands now, or null. */
+    static BlockPos keyAt(ServerLevel level, Village v, Building b) {
+        Block key = keyBlock(b.type);
+        if (key == null) return null;
+        for (BlockPos s : keySpots(v, b)) {
+            if (!loaded(level, s)) continue;
+            for (int dy = -4; dy <= 4; dy++) if (level.getBlockState(s.above(dy)).is(key)) return s.above(dy);
+        }
+        return null;
+    }
+
     /** The block of a building's trade as it stands: turned to face the way out of the building, where it turns. */
     private static BlockState keyState(Building b) {
         Block key = keyBlock(b.type);
@@ -315,16 +372,30 @@ final class Construction {
         boolean built = b.state == Building.State.BUILT && !(b.upgrading() && !b.supplied());
         if (wanted && built) {
             BlockState key = keyState(b);
-            if (key == null) {
-                if (now.is(ModContent.CONSTRUCTION_SITE)) level.setBlock(p, Blocks.AIR.defaultBlockState(), FLAGS);
+            // (the site's sign comes away: the block of the trade stands beside the door now)
+            if (now.is(ModContent.CONSTRUCTION_SITE)) level.setBlock(p, Blocks.AIR.defaultBlockState(), FLAGS);
+            if (key == null) return;
+            BlockPos at = keyAt(level, v, b);
+            if (at != null) {
+                // (one standing on a path, laid since or before: moved off it)
+                if (!Paths.way(level, at.getX(), at.getZ()) && !level.getBlockState(at.below()).is(Blocks.DIRT_PATH)) return;
+                level.setBlock(at, Blocks.AIR.defaultBlockState(), FLAGS);
+            }
+            for (BlockPos s : keySpots(v, b)) {
+                if (!loaded(level, s)) return;
+                int y = PlotFinder.floorAt(level, s.getX(), s.getZ());
+                BlockPos q = new BlockPos(s.getX(), y, s.getZ());
+                BlockState ground = level.getBlockState(q.below()), here = level.getBlockState(q);
+                if (Paths.way(level, q.getX(), q.getZ()) || ground.is(Blocks.DIRT_PATH) || !ground.getFluidState().isEmpty()) continue;
+                if (!here.isAir() && !here.canBeReplaced()) continue;
+                if (Math.abs(y - b.origin.getY()) > 3 || b.overlaps(q, 0, 0)) continue;
+                level.setBlock(q, key, FLAGS);
                 return;
             }
-            if (now.is(key.getBlock())) return;
-            if (!now.is(ModContent.CONSTRUCTION_SITE) && !now.isAir() && !now.canBeReplaced()) return;
-            BlockPos below = p.below();
-            if (level.getBlockState(below).isAir()) level.setBlock(below, Blocks.DIRT.defaultBlockState(), FLAGS);
-            level.setBlock(p, key, FLAGS);
         } else if (wanted) {
+            // (the block of its trade gives way to the site's sign: there are things to bring)
+            BlockPos at = keyAt(level, v, b);
+            if (at != null) level.setBlock(at, Blocks.AIR.defaultBlockState(), FLAGS);
             if (now.is(ModContent.CONSTRUCTION_SITE)) {
                 if (now.getValue(org.webtrade.minecraftportsmod.block.ConstructionSiteBlock.BUILT)) {
                     level.setBlock(p, now.setValue(org.webtrade.minecraftportsmod.block.ConstructionSiteBlock.BUILT, false), FLAGS);
@@ -338,8 +409,10 @@ final class Construction {
             level.setBlock(p, ModContent.CONSTRUCTION_SITE.defaultBlockState()
                     .setValue(net.minecraft.world.level.block.HorizontalDirectionalBlock.FACING, b.front)
                     .setValue(org.webtrade.minecraftportsmod.block.ConstructionSiteBlock.BUILT, false), FLAGS);
-        } else if (isPost(now, b)) {
-            level.setBlock(p, Blocks.AIR.defaultBlockState(), FLAGS);
+        } else {
+            if (now.is(ModContent.CONSTRUCTION_SITE)) level.setBlock(p, Blocks.AIR.defaultBlockState(), FLAGS);
+            BlockPos at = keyAt(level, v, b);
+            if (at != null) level.setBlock(at, Blocks.AIR.defaultBlockState(), FLAGS);
         }
     }
 }

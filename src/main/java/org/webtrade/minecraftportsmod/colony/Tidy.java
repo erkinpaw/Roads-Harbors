@@ -152,6 +152,8 @@ public final class Tidy {
         int ground = PlotFinder.floorAt(level, x, z) - 1;
         BlockPos up = new BlockPos(x, ground + 1, z);
         BlockState stand = level.getBlockState(up);
+        // (what the building itself is made of is no growth: the logs round a field's beds, a farm's fence posts)
+        if (built(v, up)) return null;
         if (WorkGoal.fungus(stand)) return new Job(Kind.DEBRIS, up);
         // (in the woodcutters' grove a tree is theirs; a bare trunk there, crown gone, no woodcutter takes: taken away)
         if (stand.is(BlockTags.LOGS)) {
@@ -163,6 +165,41 @@ public final class Tidy {
         // a bush: leaves on the ground with no trunk
         if (stand.is(BlockTags.LEAVES) && !trunkNear(level, up)) return new Job(Kind.LEAVES, up);
         return null;
+    }
+
+    /** The blocks of each blueprint, by position (worked out once). */
+    private static final java.util.Map<Blueprint, Set<Long>> PARTS = java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
+
+    /**
+     * Is this block part of a building of the village: one of its blueprint's pieces, or of the ground laid on its
+     * plot (the logs round a field's beds lie in it)?
+     */
+    static boolean built(Village v, BlockPos pos) {
+        for (Building b : v.buildings) {
+            int h = b.type.half + 1;
+            if (Math.abs(pos.getX() - b.origin.getX()) > h || Math.abs(pos.getZ() - b.origin.getZ()) > h) continue;
+            Blueprint bp = b.blueprint(v.wood);
+            Set<Long> parts = PARTS.computeIfAbsent(bp, k -> {
+                Set<Long> out = new HashSet<>();
+                for (Blueprint.Piece pc : k.pieces) out.add(pc.pos().asLong());
+                // (the ground: a block under the floor)
+                int y = k.frame.origin().getY() - 1;
+                for (long g : k.ground.keySet()) out.add(BlockPos.asLong((int) (g >> 32), y, (int) g));
+                return out;
+            });
+            if (parts.contains(pos.asLong())) return true;
+        }
+        return false;
+    }
+
+    /** {@link #built} for any village near (none told: the one the block is near). */
+    static boolean built(net.minecraft.server.level.ServerLevel level, BlockPos pos) {
+        VillageData data = VillageData.get(level.getServer());
+        for (Village v : data.all()) {
+            if (pos.distSqr(v.center) > 250 * 250) continue;
+            if (built(v, pos)) return true;
+        }
+        return false;
     }
 
     /** What (if anything) needs doing in this column. */

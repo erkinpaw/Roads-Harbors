@@ -438,6 +438,8 @@ final class WorkGoal extends Goal {
      * tree but, say, the post of a house (no leaves of its own) or a giant too big to fell (a jungle giant is not).
      */
     static List<BlockPos> tree(ServerLevel level, BlockPos base, Village v) {
+        // (a building's own timber is no tree: the logs round a field's beds, a house's posts)
+        if (Tidy.built(level, base)) return null;
         List<BlockPos> logs = new ArrayList<>();
         Set<BlockPos> seen = new HashSet<>();
         Deque<BlockPos> open = new ArrayDeque<>();
@@ -457,7 +459,7 @@ final class WorkGoal extends Goal {
                         if (n.getY() < base.getY() && (n.getY() < base.getY() - 3 || Math.abs(n.getX() - base.getX()) > 1 || Math.abs(n.getZ() - base.getZ()) > 1)) continue;
                         BlockState s = level.getBlockState(n);
                         // the posts of a house the tree leans on are not part of it
-                        if (s.is(BlockTags.LOGS) && (v == null || !DwellerGoals.inside(v, n.getX(), n.getZ()))) open.add(n);
+                        if (s.is(BlockTags.LOGS) && (v == null || !DwellerGoals.inside(v, n.getX(), n.getZ())) && !Tidy.built(level, n)) open.add(n);
                         else if (natural(s)) leafy = true;
                     }
                 }
