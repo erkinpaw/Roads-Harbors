@@ -336,9 +336,7 @@ public class TradeScreen extends UiScreen {
             g.text(font, p, lx1 - 8 - pw, y + 9, color, false);
             if (cents >= 0) g.item(new ItemStack(Items.EMERALD), lx1 - 8 - 10, y + 5);
             if (hover && mouseX >= lx0 + 5 && mouseX < lx0 + 27) g.setTooltipForNextFrame(font, r.icon(), mouseX, mouseY);
-            else if (hover && mouseX >= lx1 - 8 - pw - 4 && cents >= 0 && !view.known().isEmpty()) {
-                g.setComponentTooltipForNextFrame(font, priceTip(r, player), mouseX, mouseY);
-            }
+            else if (hover && !view.known().isEmpty()) g.setComponentTooltipForNextFrame(font, priceTip(r), mouseX, mouseY);
         }
         if (rows.size() * ROW > ly1 - ly0 - 4) {
             // a scroll bar
@@ -372,20 +370,57 @@ public class TradeScreen extends UiScreen {
         return good ? ChartStyle.GOOD : bad ? ChartStyle.BAD : ChartStyle.INK;
     }
 
-    /** The prices of a ware at the other villages, as last seen there (and how long ago). */
-    private List<Component> priceTip(ColonyPayloads.TradeRow r, boolean selling) {
+    /**
+     * Where else a ware is to be had for less (the villages seen asking less than here, the cheapest first) and where
+     * it fetches more (those seen paying more than here, the dearest first): as last seen there, and how long ago.
+     */
+    private List<Component> priceTip(ColonyPayloads.TradeRow r) {
         List<Component> out = new java.util.ArrayList<>();
         out.add(r.name());
-        int here = selling ? r.buyCents() : r.sellCents();
-        out.add(Component.translatable(selling ? "minecraftportsmod.trade.seen_here_pays" : "minecraftportsmod.trade.seen_here_asks", price(here))
-                .withStyle(net.minecraft.ChatFormatting.WHITE));
+        int ware = r.ware(), ask = r.sellCents(), bid = r.buyCents();
+        List<ColonyPayloads.KnownPrices> cheaper = new java.util.ArrayList<>(), dearer = new java.util.ArrayList<>();
         for (ColonyPayloads.KnownPrices k : view.known()) {
-            int a = r.ware() < k.ask().length ? k.ask()[r.ware()] : -1, b = r.ware() < k.bid().length ? k.bid()[r.ware()] : -1;
-            if (a < 0 && b < 0) continue;
-            out.add(Component.translatable("minecraftportsmod.trade.seen_line", k.village(), a < 0 ? "—" : price(a), b < 0 ? "—" : price(b), k.daysAgo())
-                    .withStyle(net.minecraft.ChatFormatting.GRAY));
+            int a = ware < k.ask().length ? k.ask()[ware] : -1, b = ware < k.bid().length ? k.bid()[ware] : -1;
+            if (a > 0 && (ask < 0 || a < ask)) cheaper.add(k);
+            if (b > 0 && b > bid) dearer.add(k);
+        }
+        cheaper.sort(java.util.Comparator.comparingInt(k -> k.ask()[ware]));
+        dearer.sort((x, y) -> Integer.compare(y.bid()[ware], x.bid()[ware]));
+        if (!cheaper.isEmpty()) {
+            out.add(Component.translatable("minecraftportsmod.trade.cheaper_at").withStyle(net.minecraft.ChatFormatting.WHITE));
+            for (ColonyPayloads.KnownPrices k : cheaper) {
+                out.add(Component.translatable("minecraftportsmod.trade.seen_at", k.village(), price(k.ask()[ware]), k.daysAgo())
+                        .withStyle(net.minecraft.ChatFormatting.GREEN));
+            }
+        }
+        if (!dearer.isEmpty()) {
+            out.add(Component.translatable("minecraftportsmod.trade.dearer_at").withStyle(net.minecraft.ChatFormatting.WHITE));
+            for (ColonyPayloads.KnownPrices k : dearer) {
+                out.add(Component.translatable("minecraftportsmod.trade.seen_at", k.village(), price(k.bid()[ware]), k.daysAgo())
+                        .withStyle(net.minecraft.ChatFormatting.GREEN));
+            }
+        }
+        if (cheaper.isEmpty() && dearer.isEmpty()) {
+            out.add(Component.translatable("minecraftportsmod.trade.best_here").withStyle(net.minecraft.ChatFormatting.GRAY));
         }
         return out;
+    }
+
+    /** For tests: what a ware costs here and was seen to cost elsewhere ("here ask/bid | village ask/bid ..."). */
+    public String seenPrices(int ware) {
+        StringBuilder out = new StringBuilder();
+        for (ColonyPayloads.TradeRow r : view.rows()) if (r.ware() == ware) out.append("here ").append(r.sellCents()).append('/').append(r.buyCents());
+        for (ColonyPayloads.KnownPrices k : view.known()) {
+            out.append(" | ").append(k.village()).append(' ').append(ware < k.ask().length ? k.ask()[ware] : -9).append('/')
+                    .append(ware < k.bid().length ? k.bid()[ware] : -9);
+        }
+        return out.toString();
+    }
+
+    /** For tests: the tip of a ware's row, line by line. */
+    public List<String> tipLines(int ware) {
+        for (ColonyPayloads.TradeRow r : view.rows()) if (r.ware() == ware) return priceTip(r).stream().map(Component::getString).toList();
+        return List.of();
     }
 
     // ------------------------------------------------------------------ input

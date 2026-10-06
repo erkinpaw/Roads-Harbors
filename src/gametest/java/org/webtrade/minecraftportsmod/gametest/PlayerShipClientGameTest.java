@@ -40,6 +40,8 @@ public class PlayerShipClientGameTest implements FabricClientGameTest {
             sp.getConnection().waitForChunksRender();
             server.runCommand("gamerule advance_time false");
             server.runCommand("gamerule spawn_mobs false");
+            // (creative: the player taken high up over the land to look for it does not fall to death)
+            server.runCommand("gamemode creative @a");
             server.runCommand("time set 3000");
             // a coast with room for a pier: beaches about the world, the village set down a little inland from each
             // (a few tries: a marshy shore, shallow far out, has no water deep enough at a jetty's end)
@@ -154,7 +156,7 @@ public class PlayerShipClientGameTest implements FabricClientGameTest {
             });
             context.waitTicks(40);
             context.takeScreenshot("playership_a_launched");
-            server.runCommand("gamemode survival @a");
+            server.runCommand("gamemode creative @a");
             // the stall and the hold: iron sold out of the hold, planks bought into it
             int[] counts = new int[4];
             server.runOnServer(s -> {
