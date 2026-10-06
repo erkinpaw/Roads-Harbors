@@ -129,6 +129,22 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
                     for (var bd : badges) log("badge: {} | {} | ring {} at {} {} {}", bd.title().getString(), bd.doing().getString(), Math.round(bd.progress() * 100), bd.x(), bd.y(), bd.z());
                     if (badges.isEmpty()) throw new AssertionError("no building badges");
                     context.takeScreenshot("workshop_badges");
+                    // the building looked at marked out, each way there is, to choose from (seen from a little way off)
+                    server.runOnServer(s -> {
+                        Village v = VillageData.get(s).get(ids[0]);
+                        var o = v.building(ids[1]).origin;
+                        s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), String.format(java.util.Locale.ROOT,
+                                "tp @a %.1f %.1f %.1f facing %.1f %.1f %.1f", o.getX() + 13.5, o.getY() + 7.0, o.getZ() + 13.5, o.getX() + 0.5,
+                                o.getY() + 1.5, o.getZ() + 0.5));
+                    });
+                    context.waitTicks(30);
+                    for (int m = 1; m <= 5; m++) {
+                        final int mm = m;
+                        context.runOnClient(mc -> org.webtrade.minecraftportsmod.client.render.BuildingHighlight.mode = mm);
+                        context.waitTicks(30);
+                        context.takeScreenshot("workshop_highlight_" + m);
+                    }
+                    context.runOnClient(mc -> org.webtrade.minecraftportsmod.client.render.BuildingHighlight.mode = 2);
                     // the joiner at the bench, close by
                     server.runOnServer(s -> {
                         Village v = VillageData.get(s).get(ids[0]);
@@ -154,13 +170,20 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
             server.runOnServer(s -> {
                 Village v = VillageData.get(s).get(ids[0]);
                 Building b = v.building(ids[1]);
-                var post = b.blueprint(v.wood).post;
+                // (round the building: the crafting table a click on which opens its menu - not one inside it)
+                var p = s.getPlayerList().getPlayers().getFirst();
+                int r = b.type.half + 2;
                 BlockPos at = null;
-                for (int dy = -4; dy <= 4 && at == null; dy++) {
-                    if (s.overworld().getBlockState(post.above(dy)).is(net.minecraft.world.level.block.Blocks.CRAFTING_TABLE)) at = post.above(dy);
+                for (BlockPos q : BlockPos.betweenClosed(b.origin.offset(-r, -4, -r), b.origin.offset(r, 4, r))) {
+                    if (!s.overworld().getBlockState(q).is(net.minecraft.world.level.block.Blocks.CRAFTING_TABLE)) continue;
+                    if (ColonyService.openKey(p, q.immutable())) {
+                        at = q.immutable();
+                        break;
+                    }
                 }
-                log("the joiner's crafting table at its front: {}", at == null ? "none" : at.toShortString());
-                if (at != null) key[0] = ColonyService.openKey(s.getPlayerList().getPlayers().getFirst(), at);
+                boolean onPath = at != null && s.overworld().getBlockState(at.below()).is(net.minecraft.world.level.block.Blocks.DIRT_PATH);
+                log("the joiner's crafting table at its front: {}{}", at == null ? "none" : at.toShortString(), onPath ? " ON A PATH" : "");
+                key[0] = at != null && !onPath;
             });
             if (!key[0]) throw new AssertionError("no crafting table at the joiner's front opening its menu");
             context.waitForScreen(org.webtrade.minecraftportsmod.client.chart.BuildingScreen.class);
@@ -271,6 +294,9 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
             context.waitTicks(30);
             context.takeScreenshot("workshop_overview");
             context.setScreen(() -> null);
+            // the fields' timbers (the logs round the beds) stand through the village's tidying
+            int[] logs = {0, 0};
+            server.runOnServer(s -> logs[0] = fieldLogs(s, ids[0]));
             // a day: the village's own orders for what it keeps
             server.runCommand("village day");
             context.waitTicks(40);
@@ -278,6 +304,9 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
             server.runCommand("tp @a ~ ~10 ~");
             context.waitTicks(40);
             context.takeScreenshot("workshop_village");
+            server.runOnServer(s -> logs[1] = fieldLogs(s, ids[0]));
+            log("the fields' logs: {} before the day, {} after", logs[0], logs[1]);
+            if (logs[1] < logs[0]) throw new AssertionError("the logs round a field's beds were taken away (" + logs[0] + " -> " + logs[1] + ")");
             if (moved < 2) throw new AssertionError("the order did not move on (made " + (int) last[0] + ")");
         }
     }
@@ -287,5 +316,25 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
         double n = 0;
         for (var o : Orders.of(v, p.getUUID(), b.id)) n += o.made();
         return n + 3 * Workshops.progress(v, b)[1];
+    }
+
+    /** The logs of the village's fields that stand in the world (of those their blueprints have). */
+    private static int fieldLogs(net.minecraft.server.MinecraftServer s, int village) {
+        Village v = VillageData.get(s).get(village);
+        int n = 0;
+        for (Building b : v.buildings()) {
+            if (b.type != BuildingType.FIELD) continue;
+            // (the logs round the beds are the field's ground: laid in it, a block under its floor)
+            var bp = b.blueprint(v.wood);
+            int y = bp.frame.origin().getY() - 1;
+            for (var e : bp.ground.entrySet()) {
+                if (!e.getValue().is(net.minecraft.tags.BlockTags.LOGS)) continue;
+                int x = (int) (e.getKey() >> 32), z = (int) (long) e.getKey();
+                var st = s.overworld().getBlockState(new BlockPos(x, y, z));
+                if (st.is(net.minecraft.tags.BlockTags.LOGS)) n++;
+                else log("field #{}: no log at {} {} {}: {} (above {})", b.id, x, y, z, st, s.overworld().getBlockState(new BlockPos(x, y + 1, z)));
+            }
+        }
+        return n;
     }
 }

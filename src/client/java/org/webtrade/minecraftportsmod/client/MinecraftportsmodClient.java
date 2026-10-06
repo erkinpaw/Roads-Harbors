@@ -37,6 +37,7 @@ public class MinecraftportsmodClient implements ClientModInitializer {
         CombatClient.init();
         org.webtrade.minecraftportsmod.client.chart.InventoryPanel.init();
         org.webtrade.minecraftportsmod.client.render.BuildingBadges.init();
+        org.webtrade.minecraftportsmod.client.render.BuildingHighlight.init();
 
         KeyMappingHelper.registerKeyMapping(MinecraftportsmodKeys.CHART);
         KeyMappingHelper.registerKeyMapping(MinecraftportsmodKeys.MAP_SHOT);

@@ -194,7 +194,8 @@ final class Paths {
                     kind[k] = inPlot(v, x, z, 0, null) ? 2 : (byte) 3;
                     continue;
                 }
-                if (up.is(BlockTags.LOGS)
+                // (round what stands on the ground: a tree, a building's plot, the block of a trade, a barrel)
+                if (up.is(BlockTags.LOGS) || !doorstep && !up.isAir() && !up.canBeReplaced() && !up.is(BlockTags.FENCE_GATES)
                         || !doorstep && inPlot(v, x, z, 0, null)
                         || Math.abs(x - v.board.getX()) <= 0 && Math.abs(z - v.board.getZ()) <= 0) {
                     kind[k] = 2;

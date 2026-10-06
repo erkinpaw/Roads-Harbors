@@ -377,6 +377,8 @@ public final class VillageManager {
                 }
             }
             Construction.advance(level, v, b, CATCH_UP);
+            // (and mended now and then: a timber gone put back)
+            if (level.getRandom().nextInt(20) == 0) Construction.mend(level, v, b, level.getRandom());
             // a player's house up and all its blocks in place: the player's now, no more the village's (a player's ship
             // is no blocks: hers is the stocks, then the launch, see Harbour)
             if (b.owner != null && b.type != BuildingType.SHIP && b.state == Building.State.BUILT && b.placed >= b.blueprint(v.wood).pieces.size()) {
