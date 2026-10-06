@@ -911,6 +911,8 @@
   "minecraftportsmod.trade.dearer_at": "Дороже продать:",
   "minecraftportsmod.trade.seen_at": "%s — %s · %s дн. назад",
   "minecraftportsmod.trade.best_here": "Выгоднее, чем здесь, не видели",
+  "minecraftportsmod.ship.loading": "Погрузка: %s",
+  "minecraftportsmod.ship.hold_badge": "Трюм: %s/%s",
   "minecraftportsmod.vboard.col_have": "На складе",
   "minecraftportsmod.vboard.col_got": "Добыто",
   "minecraftportsmod.vboard.col_spent": "Расход",
