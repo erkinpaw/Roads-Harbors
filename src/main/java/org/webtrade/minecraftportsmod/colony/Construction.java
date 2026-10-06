@@ -252,35 +252,93 @@ final class Construction {
     static BlockPos postAt(ServerLevel level, Village v, Building b) {
         BlockPos p = b.blueprint(v.wood).post;
         if (!loaded(level, p)) return p;
-        BlockState here = level.getBlockState(p);
-        if (here.is(ModContent.CONSTRUCTION_SITE)) return p;
+        if (isPost(level.getBlockState(p), b)) return p;
         for (int dy = -4; dy <= 4; dy++) {
-            if (level.getBlockState(p.above(dy)).is(ModContent.CONSTRUCTION_SITE)) return p.above(dy);
+            if (isPost(level.getBlockState(p.above(dy)), b)) return p.above(dy);
         }
         return new BlockPos(p.getX(), PlotFinder.floorAt(level, p.getX(), p.getZ()), p.getZ());
     }
 
-    /** Puts up or takes away the construction post of a building. */
+    /** Is this a building's post: the site's sign, or (built) the block of its trade? */
+    static boolean isPost(BlockState s, Building b) {
+        if (s.is(ModContent.CONSTRUCTION_SITE)) return true;
+        Block key = keyBlock(b.type);
+        return key != null && s.is(key);
+    }
+
+    /**
+     * The block of a building's trade, at its front where the site's sign stood while it went up: the smithy's anvil,
+     * the joiner's crafting table, the sawmill's stonecutter... A click on it (not crouching) opens the building's
+     * own menu. Null: none (the village's middle has its board).
+     */
+    static Block keyBlock(BuildingType t) {
+        return switch (t) {
+            case SMITHY -> Blocks.ANVIL;
+            case CARPENTER -> Blocks.CRAFTING_TABLE;
+            case SAWMILL -> Blocks.STONECUTTER;
+            case WOOD_HUT -> Blocks.FLETCHING_TABLE;
+            case WEAVER -> Blocks.LOOM;
+            case LOCKSMITH -> Blocks.SMITHING_TABLE;
+            case SMELTER -> Blocks.BLAST_FURNACE;
+            case GLASSWORKS -> Blocks.FURNACE;
+            case MINE_HOUSE -> Blocks.GRINDSTONE;
+            case STOREHOUSE, FISH_HUT -> Blocks.BARREL;
+            case STOREHOUSE_2 -> Blocks.CHEST;
+            case PIER -> Blocks.BELL;
+            case MARKET -> Blocks.LECTERN;
+            case CARTOGRAPHER -> Blocks.CARTOGRAPHY_TABLE;
+            case FIELD, FARM -> Blocks.COMPOSTER;
+            case FARMYARD -> Blocks.HAY_BLOCK;
+            case HUT, HOUSE, HOUSE_TALL, STONE_HOUSE, STONE_HOUSE_TALL -> Blocks.LANTERN;
+            default -> null;
+        };
+    }
+
+    /** The block of a building's trade as it stands: turned to face the way out of the building, where it turns. */
+    private static BlockState keyState(Building b) {
+        Block key = keyBlock(b.type);
+        if (key == null) return null;
+        BlockState st = key.defaultBlockState();
+        if (st.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING)) {
+            st = st.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING, b.front);
+        }
+        return st;
+    }
+
+    /**
+     * Puts up or takes away a building's post: while it goes up (or waits for what its next level takes), the site's
+     * sign, where the materials are brought; once it stands, the block of its trade instead (no name plate).
+     */
     static void post(ServerLevel level, Village v, Building b, boolean wanted) {
         BlockPos p = postAt(level, v, b);
         BlockState now = level.getBlockState(p);
-        if (wanted) {
-            // a building being raised a level shows the site's post again: there are things to bring
-            boolean built = b.state == Building.State.BUILT && !b.upgrading();
+        boolean built = b.state == Building.State.BUILT && !(b.upgrading() && !b.supplied());
+        if (wanted && built) {
+            BlockState key = keyState(b);
+            if (key == null) {
+                if (now.is(ModContent.CONSTRUCTION_SITE)) level.setBlock(p, Blocks.AIR.defaultBlockState(), FLAGS);
+                return;
+            }
+            if (now.is(key.getBlock())) return;
+            if (!now.is(ModContent.CONSTRUCTION_SITE) && !now.isAir() && !now.canBeReplaced()) return;
+            BlockPos below = p.below();
+            if (level.getBlockState(below).isAir()) level.setBlock(below, Blocks.DIRT.defaultBlockState(), FLAGS);
+            level.setBlock(p, key, FLAGS);
+        } else if (wanted) {
             if (now.is(ModContent.CONSTRUCTION_SITE)) {
-                if (now.getValue(org.webtrade.minecraftportsmod.block.ConstructionSiteBlock.BUILT) != built) {
-                    level.setBlock(p, now.setValue(org.webtrade.minecraftportsmod.block.ConstructionSiteBlock.BUILT, built), FLAGS);
+                if (now.getValue(org.webtrade.minecraftportsmod.block.ConstructionSiteBlock.BUILT)) {
+                    level.setBlock(p, now.setValue(org.webtrade.minecraftportsmod.block.ConstructionSiteBlock.BUILT, false), FLAGS);
                 }
                 return;
             }
-            if (!now.isAir() && !now.canBeReplaced()) return;
-            // stand it on the ground
+            // (the block of its trade gives way to the site's sign again: there are things to bring)
+            if (!isPost(now, b) && !now.isAir() && !now.canBeReplaced()) return;
             BlockPos below = p.below();
             if (level.getBlockState(below).isAir()) level.setBlock(below, Blocks.DIRT.defaultBlockState(), FLAGS);
             level.setBlock(p, ModContent.CONSTRUCTION_SITE.defaultBlockState()
                     .setValue(net.minecraft.world.level.block.HorizontalDirectionalBlock.FACING, b.front)
-                    .setValue(org.webtrade.minecraftportsmod.block.ConstructionSiteBlock.BUILT, built), FLAGS);
-        } else if (now.is(ModContent.CONSTRUCTION_SITE)) {
+                    .setValue(org.webtrade.minecraftportsmod.block.ConstructionSiteBlock.BUILT, false), FLAGS);
+        } else if (isPost(now, b)) {
             level.setBlock(p, Blocks.AIR.defaultBlockState(), FLAGS);
         }
     }
