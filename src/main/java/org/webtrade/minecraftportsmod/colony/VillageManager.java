@@ -45,6 +45,8 @@ public final class VillageManager {
         net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register((player, world, hand, hit) -> {
             if (hand != net.minecraft.world.InteractionHand.MAIN_HAND || !(player instanceof net.minecraft.server.level.ServerPlayer sp)
                     || !(world instanceof ServerLevel sl)) return net.minecraft.world.InteractionResult.PASS;
+            // (the block of a building's trade at its front, clicked standing: the building's menu, not the block's own)
+            if (!sp.isShiftKeyDown() && ColonyService.openKey(sp, hit.getBlockPos())) return net.minecraft.world.InteractionResult.SUCCESS;
             return Helping.build(sp, sl, hit.getBlockPos()) || Helping.bench(sp, sl, hit.getBlockPos())
                     ? net.minecraft.world.InteractionResult.SUCCESS : net.minecraft.world.InteractionResult.PASS;
         });
@@ -394,7 +396,7 @@ public final class VillageManager {
                     data.changed();
                 }
             }
-            // a building site's post, and later the building's name plate; a post no one wants any more comes away
+            // a building site's post, and later the block of its trade; a post no one wants any more comes away
             if (wantsPost(v, b)) Construction.post(level, v, b, true);
             else if (!posts.contains(b.blueprint(v.wood).post)) Construction.post(level, v, b, false);
             if (b.state == Building.State.DEMOLISHING && b.finished && b.placed == 0) {

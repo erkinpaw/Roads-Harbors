@@ -3,6 +3,7 @@ package org.webtrade.minecraftportsmod.gametest;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.webtrade.minecraftportsmod.Minecraftportsmod;
@@ -148,6 +149,24 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
                 last[0] = pr[1];
                 if (pr[1] >= 20) break;
             }
+            // the block of the joiner's trade at its front (no name plate): a click on it opens the building's menu
+            boolean[] key = {false};
+            server.runOnServer(s -> {
+                Village v = VillageData.get(s).get(ids[0]);
+                Building b = v.building(ids[1]);
+                var post = b.blueprint(v.wood).post;
+                BlockPos at = null;
+                for (int dy = -4; dy <= 4 && at == null; dy++) {
+                    if (s.overworld().getBlockState(post.above(dy)).is(net.minecraft.world.level.block.Blocks.CRAFTING_TABLE)) at = post.above(dy);
+                }
+                log("the joiner's crafting table at its front: {}", at == null ? "none" : at.toShortString());
+                if (at != null) key[0] = ColonyService.openKey(s.getPlayerList().getPlayers().getFirst(), at);
+            });
+            if (!key[0]) throw new AssertionError("no crafting table at the joiner's front opening its menu");
+            context.waitForScreen(org.webtrade.minecraftportsmod.client.chart.BuildingScreen.class);
+            context.waitTicks(10);
+            context.takeScreenshot("workshop_key_menu");
+            context.setScreen(() -> null);
             // the window: the queue, the bar, the tools
             server.runOnServer(s -> {
                 var p = s.getPlayerList().getPlayers().getFirst();

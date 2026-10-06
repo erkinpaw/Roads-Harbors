@@ -60,6 +60,29 @@ public final class ColonyService {
         player.sendSystemMessage(Component.translatable("minecraftportsmod.colony.no_site").withStyle(ChatFormatting.GRAY));
     }
 
+    /**
+     * A click on the block of a building's trade at its front (the smithy's anvil...): the building's own menu (or,
+     * waiting for what its next level takes, what it still needs). False if the block is no building's.
+     */
+    public static boolean openKey(ServerPlayer player, BlockPos pos) {
+        VillageData data = data(player);
+        var level = player.level();
+        for (Village v : data.all()) {
+            if (pos.distSqr(v.center) > 260 * 260) continue;
+            for (Building b : v.buildings) {
+                if (b.state != Building.State.BUILT || b.owner() != null) continue;
+                BlockPos post = b.blueprint(v.wood).post;
+                if (post.getX() != pos.getX() || post.getZ() != pos.getZ() || Math.abs(post.getY() - pos.getY()) > 5) continue;
+                var key = Construction.keyBlock(b.type);
+                if (key == null || !level.getBlockState(pos).is(key)) continue;
+                if (b.upgrading() && !b.supplied()) sendSite(player, v, b);
+                else sendBuilding(player, v, b);
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** The cartographer's table: the map of what the village's scouts found. */
     public static void openMap(ServerPlayer player, BlockPos pos) {
         Village v = data(player).near(pos, 120);
