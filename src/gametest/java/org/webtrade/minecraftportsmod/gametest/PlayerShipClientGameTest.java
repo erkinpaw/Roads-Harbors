@@ -162,8 +162,10 @@ public class PlayerShipClientGameTest implements FabricClientGameTest {
             server.runOnServer(s -> {
                 Village v = VillageData.get(s).get(ids[0]);
                 var p = s.getPlayerList().getPlayers().getFirst();
-                // (the ship by the village, whatever coast she was launched at)
-                ship[0].setPos(v.center.getX() + 6.5, ship[0].getY(), v.center.getZ() + 6.5);
+                // (launched at the pier, she stays there on the water: the stall reaches her hold from the pier; only a ship
+                // put by the village for want of a pier is by its middle)
+                if (!ordered[0]) ship[0].setPos(v.center.getX() + 6.5, ship[0].getY(), v.center.getZ() + 6.5);
+                log("the ship's hold reached from the stall: {}", Harbour.playerShip(s.overworld(), v, p.getUUID()) == ship[0]);
                 ship[0].hold().setItem(0, new ItemStack(Items.IRON_INGOT, 32));
                 counts[0] = Trade.carried(p, v, Trade.WARES.get(Res.IRON.ordinal()));
                 long before = Wallet.cents(p);
@@ -195,7 +197,7 @@ public class PlayerShipClientGameTest implements FabricClientGameTest {
             server.runOnServer(s -> {
                 var at = ship[0].position();
                 s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), String.format(java.util.Locale.ROOT,
-                        "tp @a %.1f %.1f %.1f facing %.1f %.1f %.1f", at.x + 14, at.y + 10, at.z + 14, at.x, at.y + 6, at.z));
+                        "tp @a %.1f %.1f %.1f facing %.1f %.1f %.1f", at.x + 15, at.y + 11, at.z + 15, at.x, at.y + 9, at.z));
             });
             context.waitTicks(60);
             var badges = context.computeOnClient(mc -> org.webtrade.minecraftportsmod.client.render.BuildingBadges.badges());

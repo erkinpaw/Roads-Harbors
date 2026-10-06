@@ -130,7 +130,7 @@ public final class Badges {
             }
         }
         int x = ship.getBlockX(), y = ship.getBlockY(), z = ship.getBlockZ();
-        return new ColonyPayloads.Badge(x + 0.5F, y + 18F, z + 0.5F, new int[]{x - 9, y - 1, z - 9, x + 10, y + 17, z + 10}, new ItemStack(Items.BARREL),
+        return new ColonyPayloads.Badge(x + 0.5F, y + 16F, z + 0.5F, new int[]{x - 9, y - 1, z - 9, x + 10, y + 16, z + 10}, new ItemStack(Items.BARREL),
                 used / (float) hold.getContainerSize(), doing, Component.translatable("minecraftportsmod.ship.hold_badge", used, hold.getContainerSize()));
     }
 
