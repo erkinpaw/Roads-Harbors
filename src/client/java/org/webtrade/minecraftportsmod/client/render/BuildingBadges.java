@@ -72,6 +72,8 @@ public final class BuildingBadges {
                 for (Shown s : shown) {
                     int[] k = s.badge().box();
                     var box = new net.minecraft.world.phys.AABB(k[0], k[1], k[2], k[3], Math.max(k[4], s.badge().y() + 0.8), k[5]);
+                    // (and the block of its trade, at its front: looking at it is looking at the building)
+                    if (s.badge().key() != ColonyPayloads.Badge.NO_KEY) box = box.minmax(new net.minecraft.world.phys.AABB(net.minecraft.core.BlockPos.of(s.badge().key())));
                     var hit = box.contains(from) ? java.util.Optional.of(from) : box.clip(from, to);
                     if (hit.isEmpty()) continue;
                     double d = hit.get().distanceToSqr(from);

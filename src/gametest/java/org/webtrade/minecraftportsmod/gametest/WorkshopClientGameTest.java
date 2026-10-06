@@ -132,19 +132,29 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
                     // the building looked at marked out, each way there is, to choose from (seen from a little way off)
                     server.runOnServer(s -> {
                         Village v = VillageData.get(s).get(ids[0]);
-                        var o = v.building(ids[1]).origin;
+                        // (looking at the block of the joiner's trade, from a few blocks off)
+                        Building jb = v.building(ids[1]);
+                        int r = jb.type.half + 2;
+                        BlockPos o = jb.origin;
+                        for (BlockPos q : BlockPos.betweenClosed(jb.origin.offset(-r, -4, -r), jb.origin.offset(r, 4, r))) {
+                            if (s.overworld().getBlockState(q).is(net.minecraft.world.level.block.Blocks.CRAFTING_TABLE)
+                                    && ColonyService.openKey(s.getPlayerList().getPlayers().getFirst(), q.immutable())) o = q.immutable();
+                        }
+                        s.getPlayerList().getPlayers().getFirst().closeContainer();
                         s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), String.format(java.util.Locale.ROOT,
-                                "tp @a %.1f %.1f %.1f facing %.1f %.1f %.1f", o.getX() + 13.5, o.getY() + 7.0, o.getZ() + 13.5, o.getX() + 0.5,
-                                o.getY() + 1.5, o.getZ() + 0.5));
+                                "tp @a %.1f %.1f %.1f facing %.1f %.1f %.1f", o.getX() + 5.5, o.getY() + 3.5, o.getZ() + 5.5, o.getX() + 0.5,
+                                o.getY() + 0.5, o.getZ() + 0.5));
                     });
                     context.waitTicks(30);
+                    context.setScreen(() -> null);
+                    context.waitTicks(10);
                     for (int m = 1; m <= 5; m++) {
                         final int mm = m;
                         context.runOnClient(mc -> org.webtrade.minecraftportsmod.client.render.BuildingHighlight.mode = mm);
                         context.waitTicks(30);
                         context.takeScreenshot("workshop_highlight_" + m);
                     }
-                    context.runOnClient(mc -> org.webtrade.minecraftportsmod.client.render.BuildingHighlight.mode = 2);
+                    context.runOnClient(mc -> org.webtrade.minecraftportsmod.client.render.BuildingHighlight.mode = 1);
                     // the joiner at the bench, close by
                     server.runOnServer(s -> {
                         Village v = VillageData.get(s).get(ids[0]);
