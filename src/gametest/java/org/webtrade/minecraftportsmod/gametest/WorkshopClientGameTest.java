@@ -129,7 +129,7 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
                     for (var bd : badges) log("badge: {} | {} | ring {} at {} {} {}", bd.title().getString(), bd.doing().getString(), Math.round(bd.progress() * 100), bd.x(), bd.y(), bd.z());
                     if (badges.isEmpty()) throw new AssertionError("no building badges");
                     context.takeScreenshot("workshop_badges");
-                    // the building looked at marked out, each way there is, to choose from (seen from a little way off)
+                    // the block of the joiner's trade outlined while it is looked at
                     server.runOnServer(s -> {
                         Village v = VillageData.get(s).get(ids[0]);
                         // (looking at the block of the joiner's trade, from a few blocks off)
@@ -148,13 +148,7 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
                     context.waitTicks(30);
                     context.setScreen(() -> null);
                     context.waitTicks(10);
-                    for (int m = 1; m <= 5; m++) {
-                        final int mm = m;
-                        context.runOnClient(mc -> org.webtrade.minecraftportsmod.client.render.BuildingHighlight.mode = mm);
-                        context.waitTicks(30);
-                        context.takeScreenshot("workshop_highlight_" + m);
-                    }
-                    context.runOnClient(mc -> org.webtrade.minecraftportsmod.client.render.BuildingHighlight.mode = 1);
+                    context.takeScreenshot("workshop_key_outline");
                     // the joiner at the bench, close by
                     server.runOnServer(s -> {
                         Village v = VillageData.get(s).get(ids[0]);
