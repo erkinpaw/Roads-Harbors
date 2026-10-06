@@ -43,6 +43,11 @@ public final class Harbour {
         testWanted = true;
     }
 
+    /** Tests: a village with a pier has a ship already (a passage to be taken on her, not her building to be waited for). */
+    public static void testShip(Village v) {
+        if (pier(v) != null && v.ships == 0) v.ships = 1;
+    }
+
     /** Tests: every village wants a pier. */
     public static boolean testWanted;
 
