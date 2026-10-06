@@ -43,7 +43,8 @@ public final class Badges {
                     if (b.type == BuildingType.SHIP || b.state == Building.State.DEMOLISHING && b.finished) continue;
                     if (Math.abs(b.origin.getX() - at.getX()) > NEAR || Math.abs(b.origin.getZ() - at.getZ()) > NEAR) continue;
                     ColonyPayloads.Badge badge = badge(v, b);
-                    if (badge != null) out.add(badge);
+                    // (and where the block of its trade stands, to be marked out while the building is looked at)
+                    if (badge != null) out.add(badge.withKey(Construction.keyAt((ServerLevel) p.level(), v, b)));
                 }
             }
             // the player's own ships near: their hold, and whether they lie at a village loading (its stall trades with them)

@@ -378,7 +378,19 @@ public final class ColonyPayloads {
     }
 
     /** A building's badge: where it hangs, the building's box (x0 y0 z0 x1 y1 z1), its icon, how far its work is (below 0: none), what it is doing, its name. */
-    public record Badge(float x, float y, float z, int[] box, net.minecraft.world.item.ItemStack icon, float progress, Component doing, Component title) {
+    public record Badge(float x, float y, float z, int[] box, net.minecraft.world.item.ItemStack icon, float progress, Component doing, Component title,
+                        long key) {
+        /** No block of a trade to show. */
+        public static final long NO_KEY = Long.MIN_VALUE;
+
+        public Badge(float x, float y, float z, int[] box, net.minecraft.world.item.ItemStack icon, float progress, Component doing, Component title) {
+            this(x, y, z, box, icon, progress, doing, title, NO_KEY);
+        }
+
+        /** The same, with where the block of the building's trade stands (a click on it opens its menu). */
+        public Badge withKey(net.minecraft.core.BlockPos at) {
+            return new Badge(x, y, z, box, icon, progress, doing, title, at == null ? NO_KEY : at.asLong());
+        }
     }
 
     /** The badges over the buildings near a player (every second). */
@@ -395,6 +407,7 @@ public final class ColonyPayloads {
                 buf.writeFloat(b.progress);
                 comp(buf, b.doing);
                 comp(buf, b.title);
+                buf.writeLong(b.key);
             }
         }, buf -> {
             int n = buf.readVarInt();
@@ -405,7 +418,8 @@ public final class ColonyPayloads {
                 for (int k = 0; k < 6; k++) box[k] = buf.readVarInt();
                 var icon = net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf);
                 float p = buf.readFloat();
-                out.add(new Badge(x, y, z, box, icon, p, comp(buf), comp(buf)));
+                Component doing = comp(buf), title = comp(buf);
+                out.add(new Badge(x, y, z, box, icon, p, doing, title, buf.readLong()));
             }
             return new BadgeView(out);
         });
