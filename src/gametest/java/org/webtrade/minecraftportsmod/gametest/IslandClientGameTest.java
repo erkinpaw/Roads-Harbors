@@ -83,6 +83,10 @@ public class IslandClientGameTest implements FabricClientGameTest {
                     if (ships && day == 8) server.runOnServer(s -> {
                         for (Village v : VillageData.get(s).all()) Harbour.testReady(v);
                     });
+                    // (":passage": a ship at each pier from day 30, to sail with - not her building waited for)
+                    if (spec.contains(":passage") && day == 30) server.runOnServer(s -> {
+                        for (Village v : VillageData.get(s).all()) Harbour.testShip(v);
+                    });
                     server.runOnServer(s -> s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), "village day"));
                     context.waitTicks(40);
                     long p0 = System.currentTimeMillis();
@@ -169,13 +173,14 @@ public class IslandClientGameTest implements FabricClientGameTest {
                 for (Village v : data.all()) {
                     for (var d : v.dwellers()) {
                         if (d.job() != org.webtrade.minecraftportsmod.colony.Job.SAILOR) continue;
-                        var list = Voyages.passages(data, v, d);
-                        if (list.isEmpty()) continue;
-                        trip[0] = v.id;
-                        trip[1] = d.id;
-                        trip[2] = list.getFirst().village();
-                        trip[3] = list.getFirst().price();
-                        return;
+                        // (the shortest of all: the cheapest passage, its fare by the length of the way)
+                        for (var ps : Voyages.passages(data, v, d)) {
+                            if (trip[0] >= 0 && ps.price() >= trip[3]) continue;
+                            trip[0] = v.id;
+                            trip[1] = d.id;
+                            trip[2] = ps.village();
+                            trip[3] = ps.price();
+                        }
                     }
                 }
             });
