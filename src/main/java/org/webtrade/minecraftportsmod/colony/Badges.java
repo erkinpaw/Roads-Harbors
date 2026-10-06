@@ -4,8 +4,10 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import org.webtrade.minecraftportsmod.network.ColonyPayloads;
 
@@ -43,6 +45,12 @@ public final class Badges {
                     ColonyPayloads.Badge badge = badge(v, b);
                     if (badge != null) out.add(badge);
                 }
+            }
+            // the player's own ships near: their hold, and whether they lie at a village loading (its stall trades with them)
+            ServerLevel level = (ServerLevel) p.level();
+            for (var ship : level.getEntitiesOfClass(org.webtrade.minecraftportsmod.combat.WarshipEntity.class, p.getBoundingBox().inflate(NEAR),
+                    w -> p.getUUID().equals(w.owner()) && w.sinking() == 0)) {
+                out.add(shipBadge(level, data, p, ship));
             }
             // (nothing near, as a second ago: nothing sent)
             if (out.isEmpty() && !SHOWN.remove(p.getUUID())) continue;
@@ -103,6 +111,27 @@ public final class Badges {
         }
         return new ColonyPayloads.Badge(top[0] + 0.5F, top[1] + 1.2F, top[2] + 0.5F, new int[]{top[3], top[4], top[5], top[6], top[7], top[8]}, icon,
                 progress, doing, title);
+    }
+
+    /**
+     * A player's ship's badge, over her masts: a barrel in a ring that fills with her hold, how full it is, and where
+     * she is loading (at a village whose stall trades with her hold). Her box: her hull and rigging.
+     */
+    static ColonyPayloads.Badge shipBadge(ServerLevel level, VillageData data, ServerPlayer p, org.webtrade.minecraftportsmod.combat.WarshipEntity ship) {
+        var hold = ship.hold();
+        int used = 0;
+        for (int i = 0; i < hold.getContainerSize(); i++) if (!hold.getItem(i).isEmpty()) used++;
+        Component doing = Component.empty();
+        for (Village v : data.all()) {
+            if (ship.blockPosition().distSqr(v.center) > 200 * 200) continue;
+            if (Harbour.playerShip(level, v, p.getUUID()) == ship) {
+                doing = Component.translatable("minecraftportsmod.ship.loading", v.name);
+                break;
+            }
+        }
+        int x = ship.getBlockX(), y = ship.getBlockY(), z = ship.getBlockZ();
+        return new ColonyPayloads.Badge(x + 0.5F, y + 18F, z + 0.5F, new int[]{x - 9, y - 1, z - 9, x + 10, y + 17, z + 10}, new ItemStack(Items.BARREL),
+                used / (float) hold.getContainerSize(), doing, Component.translatable("minecraftportsmod.ship.hold_badge", used, hold.getContainerSize()));
     }
 
     /** The middle of a building's top, and its box (worked out once for a blueprint). */

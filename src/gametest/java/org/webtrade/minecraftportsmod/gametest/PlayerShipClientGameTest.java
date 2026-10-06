@@ -190,6 +190,21 @@ public class PlayerShipClientGameTest implements FabricClientGameTest {
             context.waitTicks(20);
             context.takeScreenshot("playership_b_hold");
             context.setScreen(() -> null);
+            // her badge, looked at: the hold's fill, loading at the village
+            server.runCommand("gamemode spectator @a");
+            server.runOnServer(s -> {
+                var at = ship[0].position();
+                s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), String.format(java.util.Locale.ROOT,
+                        "tp @a %.1f %.1f %.1f facing %.1f %.1f %.1f", at.x + 14, at.y + 10, at.z + 14, at.x, at.y + 6, at.z));
+            });
+            context.waitTicks(60);
+            var badges = context.computeOnClient(mc -> org.webtrade.minecraftportsmod.client.render.BuildingBadges.badges());
+            String shipBadge = "";
+            for (var b : badges) if (b.title().getString().contains("/" + WarshipEntity.HOLD)) shipBadge = b.title().getString() + " | " + b.doing().getString();
+            log("the ship's badge: {}", shipBadge.isEmpty() ? "none" : shipBadge);
+            context.takeScreenshot("playership_c_badge");
+            server.runCommand("gamemode creative @a");
+            if (shipBadge.isEmpty()) throw new AssertionError("no badge over the ship");
             if (counts[0] < 32) throw new AssertionError("the iron in the hold was not counted for sale (" + counts[0] + ")");
             if (counts[1] > 12) throw new AssertionError("the iron sold did not come out of the hold (" + counts[1] + " left)");
             if (counts[3] <= 0) throw new AssertionError("the village had nothing to spare to buy");
