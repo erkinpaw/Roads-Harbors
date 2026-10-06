@@ -329,15 +329,38 @@ final class Construction {
         };
     }
 
+    /** Each blueprint's places for the block of its trade (worked out once). */
+    private static final java.util.Map<Blueprint, java.util.List<BlockPos>> KEY_SPOTS =
+            java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
+
     /**
-     * Where the block of a building's trade may stand, the first free of them taken: before its front, beside the
-     * door (the post's place, then the other side), else beside the building at its front corners. Never on a path.
+     * Where the block of a building's trade may stand, the first free of them taken: right against its front wall, a
+     * couple of blocks to the side of the door (where the wall is, as its blueprint has it); failing that, before its
+     * front by the door or beside it at its front corners. Never on a path.
      */
     static java.util.List<BlockPos> keySpots(Village v, Building b) {
-        Blueprint.Frame f = b.blueprint(v.wood).frame;
-        int h = b.type.half;
-        return java.util.List.of(f.at(h - 1, 0, h + 1), f.at(-(h - 1), 0, h + 1), f.at(h, 0, h + 1), f.at(-h, 0, h + 1),
-                f.at(h + 1, 0, h - 1), f.at(-(h + 1), 0, h - 1));
+        Blueprint bp = b.blueprint(v.wood);
+        return KEY_SPOTS.computeIfAbsent(bp, k -> {
+            java.util.Set<Long> solid = new java.util.HashSet<>();
+            for (Blueprint.Piece pc : k.pieces) if (!pc.state().isAir() && pc.state().getFluidState().isEmpty()) solid.add(pc.pos().asLong());
+            Blueprint.Frame f = k.frame;
+            int h = b.type.half;
+            java.util.List<BlockPos> out = new java.util.ArrayList<>();
+            // (against the wall: going in from the plot's front edge, the first column with a wall at the floor or a block over it)
+            for (int dx : new int[]{2, -2, 3, -3, 4, -4}) {
+                for (int dz = h; dz >= 0; dz--) {
+                    BlockPos at = f.at(dx, 0, dz);
+                    if (!solid.contains(at.asLong()) && !solid.contains(at.above().asLong())) continue;
+                    if (dz < h) out.add(f.at(dx, 0, dz + 1));
+                    break;
+                }
+            }
+            out.add(f.at(h - 1, 0, h + 1));
+            out.add(f.at(-(h - 1), 0, h + 1));
+            out.add(f.at(h + 1, 0, h - 1));
+            out.add(f.at(-(h + 1), 0, h - 1));
+            return java.util.List.copyOf(out);
+        });
     }
 
     /** Where the block of a building's trade stands now, or null. */
@@ -376,22 +399,32 @@ final class Construction {
             if (now.is(ModContent.CONSTRUCTION_SITE)) level.setBlock(p, Blocks.AIR.defaultBlockState(), FLAGS);
             if (key == null) return;
             BlockPos at = keyAt(level, v, b);
+            java.util.List<BlockPos> spots = keySpots(v, b);
+            // (where it stands now among its places: one on a path, laid since or before, is moved off it)
+            int now_ = spots.size();
             if (at != null) {
-                // (one standing on a path, laid since or before: moved off it)
-                if (!Paths.way(level, at.getX(), at.getZ()) && !level.getBlockState(at.below()).is(Blocks.DIRT_PATH)) return;
-                level.setBlock(at, Blocks.AIR.defaultBlockState(), FLAGS);
+                // (or not on the building's floor: up on a roof's eaves, as it was put once)
+                boolean onWay = Paths.way(level, at.getX(), at.getZ()) || level.getBlockState(at.below()).is(Blocks.DIRT_PATH)
+                        || at.getY() != b.blueprint(v.wood).frame.origin().getY();
+                for (int i = 0; i < spots.size() && !onWay; i++) if (spots.get(i).getX() == at.getX() && spots.get(i).getZ() == at.getZ()) now_ = i;
             }
-            for (BlockPos s : keySpots(v, b)) {
+            // the first free place, better than where it stands (against the wall rather than out before it)
+            for (int i = 0; i < Math.min(now_, spots.size()); i++) {
+                BlockPos s = spots.get(i);
                 if (!loaded(level, s)) return;
-                int y = PlotFinder.floorAt(level, s.getX(), s.getZ());
+                // (on the building's floor, on the ground: not on a roof that hangs out over the wall)
+                int y = b.blueprint(v.wood).frame.origin().getY();
                 BlockPos q = new BlockPos(s.getX(), y, s.getZ());
                 BlockState ground = level.getBlockState(q.below()), here = level.getBlockState(q);
                 if (Paths.way(level, q.getX(), q.getZ()) || ground.is(Blocks.DIRT_PATH) || !ground.getFluidState().isEmpty()) continue;
+                if (ground.isAir() || ground.canBeReplaced()) continue;
                 if (!here.isAir() && !here.canBeReplaced()) continue;
-                if (Math.abs(y - b.origin.getY()) > 3 || b.overlaps(q, 0, 0)) continue;
+                if (at != null) level.setBlock(at, Blocks.AIR.defaultBlockState(), FLAGS);
                 level.setBlock(q, key, FLAGS);
                 return;
             }
+            // (no better place: where it stands it stays; on a path, off it)
+            if (at != null && now_ == spots.size()) level.setBlock(at, Blocks.AIR.defaultBlockState(), FLAGS);
         } else if (wanted) {
             // (the block of its trade gives way to the site's sign: there are things to bring)
             BlockPos at = keyAt(level, v, b);
