@@ -34,6 +34,8 @@ public class DealingClientGameTest implements FabricClientGameTest {
             sp.getConnection().waitForChunksRender();
             server.runCommand("gamerule advance_time false");
             server.runCommand("gamerule spawn_mobs false");
+            // (creative: the player taken high up over the land to look for it does not fall to death)
+            server.runCommand("gamemode creative @a");
             int[][] at = {{300, -300}, {300, -520}, {520, -300}};
             for (int[] p : at) {
                 // (the chunks' rendering not waited for: the world is busy with the village just set up)
@@ -45,6 +47,7 @@ public class DealingClientGameTest implements FabricClientGameTest {
                 context.waitTicks(20);
             }
             String[] failed = {null};
+            int[] dearId = {-1};
             server.runOnServer(s -> {
                 List<Village> vs = new ArrayList<>();
                 for (Village x : VillageData.get(s).all()) if (x.name.contains("Тест") || x.name.contains("Test")) vs.add(x);
@@ -54,6 +57,7 @@ public class DealingClientGameTest implements FabricClientGameTest {
                     return;
                 }
                 Village home = vs.get(0), cheap = vs.get(1), dear = vs.get(2);
+                dearId[0] = dear.id;
                 // (room in the stores for a heap: its other heaps down to a third of what it keeps)
                 for (Village x : List.of(cheap, dear)) {
                     for (Res r : Res.values()) if (r != Res.IRON) Dealing.stock(x, r, Math.min(x.stock(r), VillageLife.target(x, r) / 3));
@@ -92,6 +96,25 @@ public class DealingClientGameTest implements FabricClientGameTest {
                 else if (back[0] <= purse) failed[0] = "the round made nothing: " + back[0] + " from " + purse;
             });
             if (failed[0] != null) throw new AssertionError(failed[0]);
+            // the dear village's stall: the iron's tip tells where it was seen cheaper (the cheap village)
+            // (the cheap one's stall, opened when its prices were seen, closed first)
+            context.waitTicks(10);
+            context.setScreen(() -> null);
+            context.waitTicks(5);
+            server.runOnServer(s -> {
+                Village dear = VillageData.get(s).get(dearId[0]);
+                org.webtrade.minecraftportsmod.colony.ColonyService.handleAction(s.getPlayerList().getPlayers().getFirst(),
+                        new org.webtrade.minecraftportsmod.network.ColonyPayloads.VillageAction(dear.id,
+                                org.webtrade.minecraftportsmod.network.ColonyPayloads.VillageAction.TRADE, 0, 0));
+            });
+            context.waitForScreen(org.webtrade.minecraftportsmod.client.chart.TradeScreen.class);
+            context.waitTicks(10);
+            var tip = context.computeOnClient(mc -> ((org.webtrade.minecraftportsmod.client.chart.TradeScreen) mc.gui.screen()).tipLines(Res.IRON.ordinal()));
+            log("the iron's tip at the dear village: {}", tip);
+            String seen = context.computeOnClient(mc -> ((org.webtrade.minecraftportsmod.client.chart.TradeScreen) mc.gui.screen()).seenPrices(Res.IRON.ordinal()));
+            log("iron prices: {}", seen);
+            context.setScreen(() -> null);
+            if (tip.size() < 3) throw new AssertionError("the iron's tip tells of no other village: " + tip);
         }
     }
 }
