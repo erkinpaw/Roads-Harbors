@@ -1036,6 +1036,8 @@
   "minecraftportsmod.vlog.carried": "%s отвёз %s в %s",
   "minecraftportsmod.vlog.carried_in": "%s привёз %s из %s",
   "minecraftportsmod.quest.carried": "Товар доставлен в «%s»",
+  "minecraftportsmod.vlog.forged": "%s выковал: %s × %s",
+  "minecraftportsmod.forge.done": "Выковано: %s",
   "minecraftportsmod.quest.take": "Взять",
   "minecraftportsmod.quest.drop": "Отказаться",
   "minecraftportsmod.quest.hand": "Отдать",
