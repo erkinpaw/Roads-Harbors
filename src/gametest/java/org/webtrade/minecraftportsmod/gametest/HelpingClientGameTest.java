@@ -49,7 +49,11 @@ public class HelpingClientGameTest implements FabricClientGameTest {
     }
 
     private static void act(MinecraftServer s, int kind, int a) {
-        ColonyService.handleAction(player(s), new ColonyPayloads.VillageAction(1, kind, a, 0));
+        act(s, kind, a, 0);
+    }
+
+    private static void act(MinecraftServer s, int kind, int a, int b) {
+        ColonyService.handleAction(player(s), new ColonyPayloads.VillageAction(1, kind, a, b));
     }
 
     @Override
@@ -129,7 +133,7 @@ public class HelpingClientGameTest implements FabricClientGameTest {
                 if (b.work() < before[0] + 40 && (b.state() != Building.State.BUILT || b.upgradeWork())) throw new AssertionError("the strokes did not build");
             });
 
-            // 3. to the store: logs and stone go, the pick and the bread stay
+            // 3. given to the store, by choice: logs and stone go, what was not chosen stays
             int[] stock = {0, 0};
             server.runOnServer(s -> {
                 Village v = village(s);
@@ -141,32 +145,30 @@ public class HelpingClientGameTest implements FabricClientGameTest {
                 p.getInventory().add(new ItemStack(Items.BREAD, 5));
                 stock[0] = v.stock(Res.WOOD);
                 stock[1] = v.stock(Res.STONE);
-                act(s, ColonyPayloads.VillageAction.DEPOSIT, v.elder().id);
+                act(s, ColonyPayloads.VillageAction.GIVE, -1, Res.WOOD.ordinal() * 100000 + 64);
+                act(s, ColonyPayloads.VillageAction.GIVE, -1, Res.STONE.ordinal() * 100000 + 32);
                 int logs = p.getInventory().countItem(Items.OAK_LOG), pick = p.getInventory().countItem(Items.IRON_PICKAXE),
                         bread = p.getInventory().countItem(Items.BREAD);
                 log("store: wood {} -> {}, stone {} -> {}; left with logs {}, pick {}, bread {}; thanks {}", stock[0], v.stock(Res.WOOD), stock[1],
                         v.stock(Res.STONE), logs, pick, bread, v.tasks().thanks(p.getUUID()));
-                if (v.stock(Res.WOOD) <= stock[0] || pick != 1 || bread != 5) throw new AssertionError("the store took the wrong things");
+                if (v.stock(Res.WOOD) <= stock[0] || v.stock(Res.STONE) <= stock[1] || pick != 1 || bread != 5) throw new AssertionError("the store took the wrong things");
             });
 
-            // 4. hired on: a day's work brought and paid
+            // 4. a trade chosen (a gathering one): what is picked up of it goes to the store until the day's work is in
             server.runOnServer(s -> {
                 Village v = village(s);
                 var p = player(s);
-                act(s, ColonyPayloads.VillageAction.HIRE, v.elder().id);
-                Job j = Helping.hired(v, p.getUUID());
+                Job j = null;
+                for (Job x : Helping.jobs(v)) if (j == null && !Helping.crafter(x) && (x == Job.WOODCUTTER || x == Job.MINER)) j = x;
+                if (j == null) j = Job.WOODCUTTER;
+                act(s, ColonyPayloads.VillageAction.HIRE, v.elder().id, j.ordinal());
+                if (Helping.hired(v, p.getUUID()) != j) throw new AssertionError("not hired at " + j);
                 int need = Helping.quota(v, j);
-                log("hired as {}, a day's work {} (a villager brings {})", j, need, org.webtrade.minecraftportsmod.colony.VillageLife.production(v, j.makes)
-                        / Math.max(1, v.workers(j)));
-                ItemStack goods = switch (j) {
-                    case WOODCUTTER -> new ItemStack(Items.OAK_LOG, 64);
-                    case MINER -> new ItemStack(Items.COBBLESTONE, 64);
-                    default -> new ItemStack(Items.COOKED_COD, 64);
-                };
-                p.getInventory().add(goods);
-                act(s, ColonyPayloads.VillageAction.DEPOSIT, v.elder().id);
-                log("brought {} of {}", Helping.brought(v, p.getUUID()), need);
-                if (Helping.brought(v, p.getUUID()) < need) throw new AssertionError("the day's work should be brought");
+                ItemStack goods = j == Job.MINER ? new ItemStack(Items.COBBLESTONE, 64) : new ItemStack(Items.OAK_LOG, 64);
+                int went = Helping.collect(p, goods);
+                log("hired as {}, a day's work {}; picked up 64, {} went to the store, brought {}", j, need, went, Helping.brought(v, p.getUUID()));
+                if (Helping.brought(v, p.getUUID()) < Math.min(need, 64)) throw new AssertionError("the day's work should be brought");
+                if (went > need) throw new AssertionError("only the day's work goes to the store");
             });
             int[] em = {0};
             server.runOnServer(s -> em[0] = player(s).getInventory().countItem(Items.EMERALD));
@@ -206,7 +208,27 @@ public class HelpingClientGameTest implements FabricClientGameTest {
                 Plots.use(p, level, at);
                 log("home on the plot: residents {}, people {} + players {}", Helping.residents(v), people, Helping.residents(v));
                 if (Helping.residents(v) != 1) throw new AssertionError("the player should live in the village now");
+                // a chest at home; a task done: the reward goes into it
+                BlockPos chest = at.offset(2, 0, -2);
+                level.setBlockAndUpdate(chest, Blocks.CHEST.defaultBlockState());
+                Quests.Quest q = Quests.ask(VillageData.get(s), v, v.elder().id, Quests.Kind.BRING);
+                act(s, ColonyPayloads.VillageAction.QUEST_TAKE, q.id, 0);
+                Res r = q.res();
+                int k = q.count;
+                while (k > 0) {
+                    int n = Math.min(64, k);
+                    p.getInventory().add(new ItemStack(r.icon, n));
+                    k -= n;
+                }
+                act(s, ColonyPayloads.VillageAction.QUEST_HAND, q.id, 0);
+                var box = (net.minecraft.world.Container) level.getBlockEntity(chest);
+                int items = 0;
+                for (int i = 0; i < box.getContainerSize(); i++) items += box.getItem(i).getCount();
+                log("a task done ({} {}): {} things in the chest at home", q.count, q.what, items);
+                if (items == 0) throw new AssertionError("the reward should go to the chest at home");
             });
+            context.waitTicks(10);
+            context.setScreen(() -> null);
             // the person's window with the work shown
             server.runOnServer(s -> {
                 Village v = village(s);
