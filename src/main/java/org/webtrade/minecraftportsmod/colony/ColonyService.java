@@ -544,7 +544,7 @@ public final class ColonyService {
             case ColonyPayloads.VillageAction.FORGE -> {
                 Building b = v.building(a.a());
                 if (b == null || player.blockPosition().distSqr(b.origin) > 24 * 24) return;
-                int got = Helping.forge(player, data, v, b, a.b());
+                int got = Helping.forge(player, data, v, b, a.b() / 100, a.b() % 100);
                 player.sendSystemMessage(Component.translatable("minecraftportsmod.forge.done", got).withStyle(got > 0 ? ChatFormatting.GREEN : ChatFormatting.GRAY), true);
             }
             case ColonyPayloads.VillageAction.BUY_BUILD -> {

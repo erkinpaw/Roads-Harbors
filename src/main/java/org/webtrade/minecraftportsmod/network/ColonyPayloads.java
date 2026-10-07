@@ -368,18 +368,39 @@ public final class ColonyPayloads {
 
     // ------------------------------------------------------------------ forging
 
-    /** A forging at the smithy: what is forged, the strokes it takes, the most tools it may give, the strokes' seed. */
-    public record ForgeView(int village, int building, ItemStack icon, int strokes, int most, long seed) implements CustomPacketPayload {
+    /** A kind of tools the smithy forges: its recipe, the tool, the most a forging gives now (the store's makings too), and at all; what one takes, what the store has. */
+    public record ForgeOption(int recipe, ItemStack icon, int most, int top, int[] ins, int[] per, int[] have) {
+    }
+
+    /** A forging at the smithy: the strokes it takes, their seed, the kinds of tools to choose from. */
+    public record ForgeView(int village, int building, int strokes, long seed, List<ForgeOption> options) implements CustomPacketPayload {
         public static final Type<ForgeView> TYPE = new Type<>(Minecraftportsmod.id("forge_view"));
         public static final StreamCodec<RegistryFriendlyByteBuf, ForgeView> CODEC = StreamCodec.of((buf, v) -> {
             buf.writeVarInt(v.village);
             buf.writeVarInt(v.building);
-            ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, v.icon);
             buf.writeVarInt(v.strokes);
-            buf.writeVarInt(v.most);
             buf.writeLong(v.seed);
-        }, buf -> new ForgeView(buf.readVarInt(), buf.readVarInt(), ItemStack.OPTIONAL_STREAM_CODEC.decode(buf), buf.readVarInt(), buf.readVarInt(),
-                buf.readLong()));
+            buf.writeVarInt(v.options.size());
+            for (ForgeOption o : v.options) {
+                buf.writeVarInt(o.recipe);
+                ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, o.icon);
+                buf.writeVarInt(o.most);
+                buf.writeVarInt(o.top);
+                buf.writeVarIntArray(o.ins);
+                buf.writeVarIntArray(o.per);
+                buf.writeVarIntArray(o.have);
+            }
+        }, buf -> {
+            int village = buf.readVarInt(), building = buf.readVarInt(), strokes = buf.readVarInt();
+            long seed = buf.readLong();
+            int n = buf.readVarInt();
+            List<ForgeOption> out = new java.util.ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                out.add(new ForgeOption(buf.readVarInt(), ItemStack.OPTIONAL_STREAM_CODEC.decode(buf), buf.readVarInt(), buf.readVarInt(), ints(buf), ints(buf),
+                        ints(buf)));
+            }
+            return new ForgeView(village, building, strokes, seed, out);
+        });
 
         @Override
         public Type<? extends CustomPacketPayload> type() {
@@ -1089,7 +1110,7 @@ public final class ColonyPayloads {
                 /** a = where (a building site's id, -1: the store), b = Res ordinal * 100000 + units: given from what one carries */ GIVE = 31,
                 /** a = person: the trades one can take up (HIRE: b = Job ordinal, -1 to leave it) */ JOBS = 32,
                 /** a = BuildingType ordinal: a building bought, to build oneself; a = building: its next level bought, to raise oneself */ BUY_BUILD = 33, BUY_RAISE = 34,
-                /** a = the smithy, b = strokes in time: a forging done */ FORGE = 35;
+                /** a = the smithy, b = recipe * 100 + strokes in time: a forging done */ FORGE = 35;
         public static final Type<VillageAction> TYPE = new Type<>(Minecraftportsmod.id("village_action"));
         public static final StreamCodec<FriendlyByteBuf, VillageAction> CODEC = StreamCodec.of((buf, p) -> {
             buf.writeVarInt(p.village);

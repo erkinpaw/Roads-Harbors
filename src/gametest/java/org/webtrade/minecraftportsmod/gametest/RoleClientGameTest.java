@@ -193,7 +193,7 @@ public class RoleClientGameTest implements FabricClientGameTest {
             // the forging window: strokes in time (one missed), the tools to the village's store
             context.waitForScreen(org.webtrade.minecraftportsmod.client.chart.ForgeScreen.class);
             context.waitTicks(15);
-            context.takeScreenshot("role_g_forge");
+            context.takeScreenshot("role_g_forge_ready");
             int[] tools = {0};
             server.runOnServer(s -> tools[0] = village(s).stock(Res.TOOLS1) + village(s).stock(Res.TOOLS2));
             for (int k = 0; k < 12; k++) {

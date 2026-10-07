@@ -385,7 +385,8 @@ public final class Workshops {
 
     /**
      * A player at a workshop's bench with nothing in hand there: what the village wants most of what it makes goes
-     * into its queue (whether or not it has hands of its own). True if something was ordered.
+     * into its queue (whether or not it has hands of its own); wanting none of it, what the store has the makings
+     * of. True if something was ordered.
      */
     static boolean planAt(Village v, Building b, long today) {
         Recipe how = null;
@@ -403,7 +404,25 @@ public final class Workshops {
                 want = w;
             }
         }
-        if (how == null) return false;
+        if (how == null) {
+            // (nothing wanted now: still work for a player at the bench, of what the store has the makings of; the
+            // goods over the village's wants are kept, and the merchant sells them)
+            int fewest = Integer.MAX_VALUE;
+            for (Recipe r : recipes(b.type)) {
+                if (!open(b, r)) continue;
+                boolean can = true;
+                for (var e : r.in().entrySet()) can &= v.stock(e.getKey()) >= e.getValue();
+                if (!can) continue;
+                // (of the tools, the best kind first)
+                int have = v.stock(r.out()) - 1000 * r.out().toolLevel();
+                if (have < fewest) {
+                    fewest = have;
+                    how = r;
+                }
+            }
+            if (how == null) return false;
+            want = how.n() * 3;
+        }
         v.orders.add(Orders.villageOrder(v, b, how.index(), Math.min(want, how.n() * 6), today));
         return true;
     }
