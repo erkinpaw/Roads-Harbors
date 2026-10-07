@@ -131,12 +131,23 @@ public class ResidentEntity extends PathfinderMob {
         /** Ticks of the count before the fight. */
         public static final int COUNT = 60;
         public final UUID opponent;
-        int age, cooldown, block, retreat, dodge, turn, side = 1, heals = 2;
+        int age, cooldown, block, retreat, dodge, turn, side = 1, heals = 2, windup;
         boolean leaping;
 
         Duel(UUID opponent) {
             this.opponent = opponent;
         }
+    }
+
+    /** A duel's fighter with its sword raised for a blow (drawn so). */
+    private static final EntityDataAccessor<Boolean> DATA_WINDUP = SynchedEntityData.defineId(ResidentEntity.class, EntityDataSerializers.BOOLEAN);
+
+    public boolean windup() {
+        return entityData.get(DATA_WINDUP);
+    }
+
+    void setWindup(boolean on) {
+        entityData.set(DATA_WINDUP, on);
     }
 
     /** The tag of a duel's fighter. */
@@ -192,6 +203,7 @@ public class ResidentEntity extends PathfinderMob {
         builder.define(DATA_ACTIVITY, Component.empty());
         builder.define(DATA_QUEST, 0);
         builder.define(DATA_PROGRESS, -1F);
+        builder.define(DATA_WINDUP, false);
     }
 
     /** Sets who this is; called once when the village is settled. */
