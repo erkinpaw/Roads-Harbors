@@ -52,6 +52,9 @@ public final class Duels {
     /** The arena's floor (the flat world's sand) and the walls' ring. */
     static final int FLOOR = -60, RADIUS = 16, SPACING = 256;
 
+    /** The hearts a player has more in a duel (three rows in all). */
+    static final Identifier HEARTS = Minecraftportsmod.id("duel_hearts");
+
     /** What a player had and where they stood before a duel. */
     record Kept(String dim, double x, double y, double z, float yaw, float pitch, List<ItemStack> items, float health, int food, float saturation, String mode) {
         static final Codec<Kept> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -139,6 +142,13 @@ public final class Duels {
         inv.setItem(0, new ItemStack(Items.IRON_SWORD));
         inv.setSelectedSlot(0);
         p.setGameMode(GameType.SURVIVAL);
+        // (three rows of hearts in a duel)
+        var health = p.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH);
+        if (health != null) {
+            health.removeModifier(HEARTS);
+            health.addTransientModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(HEARTS, 40,
+                    net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE));
+        }
         p.setHealth(p.getMaxHealth());
         p.getFoodData().setFoodLevel(20);
         p.getFoodData().setSaturation(5);
@@ -238,6 +248,8 @@ public final class Duels {
         Kept k = st.kept.remove(p.getUUID());
         if (k == null) return;
         st.setDirty();
+        var health = p.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH);
+        if (health != null) health.removeModifier(HEARTS);
         var inv = p.getInventory();
         inv.clearContent();
         for (int i = 0; i < Math.min(inv.getContainerSize(), k.items().size()); i++) inv.setItem(i, k.items().get(i).copy());
