@@ -420,7 +420,7 @@ public final class ColonyService {
             room[r.ordinal()] = v.free(r);
         }
         java.util.List<ColonyPayloads.GiveSite> sites = new java.util.ArrayList<>();
-        for (Building b : Helping.sites(v)) {
+        for (Building b : Helping.sites(v, player.getUUID())) {
             int[] missing = new int[Res.values().length];
             for (Res r : Res.values()) missing[r.ordinal()] = b.missing(r);
             sites.add(new ColonyPayloads.GiveSite(b.id, b.type.ordinal(), b.upgrading() ? b.level + 1 : 1, missing));
@@ -537,6 +537,42 @@ public final class ColonyService {
                 sendGive(player, v, -1);
             }
             case ColonyPayloads.VillageAction.JOBS -> sendJobs(player, v, a.a());
+            case ColonyPayloads.VillageAction.BUY_BUILD -> {
+                BuildingType t = a.a() < 0 || a.a() >= BuildingType.values().length ? null : BuildingType.values()[a.a()];
+                boolean ok = false;
+                if (t != null && Tree.node(v, t) == Tree.Node.OPEN) {
+                    int price = Tree.playerPrice(Tree.price(v, t));
+                    if (Wallet.pay(player, price)) {
+                        Building b = VillageLife.startFor((ServerLevel) player.level(), v, t, player.getUUID(), data.day);
+                        if (b == null) Wallet.add(player, price);
+                        else {
+                            v.receive(price * 100L);
+                            v.log(data.day, Component.translatable("minecraftportsmod.vlog.bought_build", player.getName(), t.displayName()).withStyle(ChatFormatting.GOLD));
+                            ok = true;
+                        }
+                    }
+                }
+                player.level().playSound(null, player.blockPosition(), ok ? SoundEvents.VILLAGER_YES : SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 0.6F, 1.0F);
+                data.changed();
+                sendVillage(player, v.id, false);
+            }
+            case ColonyPayloads.VillageAction.BUY_RAISE -> {
+                Building b = v.building(a.a());
+                boolean ok = false;
+                if (b != null && Tree.canRaise(v, b) && b.owner() == null) {
+                    int price = Tree.playerPrice(Tree.levelCost(b.type, b.level + 1));
+                    if (Wallet.pay(player, price)) {
+                        Tree.raiseFor(v, b, player.getUUID(), data.day);
+                        v.receive(price * 100L);
+                        v.log(data.day, Component.translatable("minecraftportsmod.vlog.bought_raise", player.getName(), b.type.displayName(), b.goal)
+                                .withStyle(ChatFormatting.GOLD));
+                        ok = true;
+                    }
+                }
+                player.level().playSound(null, player.blockPosition(), ok ? SoundEvents.VILLAGER_YES : SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 0.6F, 1.0F);
+                data.changed();
+                if (b != null) sendBuilding(player, v, b);
+            }
             case ColonyPayloads.VillageAction.HIRE -> {
                 Job want = a.b() < 0 || a.b() >= Job.values().length ? null : Job.values()[a.b()];
                 if (want != null && Helping.demand(v, want) < 0) return;

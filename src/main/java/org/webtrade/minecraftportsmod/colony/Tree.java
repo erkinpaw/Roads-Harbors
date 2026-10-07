@@ -267,6 +267,34 @@ public final class Tree {
         return out;
     }
 
+    /** What a player pays the village to do a work themselves (a building, a level): a fifth of its materials' worth, two emeralds at least. */
+    public static int playerPrice(java.util.Map<Res, Integer> cost) {
+        double worth = 0;
+        for (var e : cost.entrySet()) worth += e.getKey().price * e.getValue();
+        return Math.max(2, (int) Math.round(worth * 0.2));
+    }
+
+    /** The same, of materials by resource ordinal. */
+    public static int playerPrice(int[] cost) {
+        java.util.Map<Res, Integer> m = new java.util.EnumMap<>(Res.class);
+        for (Res r : Res.values()) if (r.ordinal() < cost.length && cost[r.ordinal()] > 0) m.put(r, cost[r.ordinal()]);
+        return playerPrice(m);
+    }
+
+    /** A player raises a building a level themselves (bought of the village): the village neither supplies nor builds it. */
+    static boolean raiseFor(Village v, Building b, java.util.UUID player, long today) {
+        if (!canRaise(v, b) || b.owner() != null) return false;
+        b.goal = b.level + 1;
+        b.delivered.clear();
+        b.price.clear();
+        b.price.putAll(levelCost(b.type, b.goal));
+        b.work = b.blueprint(v.wood).upTo(b.level);
+        b.builder = player;
+        v.order.remove((Integer) b.id);
+        v.log(today, Component.translatable("minecraftportsmod.vlog.raise", b.type.displayName(), b.goal));
+        return true;
+    }
+
     /** Can this building be raised a level now? */
     public static boolean canRaise(Village v, Building b) {
         return b.standing() && !b.upgrading() && b.level < b.type.maxLevel;

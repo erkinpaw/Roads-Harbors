@@ -1066,7 +1066,8 @@ public final class ColonyPayloads {
                 /** a = BuildingType ordinal: the village builds that house on the player's plot */ PLOT_HOUSE = 29,
                 /** a = person (a skipper): a ship of the player's own ordered at the village's pier */ SHIP_ORDER = 30,
                 /** a = where (a building site's id, -1: the store), b = Res ordinal * 100000 + units: given from what one carries */ GIVE = 31,
-                /** a = person: the trades one can take up (HIRE: b = Job ordinal, -1 to leave it) */ JOBS = 32;
+                /** a = person: the trades one can take up (HIRE: b = Job ordinal, -1 to leave it) */ JOBS = 32,
+                /** a = BuildingType ordinal: a building bought, to build oneself; a = building: its next level bought, to raise oneself */ BUY_BUILD = 33, BUY_RAISE = 34;
         public static final Type<VillageAction> TYPE = new Type<>(Minecraftportsmod.id("village_action"));
         public static final StreamCodec<FriendlyByteBuf, VillageAction> CODEC = StreamCodec.of((buf, p) -> {
             buf.writeVarInt(p.village);

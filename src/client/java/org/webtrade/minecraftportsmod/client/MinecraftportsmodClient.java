@@ -116,7 +116,8 @@ public class MinecraftportsmodClient implements ClientModInitializer {
                 org.webtrade.minecraftportsmod.client.render.BuildingHighlight.mark(payload.pos(), payload.ticks()));
         ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.ColonyPayloads.GiveView.TYPE, (payload, ctx) -> {
             if (ctx.client().gui.screen() instanceof org.webtrade.minecraftportsmod.client.chart.GiveScreen gs && gs.shows(payload)) gs.update(payload);
-            else ctx.client().gui.setScreen(new org.webtrade.minecraftportsmod.client.chart.GiveScreen(payload));
+            // (a refresh after a gift, person -1: only for a window still open)
+            else if (payload.person() >= 0) ctx.client().gui.setScreen(new org.webtrade.minecraftportsmod.client.chart.GiveScreen(payload));
         });
         ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.ColonyPayloads.SiteView.TYPE, (payload, ctx) -> {
             if (ctx.client().gui.screen() instanceof org.webtrade.minecraftportsmod.client.chart.SiteScreen ss) {

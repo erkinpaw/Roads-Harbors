@@ -71,6 +71,12 @@ public class BuildingScreen extends UiScreen {
         BuildingType t = type();
         scaleButtons(x1 - 8, y0 + 6);
 
+        // the next level: bought of the village, raised by the player's own hands
+        if (view.raiseCost().length > 0) {
+            addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.bmenu.buy_raise",
+                            org.webtrade.minecraftportsmod.colony.Tree.playerPrice(view.raiseCost())), b -> act(ColonyPayloads.VillageAction.BUY_RAISE))
+                    .bounds(mid + 10, flowsY - 30, px1 - mid - 16, 20).build());
+        }
         // a field: what to sow
         if (view.crop() >= 0) {
             int bx = mid + 10, by = flowsY - 30 - (view.raiseCost().length > 0 ? 50 : 26);

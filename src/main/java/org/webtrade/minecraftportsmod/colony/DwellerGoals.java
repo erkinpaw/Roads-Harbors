@@ -822,7 +822,7 @@ public final class DwellerGoals {
         private Building pick(Village v) {
             // spread people: by their number, start at a different site
             List<Building> sites = new ArrayList<>();
-            for (Building b : v.projects()) if (needs(v, b)) sites.add(b);
+            for (Building b : v.projects()) if (b.builder() == null && needs(v, b)) sites.add(b);
             if (sites.isEmpty()) return null;
             return sites.get(Math.floorMod(r.colonyDweller(), sites.size()));
         }
