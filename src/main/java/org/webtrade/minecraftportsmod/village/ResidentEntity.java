@@ -146,7 +146,7 @@ public class ResidentEntity extends PathfinderMob {
     public Duel duel;
 
     /**
-     * Makes this body a duel's fighter, as hard as can be: a person's look and name, twice a player's health, iron
+     * Makes this body a duel's fighter, as hard as can be: a person's look and name, three rows of hearts, iron
      * armour, an iron sword and a shield; nothing else on its mind.
      */
     public void becomeDuelist(UUID opponent, String name, int skin) {
@@ -155,10 +155,10 @@ public class ResidentEntity extends PathfinderMob {
         setCustomName(Component.literal(name));
         addTag(DUELIST);
         goalSelector.removeAllGoals(g -> true);
-        getAttribute(Attributes.MAX_HEALTH).setBaseValue(40);
+        getAttribute(Attributes.MAX_HEALTH).setBaseValue(60);
         getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(3);
         getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(0.42);
-        setHealth(40);
+        setHealth(60);
         setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_HELMET));
         setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_CHESTPLATE));
         setItemSlot(net.minecraft.world.entity.EquipmentSlot.LEGS, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_LEGGINGS));
