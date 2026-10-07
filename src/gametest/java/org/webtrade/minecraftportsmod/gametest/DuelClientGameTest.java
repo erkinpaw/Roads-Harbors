@@ -98,7 +98,7 @@ public class DuelClientGameTest implements FabricClientGameTest {
             server.runCommand("save-all");
             // 3. the player stands still: the fighter beats them, and they are back home with all they had
             float[] lowest = {20};
-            for (int k = 0; k < 40; k++) {
+            for (int k = 0; k < 120; k++) {
                 server.runOnServer(s -> lowest[0] = Math.min(lowest[0], player(s).getHealth()));
                 context.waitTicks(10);
                 if (k == 12) context.takeScreenshot("duel_c_fight");

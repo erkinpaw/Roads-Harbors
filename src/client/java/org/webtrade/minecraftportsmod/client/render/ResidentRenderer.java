@@ -59,6 +59,21 @@ public class ResidentRenderer extends HumanoidMobRenderer<ResidentEntity, Avatar
                 context.getEquipmentRenderer()));
     }
 
+    /**
+     * The arms of a duel's fighter: the sword raised over the head before a blow, the shield held up before it while
+     * guarding; else as any held thing.
+     */
+    @Override
+    protected net.minecraft.client.model.HumanoidModel.ArmPose getArmPose(ResidentEntity entity, net.minecraft.world.entity.HumanoidArm arm) {
+        boolean main = arm == entity.getMainArm();
+        if (main && entity.windup()) return net.minecraft.client.model.HumanoidModel.ArmPose.THROW_TRIDENT;
+        if (entity.isUsingItem()) {
+            boolean usingThis = (entity.getUsedItemHand() == net.minecraft.world.InteractionHand.MAIN_HAND) == main;
+            if (usingThis && entity.getUseItem().is(net.minecraft.world.item.Items.SHIELD)) return net.minecraft.client.model.HumanoidModel.ArmPose.BLOCK;
+        }
+        return super.getArmPose(entity, arm);
+    }
+
     @Override
     public AvatarRenderState createRenderState() {
         return new State();

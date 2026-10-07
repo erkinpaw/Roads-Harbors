@@ -24,6 +24,8 @@ final class DuelFighter {
 
     /** Ticks a full swing of its sword takes; the reach of a blow. */
     static final int SWING = 12;
+    /** Ticks the sword is held raised before a blow. */
+    static final int WINDUP = 5;
     static final double REACH = 3.1;
 
     static void tick(ResidentEntity e, ServerLevel level) {
@@ -68,14 +70,14 @@ final class DuelFighter {
         }
 
         // the player's swing coming: a sidestep now and then
-        if (p.swinging && d < REACH + 0.6 && s.dodge == 0 && e.onGround() && e.getRandom().nextFloat() < 0.15F) {
+        if (s.windup == 0 && p.swinging && d < REACH + 0.6 && s.dodge == 0 && e.onGround() && e.getRandom().nextFloat() < 0.15F) {
             Vec3 to = p.position().subtract(e.position()).normalize();
             Vec3 side = new Vec3(-to.z, 0, to.x).scale(s.side * 0.3);
             e.setDeltaMovement(e.getDeltaMovement().add(side.x, 0.2, side.z));
             s.dodge = 60;
         }
         // the player's full swing ready, near: the shield up at times
-        if (d < REACH + 0.8 && s.cooldown > 4 && p.getAttackStrengthScale(0) > 0.9F && e.getRandom().nextFloat() < 0.03F) {
+        if (s.windup == 0 && d < REACH + 0.8 && s.cooldown > 4 && p.getAttackStrengthScale(0) > 0.9F && e.getRandom().nextFloat() < 0.03F) {
             s.block = 8 + e.getRandom().nextInt(8);
             return;
         }
@@ -95,22 +97,31 @@ final class DuelFighter {
             e.getMoveControl().strafe(d < 2.2 ? -0.25F : 0.1F, s.side * 0.35F);
         }
 
-        // the blow: with the sword fully swung; a jump first, and struck falling (a critical blow)
-        if (s.cooldown == 0 && d <= REACH + 0.6) {
-            if (!s.leaping && e.onGround() && e.getRandom().nextFloat() < 0.5F) {
-                e.jumpFromGround();
-                s.leaping = true;
-                return;
-            }
+        // the blow, with the sword fully swung: first the sword raised over the head a moment (to be seen coming),
+        // a jump at times (struck falling: a critical blow), then the swing
+        if (s.windup > 0) {
+            s.windup--;
             boolean falling = s.leaping && e.getDeltaMovement().y < 0 && !e.onGround();
-            if ((falling || !s.leaping) && d <= REACH) {
-                strike(e, p, level, falling);
+            boolean ready = s.windup == 0 && (!s.leaping || falling || e.onGround());
+            if (s.leaping && s.windup == 0 && !falling && !e.onGround()) s.windup = 1;
+            else if (ready) {
+                e.setWindup(false);
+                if (d <= REACH + 0.3) {
+                    strike(e, p, level, falling);
+                    // and the shield up after it, at times (the player's answer glances off)
+                    if (e.getRandom().nextFloat() < 0.25F) s.block = 8 + e.getRandom().nextInt(8);
+                }
                 s.leaping = false;
                 s.cooldown = SWING;
-                // and the shield up after it, at times (the player's answer glances off)
-                if (e.getRandom().nextFloat() < 0.25F) s.block = 8 + e.getRandom().nextInt(8);
-            } else if (s.leaping && e.onGround()) {
-                s.leaping = false;
+            }
+            return;
+        }
+        if (s.cooldown == 0 && d <= REACH + 0.6) {
+            s.windup = WINDUP;
+            e.setWindup(true);
+            if (e.onGround() && e.getRandom().nextFloat() < 0.5F) {
+                e.jumpFromGround();
+                s.leaping = true;
             }
         }
     }
@@ -118,10 +129,13 @@ final class DuelFighter {
     private static void lower(ResidentEntity e, ResidentEntity.Duel s) {
         if (e.isUsingItem()) e.stopUsingItem();
         s.block = 0;
+        s.windup = 0;
+        s.leaping = false;
+        e.setWindup(false);
     }
 
     private static void strike(ResidentEntity e, ServerPlayer p, ServerLevel level, boolean crit) {
-        e.swing(InteractionHand.MAIN_HAND);
+        e.swing(InteractionHand.MAIN_HAND, true);
         float dmg = (float) e.getAttributeValue(Attributes.ATTACK_DAMAGE) * (crit ? 1.5F : 1F);
         p.hurtServer(level, e.damageSources().mobAttack(e), dmg);
         if (crit) {
