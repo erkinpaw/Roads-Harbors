@@ -603,7 +603,7 @@ public final class ColonyPayloads {
     /** @param quest the person's task: 0 none, 1 one to take, 2 taken by this player, 3 taken by someone else */
     public record PersonView(int village, int person, String villageName, int level, String name, int job, boolean child, boolean elder,
                              Component activity, Component home, long days, int orders, int quest, int plotPrice,
-                             int hired, int brought, int quota, List<Passage> passages, int shipPrice) implements CustomPacketPayload {
+                             int hired, int brought, int quota, List<Passage> passages, int shipPrice, boolean duel) implements CustomPacketPayload {
         public static final Type<PersonView> TYPE = new Type<>(Minecraftportsmod.id("person_view"));
         public static final StreamCodec<RegistryFriendlyByteBuf, PersonView> CODEC = StreamCodec.of((buf, v) -> {
             buf.writeVarInt(v.village);
@@ -630,9 +630,11 @@ public final class ColonyPayloads {
                 buf.writeVarInt(p.price());
             }
             buf.writeVarInt(v.shipPrice + 1);
+            buf.writeBoolean(v.duel);
         }, buf -> new PersonView(buf.readVarInt(), buf.readVarInt(), buf.readUtf(64), buf.readVarInt(), buf.readUtf(64),
                 buf.readVarInt() - 1, buf.readBoolean(), buf.readBoolean(), comp(buf), comp(buf), buf.readVarLong(), buf.readVarInt() - 1,
-                buf.readVarInt(), buf.readVarInt() - 1, buf.readVarInt() - 1, buf.readVarInt(), buf.readVarInt(), passages(buf), buf.readVarInt() - 1));
+                buf.readVarInt(), buf.readVarInt() - 1, buf.readVarInt() - 1, buf.readVarInt(), buf.readVarInt(), passages(buf), buf.readVarInt() - 1,
+                buf.readBoolean()));
 
         private static List<Passage> passages(RegistryFriendlyByteBuf buf) {
             int n = buf.readVarInt();
@@ -1113,7 +1115,8 @@ public final class ColonyPayloads {
                 /** a = where (a building site's id, -1: the store), b = Res ordinal * 100000 + units: given from what one carries */ GIVE = 31,
                 /** a = person: the trades one can take up (HIRE: b = Job ordinal, -1 to leave it) */ JOBS = 32,
                 /** a = BuildingType ordinal: a building bought, to build oneself; a = building: its next level bought, to raise oneself */ BUY_BUILD = 33, BUY_RAISE = 34,
-                /** a = the smithy, b = recipe * 100 + strokes in time: a forging done */ FORGE = 35;
+                /** a = the smithy, b = recipe * 100 + strokes in time: a forging done */ FORGE = 35,
+                /** a = person: (experimental) called out to a duel */ DUEL = 36;
         public static final Type<VillageAction> TYPE = new Type<>(Minecraftportsmod.id("village_action"));
         public static final StreamCodec<FriendlyByteBuf, VillageAction> CODEC = StreamCodec.of((buf, p) -> {
             buf.writeVarInt(p.village);

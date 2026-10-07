@@ -147,7 +147,7 @@ public final class ColonyService {
                 Helping.hired(v, player.getUUID()) == null ? -1 : Helping.hired(v, player.getUUID()).ordinal(), Helping.brought(v, player.getUUID()),
                 Helping.hired(v, player.getUUID()) == null ? 0 : Helping.quota(v, Helping.hired(v, player.getUUID())),
                 d.job == Job.SAILOR ? Voyages.passages(data, v, d) : java.util.List.of(),
-                d.job == Job.SAILOR && Harbour.canOrder(v) ? Harbour.playerShipPrice(v) : -1));
+                d.job == Job.SAILOR && Harbour.canOrder(v) ? Harbour.playerShipPrice(v) : -1, Duels.can(player, d, data.day)));
     }
 
     /** A person's task as this player sees it: 0 none, 1 one to take, 2 taken by them, 3 taken by someone else. */
@@ -570,6 +570,10 @@ public final class ColonyService {
                 sendGive(player, v, -1);
             }
             case ColonyPayloads.VillageAction.JOBS -> sendJobs(player, v, a.a());
+            case ColonyPayloads.VillageAction.DUEL -> {
+                Dweller d = v.dweller(a.a());
+                if (d != null && Duels.can(player, d, data.day)) Duels.start(player, v, d);
+            }
             case ColonyPayloads.VillageAction.FORGE -> {
                 Building b = v.building(a.a());
                 if (b == null || player.blockPosition().distSqr(b.origin) > 24 * 24) return;
