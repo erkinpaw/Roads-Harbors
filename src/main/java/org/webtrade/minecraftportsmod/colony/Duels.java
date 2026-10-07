@@ -227,8 +227,15 @@ public final class Duels {
     static void end(ServerPlayer p, boolean won) {
         MinecraftServer srv = p.level().getServer();
         Fight f = FIGHTS.remove(p.getUUID());
-        Minecraftportsmod.LOGGER.info("[duel] {} {} the duel", p.getName().getString(), won ? "won" : "lost");
         ServerLevel arena = srv.getLevel(ARENA);
+        // (the winner's hearts left: the player's, or the fighter's)
+        Entity winner = won ? p : f == null || arena == null ? null : arena.getEntity(f.fighter);
+        float left = 0, of = 0;
+        if (winner instanceof net.minecraft.world.entity.LivingEntity l) {
+            left = l.getHealth();
+            of = l.getMaxHealth();
+        }
+        Minecraftportsmod.LOGGER.info("[duel] {} {} the duel ({} of {} health left to the winner)", p.getName().getString(), won ? "won" : "lost", left, of);
         if (f != null && arena != null) {
             Entity fighter = arena.getEntity(f.fighter);
             if (fighter != null) fighter.discard();
@@ -236,8 +243,9 @@ public final class Duels {
             for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) arena.setChunkForced((cx >> 4) + dx, dz, false);
         }
         restore(p);
+        Component hearts = of <= 0 ? Component.empty() : Component.literal("❤ " + (int) Math.ceil(left) + " / " + (int) of).withStyle(ChatFormatting.RED);
         title(p, Component.translatable(won ? "minecraftportsmod.duel.won" : "minecraftportsmod.duel.lost")
-                .withStyle(won ? ChatFormatting.GOLD : ChatFormatting.DARK_RED), Component.empty());
+                .withStyle(won ? ChatFormatting.GOLD : ChatFormatting.DARK_RED), hearts);
         p.level().playSound(null, p.blockPosition(), won ? SoundEvents.UI_TOAST_CHALLENGE_COMPLETE : SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 0.7F, 1F);
     }
 
@@ -280,8 +288,9 @@ public final class Duels {
     }
 
     private static void title(ServerPlayer p, Component title, Component sub) {
-        p.connection.send(new ClientboundSetTitleTextPacket(title));
+        // (the subtitle first: it shows with the title that follows)
         p.connection.send(new ClientboundSetSubtitleTextPacket(sub));
+        p.connection.send(new ClientboundSetTitleTextPacket(title));
     }
 
     /** Tests: the fighter of a player's duel, or null. */

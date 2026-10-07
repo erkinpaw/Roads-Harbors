@@ -97,7 +97,7 @@ final class DuelFighter {
 
         // the blow: with the sword fully swung; a jump first, and struck falling (a critical blow)
         if (s.cooldown == 0 && d <= REACH + 0.6) {
-            if (!s.leaping && e.onGround() && e.getRandom().nextFloat() < 0.65F) {
+            if (!s.leaping && e.onGround() && e.getRandom().nextFloat() < 0.5F) {
                 e.jumpFromGround();
                 s.leaping = true;
                 return;
