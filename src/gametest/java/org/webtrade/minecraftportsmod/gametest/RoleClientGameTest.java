@@ -140,6 +140,25 @@ public class RoleClientGameTest implements FabricClientGameTest {
             context.takeScreenshot("role_d_given");
             context.setScreen(() -> null);
 
+            // 2b. the storehouse's barrel, crouching: the giving window, the store chosen
+            boolean[] atStore = {false};
+            server.runOnServer(s -> {
+                Village v = village(s);
+                var p = player(s);
+                p.getInventory().add(new ItemStack(Items.OAK_LOG, 16));
+                for (Building b : v.buildings()) {
+                    if (b.type != BuildingType.STOREHOUSE || !b.standing()) continue;
+                    var key = ColonyService.keyOf(s.overworld(), v, b);
+                    log("storehouse key block {}", key);
+                    if (key != null) atStore[0] = ColonyService.giveAtStore(p, key);
+                }
+            });
+            if (!atStore[0]) throw new AssertionError("the storehouse's barrel should open the giving window");
+            context.waitForScreen(GiveScreen.class);
+            context.waitTicks(10);
+            context.takeScreenshot("role_d_barrel_give");
+            context.setScreen(() -> null);
+
             // 3. a trade: the list, the most wanted first; the woodcutter's logs picked up go to the store
             server.runOnServer(s -> {
                 Village v = village(s);

@@ -47,6 +47,8 @@ public final class VillageManager {
                     || !(world instanceof ServerLevel sl)) return net.minecraft.world.InteractionResult.PASS;
             // (the block of a building's trade at its front, clicked standing: the building's menu, not the block's own)
             if (!sp.isShiftKeyDown() && ColonyService.openKey(sp, hit.getBlockPos())) return net.minecraft.world.InteractionResult.SUCCESS;
+            // (the storehouse's barrel, crouching: things given to the store)
+            if (sp.isShiftKeyDown() && ColonyService.giveAtStore(sp, hit.getBlockPos())) return net.minecraft.world.InteractionResult.SUCCESS;
             return Helping.build(sp, sl, hit.getBlockPos()) || Helping.bench(sp, sl, hit.getBlockPos())
                     ? net.minecraft.world.InteractionResult.SUCCESS : net.minecraft.world.InteractionResult.PASS;
         });

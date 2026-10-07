@@ -84,6 +84,35 @@ public final class ColonyService {
         return false;
     }
 
+    /**
+     * The block of a storehouse's trade (its barrel, its chest), crouching: the giving window, to the store. True if
+     * it was one.
+     */
+    public static boolean giveAtStore(ServerPlayer player, BlockPos pos) {
+        VillageData data = data(player);
+        var level = player.level();
+        for (Village v : data.all()) {
+            if (pos.distSqr(v.center) > 260 * 260) continue;
+            for (Building b : v.buildings) {
+                if (b.type != BuildingType.STOREHOUSE && b.type != BuildingType.STOREHOUSE_2) continue;
+                if (b.state != Building.State.BUILT || b.owner() != null) continue;
+                var key = Construction.keyBlock(b.type);
+                if (key == null || !level.getBlockState(pos).is(key)) continue;
+                boolean spot = false;
+                for (BlockPos s : Construction.keySpots(v, b)) spot |= s.getX() == pos.getX() && s.getZ() == pos.getZ() && Math.abs(s.getY() - pos.getY()) <= 5;
+                if (!spot) continue;
+                sendGive(player, v, ColonyPayloads.GiveView.AT_STORE);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Where the block of a building's trade stands (tests). */
+    public static BlockPos keyOf(net.minecraft.server.level.ServerLevel level, Village v, Building b) {
+        return Construction.keyAt(level, v, b);
+    }
+
     /** The cartographer's table: the map of what the village's scouts found. */
     public static void openMap(ServerPlayer player, BlockPos pos) {
         Village v = data(player).near(pos, 120);
