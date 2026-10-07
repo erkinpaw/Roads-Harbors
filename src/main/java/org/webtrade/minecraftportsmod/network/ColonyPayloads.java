@@ -325,6 +325,83 @@ public final class ColonyPayloads {
         }
     }
 
+    // ------------------------------------------------------------------ giving
+
+    /** A building site that still lacks something: what it lacks, by resource. */
+    public record GiveSite(int id, int type, int level, int[] missing) {
+    }
+
+    /**
+     * What a player carries of what the village keeps (units, by resource), the room its store has for each, and the
+     * building sites that still lack something: the player chooses what goes where.
+     */
+    public record GiveView(int village, int person, String villageName, int[] carried, int[] room, List<GiveSite> sites) implements CustomPacketPayload {
+        public static final Type<GiveView> TYPE = new Type<>(Minecraftportsmod.id("give_view"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, GiveView> CODEC = StreamCodec.of((buf, v) -> {
+            buf.writeVarInt(v.village);
+            buf.writeVarInt(v.person + 1);
+            buf.writeUtf(v.villageName, 64);
+            buf.writeVarIntArray(v.carried);
+            buf.writeVarIntArray(v.room);
+            buf.writeVarInt(v.sites.size());
+            for (GiveSite s : v.sites) {
+                buf.writeVarInt(s.id);
+                buf.writeVarInt(s.type);
+                buf.writeVarInt(s.level);
+                buf.writeVarIntArray(s.missing);
+            }
+        }, buf -> {
+            int village = buf.readVarInt(), person = buf.readVarInt() - 1;
+            String name = buf.readUtf(64);
+            int[] carried = ints(buf), room = ints(buf);
+            int n = buf.readVarInt();
+            List<GiveSite> sites = new java.util.ArrayList<>();
+            for (int i = 0; i < n; i++) sites.add(new GiveSite(buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), ints(buf)));
+            return new GiveView(village, person, name, carried, room, sites);
+        });
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    // ------------------------------------------------------------------ a trade of one's own
+
+    /** A trade the player can take up: how much the village wants it (percent), a day's work, made at a bench or gathered. */
+    public record JobRow(int job, int demand, int quota, boolean crafter) {
+    }
+
+    public record JobView(int village, int person, String villageName, int mine, int brought, List<JobRow> rows) implements CustomPacketPayload {
+        public static final Type<JobView> TYPE = new Type<>(Minecraftportsmod.id("job_view"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, JobView> CODEC = StreamCodec.of((buf, v) -> {
+            buf.writeVarInt(v.village);
+            buf.writeVarInt(v.person + 1);
+            buf.writeUtf(v.villageName, 64);
+            buf.writeVarInt(v.mine + 1);
+            buf.writeVarInt(v.brought);
+            buf.writeVarInt(v.rows.size());
+            for (JobRow r : v.rows) {
+                buf.writeVarInt(r.job);
+                buf.writeVarInt(r.demand);
+                buf.writeVarInt(r.quota);
+                buf.writeBoolean(r.crafter);
+            }
+        }, buf -> {
+            int village = buf.readVarInt(), person = buf.readVarInt() - 1;
+            String name = buf.readUtf(64);
+            int mine = buf.readVarInt() - 1, brought = buf.readVarInt(), n = buf.readVarInt();
+            List<JobRow> rows = new java.util.ArrayList<>();
+            for (int i = 0; i < n; i++) rows.add(new JobRow(buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), buf.readBoolean()));
+            return new JobView(village, person, name, mine, brought, rows);
+        });
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
     // ------------------------------------------------------------------ a resident
 
     /**
@@ -536,8 +613,13 @@ public final class ColonyPayloads {
      * @param left     days left (to take it, or to do it)
      * @param to       LETTER: the village it reached ("" not yet)
      */
-    public record QuestView(int village, int person, String name, int job, boolean elder, int quest, int kind, ItemStack icon, Component what,
-                            int count, int done, int carried, int reward, int left, int state, String to, int taken, int thanks)
+    /** One of a person's tasks: state 0 offered, 1 taken by the player, 2 taken by someone else. */
+    public record QuestRow(int quest, int kind, ItemStack icon, Component what, int count, int done, int carried, int reward, int left, int state,
+                           String to) {
+    }
+
+    /** A person's tasks, to choose from (and those taken): how many the player has taken, everywhere, and their thanks here. */
+    public record QuestView(int village, int person, String name, int job, boolean elder, List<QuestRow> rows, int taken, int thanks)
             implements CustomPacketPayload {
         public static final Type<QuestView> TYPE = new Type<>(Minecraftportsmod.id("quest_view"));
         public static final StreamCodec<RegistryFriendlyByteBuf, QuestView> CODEC = StreamCodec.of((buf, v) -> {
@@ -546,22 +628,49 @@ public final class ColonyPayloads {
             buf.writeUtf(v.name, 64);
             buf.writeVarInt(v.job + 1);
             buf.writeBoolean(v.elder);
-            buf.writeVarInt(v.quest + 1);
-            buf.writeVarInt(v.kind);
-            ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, v.icon);
-            comp(buf, v.what);
-            buf.writeVarInt(v.count);
-            buf.writeVarInt(v.done);
-            buf.writeVarInt(v.carried);
-            buf.writeVarInt(v.reward);
-            buf.writeVarInt(v.left + 1);
-            buf.writeVarInt(v.state);
-            buf.writeUtf(v.to, 64);
+            buf.writeVarInt(v.rows.size());
+            for (QuestRow r : v.rows) {
+                buf.writeVarInt(r.quest);
+                buf.writeVarInt(r.kind);
+                ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, r.icon);
+                ComponentSerialization.STREAM_CODEC.encode(buf, r.what);
+                buf.writeVarInt(r.count);
+                buf.writeVarInt(r.done);
+                buf.writeVarInt(r.carried);
+                buf.writeVarInt(r.reward);
+                buf.writeVarInt(r.left);
+                buf.writeVarInt(r.state);
+                buf.writeUtf(r.to, 64);
+            }
             buf.writeVarInt(v.taken);
             buf.writeVarInt(v.thanks);
-        }, buf -> new QuestView(buf.readVarInt(), buf.readVarInt(), buf.readUtf(64), buf.readVarInt() - 1, buf.readBoolean(), buf.readVarInt() - 1,
-                buf.readVarInt(), ItemStack.OPTIONAL_STREAM_CODEC.decode(buf), comp(buf), buf.readVarInt(), buf.readVarInt(), buf.readVarInt(),
-                buf.readVarInt(), buf.readVarInt() - 1, buf.readVarInt(), buf.readUtf(64), buf.readVarInt(), buf.readVarInt()));
+        }, buf -> {
+            int village = buf.readVarInt(), person = buf.readVarInt();
+            String name = buf.readUtf(64);
+            int job = buf.readVarInt() - 1;
+            boolean elder = buf.readBoolean();
+            int n = buf.readVarInt();
+            List<QuestRow> rows = new java.util.ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                rows.add(new QuestRow(buf.readVarInt(), buf.readVarInt(), ItemStack.OPTIONAL_STREAM_CODEC.decode(buf), comp(buf), buf.readVarInt(),
+                        buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), buf.readUtf(64)));
+            }
+            return new QuestView(village, person, name, job, elder, rows, buf.readVarInt(), buf.readVarInt());
+        });
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /** A reward went into a chest of the player's home: marked out for so many ticks. */
+    public record RewardChest(long pos, int ticks) implements CustomPacketPayload {
+        public static final Type<RewardChest> TYPE = new Type<>(Minecraftportsmod.id("reward_chest"));
+        public static final StreamCodec<FriendlyByteBuf, RewardChest> CODEC = StreamCodec.of((buf, v) -> {
+            buf.writeLong(v.pos);
+            buf.writeVarInt(v.ticks);
+        }, buf -> new RewardChest(buf.readLong(), buf.readVarInt()));
 
         @Override
         public Type<? extends CustomPacketPayload> type() {
@@ -955,7 +1064,9 @@ public final class ColonyPayloads {
                 /** a = person (a skipper), b = village: a passage there on his ship */ PASSAGE = 27,
                 /** a = workshop: the player's tools put in its slot */ TOOLS = 28,
                 /** a = BuildingType ordinal: the village builds that house on the player's plot */ PLOT_HOUSE = 29,
-                /** a = person (a skipper): a ship of the player's own ordered at the village's pier */ SHIP_ORDER = 30;
+                /** a = person (a skipper): a ship of the player's own ordered at the village's pier */ SHIP_ORDER = 30,
+                /** a = where (a building site's id, -1: the store), b = Res ordinal * 100000 + units: given from what one carries */ GIVE = 31,
+                /** a = person: the trades one can take up (HIRE: b = Job ordinal, -1 to leave it) */ JOBS = 32;
         public static final Type<VillageAction> TYPE = new Type<>(Minecraftportsmod.id("village_action"));
         public static final StreamCodec<FriendlyByteBuf, VillageAction> CODEC = StreamCodec.of((buf, p) -> {
             buf.writeVarInt(p.village);

@@ -635,13 +635,10 @@ final class TreeView {
                 y += 10;
             }
             y += 4;
-            int by = Math.max(y + 4, ay1 - 40);
-            boolean pinned = view.priority() == t.ordinal();
-            button(g, new int[]{x, by, w, 16}, Component.translatable(pinned ? "minecraftportsmod.bmenu.unpin" : "minecraftportsmod.tree.build_first"),
-                    mouseX, mouseY, true, () -> send(ColonyPayloads.VillageAction.PIN, pinned ? -1 : t.ordinal()));
+            int by = Math.max(y + 4, ay1 - 22);
             int first = firstOf(view, t);
             if (first >= 0) {
-                button(g, new int[]{x, by + 19, w, 16}, Component.translatable("minecraftportsmod.tree.open_building"), mouseX, mouseY, true,
+                button(g, new int[]{x, by, w, 16}, Component.translatable("minecraftportsmod.tree.open_building"), mouseX, mouseY, true,
                         () -> send(ColonyPayloads.VillageAction.OPEN, first));
             }
             return;
@@ -729,12 +726,7 @@ final class TreeView {
         y += 11;
         y = costLine(g, x, y, w, c.cost(), view.stock());
         int by = Math.max(y + 2, ay1 - 22);
-        if (c.queued()) {
-            g.textWithWordWrap(font, Component.translatable("minecraftportsmod.tree.center_queued"), x, by, w, ChartStyle.GOOD, false);
-        } else {
-            button(g, new int[]{x, by, w, 16}, Component.translatable("minecraftportsmod.tree.center_build"), mouseX, mouseY, people,
-                    () -> send(ColonyPayloads.VillageAction.PIN, next.ordinal()));
-        }
+        if (c.queued()) g.textWithWordWrap(font, Component.translatable("minecraftportsmod.tree.center_queued"), x, by, w, ChartStyle.GOOD, false);
     }
 
     private static int firstOf(ColonyPayloads.VillageView view, BuildingType t) {

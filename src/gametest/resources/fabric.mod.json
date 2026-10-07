@@ -33,6 +33,7 @@
       "org.webtrade.minecraftportsmod.gametest.QuestClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.PlotClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.HelpingClientGameTest",
+      "org.webtrade.minecraftportsmod.gametest.RoleClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.LooksClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.ShipCombatClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.ShipDeckClientGameTest",

@@ -23,8 +23,24 @@ public final class BuildingHighlight {
         ClientTickEvents.END_CLIENT_TICK.register(BuildingHighlight::tick);
     }
 
+    /** Blocks marked out a while (a chest a reward went into), until the game tick given. */
+    private static final java.util.Map<Long, Long> MARKS = new java.util.HashMap<>();
+
+    /** Marks a block out for so many ticks. */
+    public static void mark(long pos, int ticks) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level != null) MARKS.put(pos, mc.level.getGameTime() + ticks);
+    }
+
     private static void tick(Minecraft mc) {
         if (mc.level == null) return;
+        if (!MARKS.isEmpty()) {
+            long now = mc.level.getGameTime();
+            MARKS.values().removeIf(t -> t < now);
+            try (var c = mc.collectPerTickGizmos()) {
+                for (long at : MARKS.keySet()) Gizmos.cuboid(new AABB(BlockPos.of(at)).inflate(0.03), GizmoStyle.stroke(GOLD, 3F));
+            }
+        }
         ColonyPayloads.Badge b = BuildingBadges.looked();
         if (b == null || b.key() == ColonyPayloads.Badge.NO_KEY) return;
         try (var c = mc.collectPerTickGizmos()) {

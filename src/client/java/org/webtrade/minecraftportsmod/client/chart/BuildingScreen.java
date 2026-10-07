@@ -71,12 +71,6 @@ public class BuildingScreen extends UiScreen {
         BuildingType t = type();
         scaleButtons(x1 - 8, y0 + 6);
 
-        // the next level: raise it first
-        if (view.raiseCost().length > 0) {
-            Component label = Component.translatable(view.raiseFirst() ? "minecraftportsmod.bmenu.raise_cancel" : "minecraftportsmod.bmenu.raise_first");
-            addRenderableWidget(UiButton.make(label, b -> act(ColonyPayloads.VillageAction.RAISE))
-                    .bounds(mid + 10, flowsY - 30, px1 - mid - 16, 20).build());
-        }
         // a field: what to sow
         if (view.crop() >= 0) {
             int bx = mid + 10, by = flowsY - 30 - (view.raiseCost().length > 0 ? 50 : 26);
