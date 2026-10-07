@@ -436,10 +436,11 @@ public final class VillageLife {
      */
     public static List<Building> queue(Village v) {
         List<Building> out = new ArrayList<>();
-        v.order.removeIf(id -> v.building(id) == null || !v.building(id).project());
+        // (a player's own work is not the village's: not in its queue)
+        v.order.removeIf(id -> v.building(id) == null || !v.building(id).project() || v.building(id).builder != null);
         for (int id : v.order) out.add(v.building(id));
         List<Building> rest = new ArrayList<>();
-        for (Building b : v.buildings) if (b.project() && !v.order.contains(b.id)) rest.add(b);
+        for (Building b : v.buildings) if (b.project() && b.builder == null && !v.order.contains(b.id)) rest.add(b);
         rest.sort(Comparator.comparingInt(b -> b.id));
         for (Building b : rest) {
             v.order.add(b.id);
@@ -493,6 +494,7 @@ public final class VillageLife {
         List<Building> busy = new ArrayList<>();
         for (Building b : v.buildings) {
             boolean active = b.state == Building.State.BUILDING || b.state == Building.State.DEMOLISHING && !b.finished || b.upgradeWork();
+            if (b.builder != null) continue;
             if (active && (!onlyStuck || b.work <= b.workMark)) busy.add(b);
         }
         // (no more than a crew of three builds at a time)
@@ -509,12 +511,14 @@ public final class VillageLife {
         if (b.upgradeWork() && b.work >= total) {
             b.level = b.goal;
             b.goal = 0;
+            b.builder = null;
             b.work = b.blueprint(v.wood).pieces.size();
             v.log(today, Component.translatable("minecraftportsmod.vlog.raised", b.type.displayName(), b.level).withStyle(ChatFormatting.DARK_GREEN));
             data.changed();
         } else if (b.state == Building.State.BUILDING && b.work >= total) {
             b.state = Building.State.BUILT;
             b.work = total;
+            b.builder = null;
             v.log(today, Component.translatable("minecraftportsmod.vlog.built", b.type.displayName()).withStyle(ChatFormatting.DARK_GREEN));
             rehouse(v, today);
             data.changed();
@@ -583,7 +587,7 @@ public final class VillageLife {
     /** What the village would keep of a resource if the store were big enough. */
     static int wanted(Village v, Res r) {
         int needed = v.wishes.getOrDefault(r, 0);
-        for (Building b : v.projects()) needed += b.missing(r);
+        for (Building b : v.projects()) if (b.builder == null) needed += b.missing(r);
         // (the research in hand: the store keeps back what it will cost)
         if (v.research != null) needed += Tree.unlockCost(v, v.research).getOrDefault(r, 0);
         int t = switch (r) {
@@ -1930,6 +1934,21 @@ public final class VillageLife {
         }
         add(v, b, today);
         return true;
+    }
+
+    /**
+     * A player buys a building of a kind the village has open, to build it themselves: its plot found as the
+     * village's would be, its site theirs (the village neither supplies nor builds it). Returns it, or null.
+     */
+    static Building startFor(ServerLevel level, Village v, BuildingType type, java.util.UUID player, long today) {
+        if (type.isCenter() || type == BuildingType.SHIP || type == BuildingType.PIER) return null;
+        Blueprint.Frame f = PlotFinder.find(level, v, type, -1);
+        if (f == null) return null;
+        Building b = new Building(v.nextBuilding++, type, f.origin(), f.front(), RND.nextLong()).look(VillageLife.look(v));
+        b.builder = player;
+        add(v, b, today);
+        v.order.remove((Integer) b.id);
+        return b;
     }
 
     static void add(Village v, Building b, long today) {

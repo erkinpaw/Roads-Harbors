@@ -635,10 +635,16 @@ final class TreeView {
                 y += 10;
             }
             y += 4;
-            int by = Math.max(y + 4, ay1 - 22);
+            int by = Math.max(y + 4, ay1 - 40);
+            // the player's own: bought of the village, built by their hands with their materials
+            if (!t.isCenter() && t != BuildingType.PIER && t != BuildingType.SHIP) {
+                int price = Tree.playerPrice(n.build());
+                button(g, new int[]{x, by, w, 16}, Component.translatable("minecraftportsmod.tree.buy_build", price), mouseX, mouseY, true,
+                        () -> send(ColonyPayloads.VillageAction.BUY_BUILD, t.ordinal()));
+            }
             int first = firstOf(view, t);
             if (first >= 0) {
-                button(g, new int[]{x, by, w, 16}, Component.translatable("minecraftportsmod.tree.open_building"), mouseX, mouseY, true,
+                button(g, new int[]{x, by + 19, w, 16}, Component.translatable("minecraftportsmod.tree.open_building"), mouseX, mouseY, true,
                         () -> send(ColonyPayloads.VillageAction.OPEN, first));
             }
             return;

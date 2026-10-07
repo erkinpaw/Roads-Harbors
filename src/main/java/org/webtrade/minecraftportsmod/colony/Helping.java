@@ -65,6 +65,8 @@ public final class Helping {
         if (v == null) return false;
         Building b = site(v, pos);
         if (b == null) return false;
+        // (a player's own work: only theirs to do)
+        if (b.builder() != null && !b.builder().equals(p.getUUID())) return false;
         int total = b.blueprint(v.wood).pieces.size();
         VillageManager.work(level, v, b, BLOCKS_A_STROKE);
         p.swing(InteractionHand.MAIN_HAND, true);
@@ -217,10 +219,13 @@ public final class Helping {
         return n;
     }
 
-    /** The building sites of a village that still lack something (first in its queue first). */
-    public static java.util.List<Building> sites(Village v) {
+    /** The building sites of a village that still lack something: the player's own first, then the village's (first in its queue first). */
+    public static java.util.List<Building> sites(Village v, UUID player) {
         java.util.List<Building> out = new java.util.ArrayList<>();
-        for (Building b : VillageLife.queue(v)) {
+        java.util.List<Building> all = new java.util.ArrayList<>();
+        for (Building b : v.buildings) if (player.equals(b.builder()) && b.project()) all.add(b);
+        all.addAll(VillageLife.queue(v));
+        for (Building b : all) {
             if (b.state != Building.State.PLANNED && !b.upgrading()) continue;
             for (Res r : Res.values()) {
                 if (b.missing(r) > 0) {

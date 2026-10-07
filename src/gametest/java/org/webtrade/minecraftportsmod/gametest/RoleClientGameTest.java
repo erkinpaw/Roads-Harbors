@@ -206,6 +206,95 @@ public class RoleClientGameTest implements FabricClientGameTest {
             }
             context.takeScreenshot("role_g_smithy_bench");
             if (!bench[0]) throw new AssertionError("crouching at the smithy should be its bench");
+
+            // 5. a hut of the player's own: bought in the tree, supplied and built by them; the village keeps off it
+            server.runOnServer(s -> {
+                org.webtrade.minecraftportsmod.colony.Wallet.add(player(s), 50);
+                ColonyService.openBoard(player(s), village(s).board);
+            });
+            context.waitForScreen(org.webtrade.minecraftportsmod.client.chart.VillageScreen.class);
+            context.waitTicks(20);
+            context.runOnClient(mc -> ((org.webtrade.minecraftportsmod.client.chart.VillageScreen) mc.gui.screen()).showTab("tree"));
+            context.waitTicks(5);
+            context.runOnClient(mc -> ((org.webtrade.minecraftportsmod.client.chart.VillageScreen) mc.gui.screen()).select(BuildingType.HUT.ordinal()));
+            context.waitTicks(10);
+            context.takeScreenshot("role_h_tree_buy");
+            int[] mine = {-1};
+            server.runOnServer(s -> {
+                Village v = village(s);
+                var p = player(s);
+                long purse = org.webtrade.minecraftportsmod.colony.Wallet.cents(p);
+                act(s, ColonyPayloads.VillageAction.BUY_BUILD, BuildingType.HUT.ordinal(), 0);
+                for (Building b : v.buildings()) if (p.getUUID().equals(b.builder())) mine[0] = b.id;
+                log("bought a hut: site {}, purse {} -> {}", mine[0], purse, org.webtrade.minecraftportsmod.colony.Wallet.cents(p));
+                if (mine[0] < 0) throw new AssertionError("no site of the player's");
+            });
+            context.setScreen(() -> null);
+            server.runCommand("village give 1 wood 300");
+            server.runCommand("village give 1 wheat 100");
+            server.runCommand("village day");
+            context.waitTicks(40);
+            server.runOnServer(s -> {
+                Village v = village(s);
+                Building b = v.building(mine[0]);
+                int got = 0;
+                for (Res r : Res.values()) got += b.delivered(r);
+                log("after a day: the village brought {} to the player's site ({})", got, b.state());
+                if (got != 0) throw new AssertionError("the village supplied the player's site");
+                var p = player(s);
+                p.getInventory().clearContent();
+                for (Res r : Res.values()) {
+                    int k = b.missing(r);
+                    while (k > 0) {
+                        int n = Math.min(64, k);
+                        p.getInventory().add(new ItemStack(r.icon, n));
+                        k -= n;
+                    }
+                }
+                act(s, ColonyPayloads.VillageAction.DEPOSIT, v.elder().id, 0);
+            });
+            context.waitForScreen(GiveScreen.class);
+            context.waitTicks(10);
+            context.takeScreenshot("role_i_give_own_site");
+            server.runOnServer(s -> {
+                Village v = village(s);
+                Building b = v.building(mine[0]);
+                for (Res r : Res.values()) if (b.missing(r) > 0) act(s, ColonyPayloads.VillageAction.GIVE, b.id, r.ordinal() * 100000 + b.missing(r));
+                log("supplied by the player: {}", b.state());
+                if (b.state() != Building.State.BUILDING) throw new AssertionError("the site should go up once supplied");
+                var p = player(s);
+                p.teleportTo(s.overworld(), b.origin.getX() + 0.5, b.origin.getY() + 1, b.origin.getZ() + b.type.half + 3.5, java.util.Set.of(), 180, 30, false);
+            });
+            context.setScreen(() -> null);
+            for (int k = 0; k < 60; k++) {
+                server.runOnServer(s -> {
+                    Village v = village(s);
+                    Building b = v.building(mine[0]);
+                    var p = player(s);
+                    p.setShiftKeyDown(true);
+                    for (int j = 0; j < 4 && b.state() == Building.State.BUILDING; j++) Helping.build(p, s.overworld(), b.origin);
+                    p.setShiftKeyDown(false);
+                });
+                context.waitTicks(2);
+            }
+            context.takeScreenshot("role_j_own_hut");
+            server.runOnServer(s -> {
+                Village v = village(s);
+                Building b = v.building(mine[0]);
+                org.webtrade.minecraftportsmod.colony.VillageLife.class.getName();
+                log("the player's hut: {}, builder {}", b.state(), b.builder());
+            });
+            server.runCommand("village day");
+            context.waitTicks(20);
+            server.runOnServer(s -> {
+                Village v = village(s);
+                Building b = v.building(mine[0]);
+                log("next day: the player's hut {}", b.state());
+                if (b.state() != Building.State.BUILT) throw new AssertionError("the hut should stand");
+                for (Building x : v.buildings()) if (x.type == BuildingType.STOREHOUSE && x.standing()) ColonyService.sendBuilding(player(s), v, x);
+            });
+            context.waitTicks(20);
+            context.takeScreenshot("role_k_raise_buy");
         }
     }
 }
