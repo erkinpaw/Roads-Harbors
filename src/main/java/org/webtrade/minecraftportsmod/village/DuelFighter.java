@@ -31,7 +31,7 @@ final class DuelFighter {
         ServerPlayer p = s.opponent == null ? null : level.getServer().getPlayerList().getPlayer(s.opponent);
         if (p == null || p.level() != level || !p.isAlive()) return;
         s.age++;
-        e.getLookControl().setLookAt(p, 60, 60);
+        e.getLookControl().setLookAt(p, 12, 12);
         // (the count before the fight: it stands and waits)
         if (s.age < ResidentEntity.Duel.COUNT) {
             e.getNavigation().stop();
@@ -63,27 +63,26 @@ final class DuelFighter {
             s.block--;
             if (!e.isUsingItem()) e.startUsingItem(InteractionHand.OFF_HAND);
             if (s.block == 0) lower(e, s);
-            e.getMoveControl().strafe(-0.3F, s.side * 0.5F);
+            e.getMoveControl().strafe(-0.2F, s.side * 0.25F);
             return;
         }
 
         // the player's swing coming: a sidestep now and then
-        if (p.swinging && d < REACH + 0.6 && s.dodge == 0 && e.onGround() && e.getRandom().nextFloat() < 0.35F) {
+        if (p.swinging && d < REACH + 0.6 && s.dodge == 0 && e.onGround() && e.getRandom().nextFloat() < 0.15F) {
             Vec3 to = p.position().subtract(e.position()).normalize();
-            Vec3 side = new Vec3(-to.z, 0, to.x).scale(s.side * 0.55);
-            e.setDeltaMovement(e.getDeltaMovement().add(side.x, 0.32, side.z));
-            s.dodge = 30;
-            s.side = -s.side;
+            Vec3 side = new Vec3(-to.z, 0, to.x).scale(s.side * 0.3);
+            e.setDeltaMovement(e.getDeltaMovement().add(side.x, 0.2, side.z));
+            s.dodge = 60;
         }
         // the player's full swing ready, near: the shield up at times
-        if (d < REACH + 0.8 && s.cooldown > 4 && p.getAttackStrengthScale(0) > 0.9F && e.getRandom().nextFloat() < 0.12F) {
+        if (d < REACH + 0.8 && s.cooldown > 4 && p.getAttackStrengthScale(0) > 0.9F && e.getRandom().nextFloat() < 0.03F) {
             s.block = 8 + e.getRandom().nextInt(8);
             return;
         }
 
         if (d > REACH - 0.3) {
             // in: at a run
-            e.getNavigation().moveTo(p, d > 5 ? 1.35 : 1.15);
+            e.getNavigation().moveTo(p, d > 5 ? 1.15 : 1.0);
             e.setSprinting(d > 4);
         } else {
             // at a sword's length: circling, now one way, now the other
@@ -91,9 +90,9 @@ final class DuelFighter {
             e.setSprinting(false);
             if (--s.turn <= 0) {
                 s.side = e.getRandom().nextBoolean() ? 1 : -1;
-                s.turn = 15 + e.getRandom().nextInt(25);
+                s.turn = 50 + e.getRandom().nextInt(50);
             }
-            e.getMoveControl().strafe(d < 2.2 ? -0.35F : 0.15F, s.side * 0.7F);
+            e.getMoveControl().strafe(d < 2.2 ? -0.25F : 0.1F, s.side * 0.35F);
         }
 
         // the blow: with the sword fully swung; a jump first, and struck falling (a critical blow)
@@ -109,7 +108,7 @@ final class DuelFighter {
                 s.leaping = false;
                 s.cooldown = SWING;
                 // and the shield up after it, at times (the player's answer glances off)
-                if (e.getRandom().nextFloat() < 0.4F) s.block = 10 + e.getRandom().nextInt(10);
+                if (e.getRandom().nextFloat() < 0.25F) s.block = 8 + e.getRandom().nextInt(8);
             } else if (s.leaping && e.onGround()) {
                 s.leaping = false;
             }

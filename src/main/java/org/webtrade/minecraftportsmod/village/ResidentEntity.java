@@ -157,7 +157,7 @@ public class ResidentEntity extends PathfinderMob {
         goalSelector.removeAllGoals(g -> true);
         getAttribute(Attributes.MAX_HEALTH).setBaseValue(60);
         getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(3);
-        getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(0.42);
+        getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(0.3);
         setHealth(60);
         setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_HELMET));
         setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_CHESTPLATE));
