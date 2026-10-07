@@ -53,6 +53,10 @@ public class ResidentRenderer extends HumanoidMobRenderer<ResidentEntity, Avatar
     public ResidentRenderer(EntityRendererProvider.Context context) {
         super(context, new PlayerModel(context.bakeLayer(ModelLayers.PLAYER), false), 0.5F);
         items = context.getItemModelResolver();
+        // (armour, worn by a duel's fighter)
+        addLayer(new net.minecraft.client.renderer.entity.layers.HumanoidArmorLayer<>(this,
+                net.minecraft.client.renderer.entity.ArmorModelSet.bake(ModelLayers.PLAYER_ARMOR, context.getModelSet(), net.minecraft.client.model.HumanoidModel::new),
+                context.getEquipmentRenderer()));
     }
 
     @Override

@@ -21,6 +21,13 @@ public class MinecraftportsmodClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        // the title screen: the mod's experimental features (to turn on and off)
+        net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
+            if (!(screen instanceof net.minecraft.client.gui.screens.TitleScreen)) return;
+            net.fabricmc.fabric.api.client.screen.v1.Screens.getWidgets(screen).add(net.minecraft.client.gui.components.Button.builder(
+                    net.minecraft.network.chat.Component.translatable("minecraftportsmod.exp.title"),
+                    b -> client.gui.setScreen(new org.webtrade.minecraftportsmod.client.chart.ExperimentsScreen(screen))).bounds(4, 4, 100, 20).build());
+        });
         // boats look like the boat they were built from; upgraded hulls get their own ship models
         VesselRenderer.registerLayers();
         org.webtrade.minecraftportsmod.client.render.WarshipRenderer.registerLayers();

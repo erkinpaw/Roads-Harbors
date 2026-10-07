@@ -52,6 +52,11 @@ public final class VillageManager {
             return Helping.build(sp, sl, hit.getBlockPos()) || Helping.bench(sp, sl, hit.getBlockPos())
                     ? net.minecraft.world.InteractionResult.SUCCESS : net.minecraft.world.InteractionResult.PASS;
         });
+        // (experimental) duels: no death in one (the fight lost instead); what a player had given back when they come or go
+        net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) ->
+                !(entity instanceof net.minecraft.server.level.ServerPlayer p) || Duels.allowDeath(p));
+        net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register((handler, sender, srv) -> Duels.joined(handler.player));
+        net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.DISCONNECT.register((handler, srv) -> Duels.left(handler.player));
         // a boundary stone: only its owner takes it up
         net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, be) ->
                 !state.is(org.webtrade.minecraftportsmod.registry.ModContent.PLOT_MARKER) || !(player instanceof net.minecraft.server.level.ServerPlayer sp)
@@ -65,6 +70,7 @@ public final class VillageManager {
         // what was learnt about one world's land means nothing in the next one
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPED.register(srv -> {
             lastTimeOfDay = -1;
+            Duels.clear();
             DwellerGoals.clearCaches();
             Tidy.clear();
             Territory.clear();
@@ -88,6 +94,7 @@ public final class VillageManager {
     private static long lastTimeOfDay = -1;
 
     private static void tick(MinecraftServer srv) {
+        Duels.tick(srv);
         VillageData data = VillageData.get(srv);
         if (data.all().isEmpty()) return;
         ServerLevel level = srv.overworld();

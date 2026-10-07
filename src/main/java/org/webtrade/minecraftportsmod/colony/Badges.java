@@ -34,7 +34,11 @@ public final class Badges {
         if (srv.getTickCount() % 20 != 7) return;
         VillageData data = VillageData.get(srv);
         for (ServerPlayer p : srv.getPlayerList().getPlayers()) {
-            if (p.level().dimension() != Level.OVERWORLD) continue;
+            if (p.level().dimension() != Level.OVERWORLD) {
+                // (gone to another world, the arena: the badges seen here go)
+                if (SHOWN.remove(p.getUUID())) ServerPlayNetworking.send(p, new ColonyPayloads.BadgeView(List.of()));
+                continue;
+            }
             List<ColonyPayloads.Badge> out = new ArrayList<>();
             BlockPos at = p.blockPosition();
             for (Village v : data.all()) {

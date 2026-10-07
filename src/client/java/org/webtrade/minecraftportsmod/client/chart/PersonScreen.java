@@ -76,6 +76,14 @@ public class PersonScreen extends UiScreen {
                 send(ColonyPayloads.VillageAction.SHIP_ORDER, view.person());
             });
         }
+        // (experimental) a duel
+        if (view.duel()) {
+            labels.add(Component.translatable("minecraftportsmod.person.duel"));
+            actions.add(() -> {
+                Minecraft.getInstance().gui.setScreen(null);
+                send(ColonyPayloads.VillageAction.DUEL, view.person());
+            });
+        }
         if (view.plotPrice() >= 0) {
             labels.add(Component.translatable("minecraftportsmod.person.plot", view.plotPrice()));
             actions.add(() -> {

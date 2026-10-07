@@ -106,7 +106,7 @@ public class ResidentEntity extends PathfinderMob {
     public static AttributeSupplier.Builder createAttributes() {
         // a long follow range: paths to the fields, the pier and the market are longer than a mob's usual 16 blocks
         return createMobAttributes().add(Attributes.MAX_HEALTH, 20.0).add(Attributes.MOVEMENT_SPEED, 0.5)
-                .add(Attributes.FOLLOW_RANGE, 64.0);
+                .add(Attributes.FOLLOW_RANGE, 64.0).add(Attributes.ATTACK_DAMAGE, 1.0);
     }
 
     @Override
@@ -124,8 +124,57 @@ public class ResidentEntity extends PathfinderMob {
         goalSelector.addGoal(8, new RandomLookAroundGoal(this));
     }
 
+    // ------------------------------------------------------------------ a duel
+
+    /** A resident fighting a duel: whom, and how the fight goes (see {@link DuelFighter}). */
+    public static final class Duel {
+        /** Ticks of the count before the fight. */
+        public static final int COUNT = 60;
+        public final UUID opponent;
+        int age, cooldown, block, retreat, dodge, turn, side = 1, heals = 2;
+        boolean leaping;
+
+        Duel(UUID opponent) {
+            this.opponent = opponent;
+        }
+    }
+
+    /** The tag of a duel's fighter. */
+    public static final String DUELIST = "minecraftportsmod_duelist";
+
+    /** The duel this one fights, or null. */
+    public Duel duel;
+
+    /**
+     * Makes this body a duel's fighter, as hard as can be: a person's look and name, twice a player's health, iron
+     * armour, an iron sword and a shield; nothing else on its mind.
+     */
+    public void becomeDuelist(UUID opponent, String name, int skin) {
+        duel = new Duel(opponent);
+        entityData.set(DATA_SKIN, Math.floorMod(skin, SKINS));
+        setCustomName(Component.literal(name));
+        addTag(DUELIST);
+        goalSelector.removeAllGoals(g -> true);
+        getAttribute(Attributes.MAX_HEALTH).setBaseValue(40);
+        getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(3);
+        getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(0.42);
+        setHealth(40);
+        setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_HELMET));
+        setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_CHESTPLATE));
+        setItemSlot(net.minecraft.world.entity.EquipmentSlot.LEGS, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_LEGGINGS));
+        setItemSlot(net.minecraft.world.entity.EquipmentSlot.FEET, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_BOOTS));
+        setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_SWORD));
+        setItemSlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.SHIELD));
+        for (var slot : net.minecraft.world.entity.EquipmentSlot.values()) setDropChance(slot, 0F);
+    }
+
     @Override
     protected void customServerAiStep(ServerLevel level) {
+        if (duel != null) {
+            DuelFighter.tick(this, level);
+            super.customServerAiStep(level);
+            return;
+        }
         if (tickCount - progressAt > 40 && entityData.get(DATA_PROGRESS) >= 0) entityData.set(DATA_PROGRESS, -1F);
         if (colony() && tickCount % 20 == 0) org.webtrade.minecraftportsmod.colony.Routine.apply(this);
         super.customServerAiStep(level);
@@ -367,6 +416,8 @@ public class ResidentEntity extends PathfinderMob {
     /** Only the world itself (void, /kill) can hurt a resident; players and mobs can't. */
     @Override
     public boolean isInvulnerableTo(ServerLevel level, DamageSource source) {
+        // (a duel's fighter can be hurt, as any fighter)
+        if (duel != null) return super.isInvulnerableTo(level, source);
         return !source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY) || super.isInvulnerableTo(level, source);
     }
 
