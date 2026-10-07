@@ -366,6 +366,27 @@ public final class ColonyPayloads {
         }
     }
 
+    // ------------------------------------------------------------------ forging
+
+    /** A forging at the smithy: what is forged, the strokes it takes, the most tools it may give, the strokes' seed. */
+    public record ForgeView(int village, int building, ItemStack icon, int strokes, int most, long seed) implements CustomPacketPayload {
+        public static final Type<ForgeView> TYPE = new Type<>(Minecraftportsmod.id("forge_view"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, ForgeView> CODEC = StreamCodec.of((buf, v) -> {
+            buf.writeVarInt(v.village);
+            buf.writeVarInt(v.building);
+            ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, v.icon);
+            buf.writeVarInt(v.strokes);
+            buf.writeVarInt(v.most);
+            buf.writeLong(v.seed);
+        }, buf -> new ForgeView(buf.readVarInt(), buf.readVarInt(), ItemStack.OPTIONAL_STREAM_CODEC.decode(buf), buf.readVarInt(), buf.readVarInt(),
+                buf.readLong()));
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
     // ------------------------------------------------------------------ a trade of one's own
 
     /** A trade the player can take up: how much the village wants it (percent), a day's work, made at a bench or gathered. */
@@ -1067,7 +1088,8 @@ public final class ColonyPayloads {
                 /** a = person (a skipper): a ship of the player's own ordered at the village's pier */ SHIP_ORDER = 30,
                 /** a = where (a building site's id, -1: the store), b = Res ordinal * 100000 + units: given from what one carries */ GIVE = 31,
                 /** a = person: the trades one can take up (HIRE: b = Job ordinal, -1 to leave it) */ JOBS = 32,
-                /** a = BuildingType ordinal: a building bought, to build oneself; a = building: its next level bought, to raise oneself */ BUY_BUILD = 33, BUY_RAISE = 34;
+                /** a = BuildingType ordinal: a building bought, to build oneself; a = building: its next level bought, to raise oneself */ BUY_BUILD = 33, BUY_RAISE = 34,
+                /** a = the smithy, b = strokes in time: a forging done */ FORGE = 35;
         public static final Type<VillageAction> TYPE = new Type<>(Minecraftportsmod.id("village_action"));
         public static final StreamCodec<FriendlyByteBuf, VillageAction> CODEC = StreamCodec.of((buf, p) -> {
             buf.writeVarInt(p.village);

@@ -108,6 +108,9 @@ public class MinecraftportsmodClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.ColonyPayloads.PlotView.TYPE, (payload, ctx) -> {
             if (ctx.client().gui.screen() == null) ctx.client().gui.setScreen(new org.webtrade.minecraftportsmod.client.chart.PlotScreen(payload));
         });
+        ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.ColonyPayloads.ForgeView.TYPE, (payload, ctx) -> {
+            if (ctx.client().gui.screen() == null) ctx.client().gui.setScreen(new org.webtrade.minecraftportsmod.client.chart.ForgeScreen(payload));
+        });
         ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.ColonyPayloads.JobView.TYPE, (payload, ctx) -> {
             if (ctx.client().gui.screen() instanceof org.webtrade.minecraftportsmod.client.chart.JobScreen js && js.shows(payload)) js.update(payload);
             else ctx.client().gui.setScreen(new org.webtrade.minecraftportsmod.client.chart.JobScreen(payload));

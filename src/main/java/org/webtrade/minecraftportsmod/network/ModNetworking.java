@@ -26,6 +26,7 @@ public final class ModNetworking {
         PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.SiteView.TYPE, ColonyPayloads.SiteView.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.GiveView.TYPE, ColonyPayloads.GiveView.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.JobView.TYPE, ColonyPayloads.JobView.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.ForgeView.TYPE, ColonyPayloads.ForgeView.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.RewardChest.TYPE, ColonyPayloads.RewardChest.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.PersonView.TYPE, ColonyPayloads.PersonView.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.QuestView.TYPE, ColonyPayloads.QuestView.CODEC);

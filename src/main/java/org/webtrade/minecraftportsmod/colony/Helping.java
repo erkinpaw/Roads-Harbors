@@ -147,6 +147,13 @@ public final class Helping {
             bar.bar.setProgress(0F);
             return true;
         }
+        // the smithy: the forging (strokes in time at the anvil, in a window of its own)
+        if (b.type == BuildingType.SMITHY) {
+            Long was = STROKE.put(p.getUUID(), now);
+            if (was != null && now - was < 10) return true;
+            openForge(p, v, b, r);
+            return true;
+        }
         Long last = STROKE.put(p.getUUID(), now);
         double seconds = last == null || now - last > 10 ? 0.2 : (now - last) / 20.0;
         boolean began = b.taken;
@@ -171,6 +178,75 @@ public final class Helping {
                 : Component.empty().append(what).append(" " + o.made + "/" + o.count + " · " + Math.round(done * 100) + "%"));
         bar.bar.setProgress(short_ ? 0F : done);
         return true;
+    }
+
+    // ------------------------------------------------------------------ forging at the smithy
+
+    /** Tools a forging gives at most (all strokes but perfect), and one more for a perfect one. */
+    public static final int FORGE_MOST = 3;
+
+    /** Strokes a forging takes: more at a better smithy. */
+    public static int strokes(Building smithy) {
+        return 6 + Math.max(1, smithy.level);
+    }
+
+    /** How many makings of a recipe the village's store can give the makings of. */
+    static int affordable(Village v, Workshops.Recipe r) {
+        int n = Integer.MAX_VALUE;
+        for (var e : r.in().entrySet()) n = Math.min(n, v.stock(e.getKey()) / Math.max(1, e.getValue()));
+        return n;
+    }
+
+    /** The forging window opened: what is forged, how many strokes. Nothing to forge it of: the bar says so. */
+    static void openForge(ServerPlayer p, Village v, Building b, Workshops.Recipe r) {
+        if (affordable(v, r) <= 0) {
+            Bar bar = bar(p, v, b, BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.PROGRESS);
+            bar.bar.setColor(BossEvent.BossBarColor.RED);
+            bar.bar.setName(Component.translatable("minecraftportsmod.badge.short", r.out().displayName()));
+            bar.bar.setProgress(0F);
+            return;
+        }
+        net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(p, new org.webtrade.minecraftportsmod.network.ColonyPayloads.ForgeView(v.id, b.id,
+                new ItemStack(r.out().icon), strokes(b), Math.min(FORGE_MOST + 1, affordable(v, r)), p.getRandom().nextLong()));
+    }
+
+    /**
+     * A forging done: {@code hits} of its strokes in time. None: the iron spoilt (one making's materials lost);
+     * else tools as the share of the strokes in time (one more for all of them), each of its materials, to the
+     * smithy's order in hand (the village's store). Returns the tools forged.
+     */
+    public static int forge(ServerPlayer p, VillageData data, Village v, Building b, int hits) {
+        if (b == null || b.type != BuildingType.SMITHY || !b.standing()) return 0;
+        Orders.Order o = Workshops.current(v, b);
+        Workshops.Recipe r = o == null ? null : Workshops.recipe(b.type, o.recipe);
+        if (r == null) return 0;
+        int n = strokes(b);
+        hits = Math.max(0, Math.min(n, hits));
+        int pieces = hits == 0 ? 0 : hits == n ? FORGE_MOST + 1 : Math.max(1, Math.round(FORGE_MOST * hits / (float) n));
+        pieces = Math.min(pieces, affordable(v, r));
+        int spent = Math.max(pieces, Math.min(1, affordable(v, r)));
+        for (var e : r.in().entrySet()) {
+            v.add(e.getKey(), -e.getValue() * spent);
+            v.used.merge(e.getKey(), e.getValue() * spent, Integer::sum);
+        }
+        if (pieces > 0) {
+            int tools = pieces * r.n();
+            o.made += tools;
+            if (o.village()) {
+                v.add(r.out(), tools);
+                v.made.merge(r.out(), tools, Integer::sum);
+                if (o.done()) v.orders.remove(o);
+            } else if (o.made > o.count) {
+                v.add(r.out(), o.made - o.count);
+            }
+            if (hired(v, p.getUUID()) == Job.SMITH) v.tasks.brought.merge(p.getUUID(), pieces, Integer::sum);
+        }
+        v.log(data.day, Component.translatable("minecraftportsmod.vlog.forged", p.getName(), pieces, r.out().displayName())
+                .withStyle(pieces > 0 ? ChatFormatting.DARK_GREEN : ChatFormatting.GRAY));
+        p.level().playSound(null, p.blockPosition(), pieces > 0 ? net.minecraft.sounds.SoundEvents.ANVIL_USE : net.minecraft.sounds.SoundEvents.ANVIL_LAND,
+                SoundSource.BLOCKS, 0.6F, pieces > 0 ? 1.1F : 0.6F);
+        data.changed();
+        return pieces;
     }
 
     /** The player's bar for this building (a new one if it was for another), kept up. */

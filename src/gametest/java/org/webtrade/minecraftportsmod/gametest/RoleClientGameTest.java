@@ -190,21 +190,28 @@ public class RoleClientGameTest implements FabricClientGameTest {
                 p.setShiftKeyDown(false);
                 log("crouching at the smithy: bench {}", bench[0]);
             });
-            // a few strokes at the bench: the making goes on
-            for (int k = 0; k < 40; k++) {
-                server.runOnServer(s -> {
-                    Village v = village(s);
-                    var p = player(s);
-                    for (Building b : v.buildings()) {
-                        if (b.type != BuildingType.SMITHY) continue;
-                        p.setShiftKeyDown(true);
-                        Helping.bench(p, s.overworld(), b.origin);
-                        p.setShiftKeyDown(false);
-                    }
+            // the forging window: strokes in time (one missed), the tools to the village's store
+            context.waitForScreen(org.webtrade.minecraftportsmod.client.chart.ForgeScreen.class);
+            context.waitTicks(15);
+            context.takeScreenshot("role_g_forge");
+            int[] tools = {0};
+            server.runOnServer(s -> tools[0] = village(s).stock(Res.TOOLS1) + village(s).stock(Res.TOOLS2));
+            for (int k = 0; k < 12; k++) {
+                final int kk = k;
+                context.runOnClient(mc -> {
+                    if (mc.gui.screen() instanceof org.webtrade.minecraftportsmod.client.chart.ForgeScreen f) f.testStrike(kk != 2, f.wantsRight());
                 });
-                context.waitTicks(4);
+                context.waitTicks(8);
+                if (k == 3) context.takeScreenshot("role_g_forge_strokes");
             }
-            context.takeScreenshot("role_g_smithy_bench");
+            context.waitTicks(5);
+            context.takeScreenshot("role_g_forge_done");
+            context.waitTicks(40);
+            server.runOnServer(s -> {
+                int now = village(s).stock(Res.TOOLS1) + village(s).stock(Res.TOOLS2);
+                log("forged: village tools {} -> {}", tools[0], now);
+                if (now <= tools[0]) throw new AssertionError("the forging should give tools");
+            });
             if (!bench[0]) throw new AssertionError("crouching at the smithy should be its bench");
 
             // 5. a hut of the player's own: bought in the tree, supplied and built by them; the village keeps off it

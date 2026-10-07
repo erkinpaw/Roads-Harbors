@@ -541,6 +541,12 @@ public final class ColonyService {
                 sendGive(player, v, -1);
             }
             case ColonyPayloads.VillageAction.JOBS -> sendJobs(player, v, a.a());
+            case ColonyPayloads.VillageAction.FORGE -> {
+                Building b = v.building(a.a());
+                if (b == null || player.blockPosition().distSqr(b.origin) > 24 * 24) return;
+                int got = Helping.forge(player, data, v, b, a.b());
+                player.sendSystemMessage(Component.translatable("minecraftportsmod.forge.done", got).withStyle(got > 0 ? ChatFormatting.GREEN : ChatFormatting.GRAY), true);
+            }
             case ColonyPayloads.VillageAction.BUY_BUILD -> {
                 BuildingType t = a.a() < 0 || a.a() >= BuildingType.values().length ? null : BuildingType.values()[a.a()];
                 boolean ok = false;

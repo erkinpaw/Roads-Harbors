@@ -1036,6 +1036,8 @@
   "minecraftportsmod.vlog.carried": "%s took %s to %s",
   "minecraftportsmod.vlog.carried_in": "%s brought %s from %s",
   "minecraftportsmod.quest.carried": "The goods reached %s",
+  "minecraftportsmod.vlog.forged": "%s forged %s × %s",
+  "minecraftportsmod.forge.done": "Forged: %s",
   "minecraftportsmod.quest.take": "Take",
   "minecraftportsmod.quest.drop": "Give up",
   "minecraftportsmod.quest.hand": "Hand over",
