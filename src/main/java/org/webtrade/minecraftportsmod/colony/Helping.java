@@ -129,6 +129,13 @@ public final class Helping {
         if (v == null) return false;
         Building b = workshop(v, pos);
         if (b == null) return false;
+        long tick = level.getServer().getTickCount();
+        // the smithy: the forging (strokes in time at the anvil, in a window of its own; the tools chosen there)
+        if (b.type == BuildingType.SMITHY) {
+            Long was = STROKE.put(p.getUUID(), tick);
+            if (was == null || tick - was >= 10) openForge(p, v, b);
+            return true;
+        }
         Orders.Order o = Workshops.current(v, b);
         // (nothing in hand: what the village wants of it taken up now, as its own hands would in the morning)
         if (o == null) {
@@ -145,13 +152,6 @@ public final class Helping {
             bar.bar.setColor(BossEvent.BossBarColor.RED);
             bar.bar.setName(Component.translatable("minecraftportsmod.badge.idle", b.type.displayName()));
             bar.bar.setProgress(0F);
-            return true;
-        }
-        // the smithy: the forging (strokes in time at the anvil, in a window of its own)
-        if (b.type == BuildingType.SMITHY) {
-            Long was = STROKE.put(p.getUUID(), now);
-            if (was != null && now - was < 10) return true;
-            openForge(p, v, b, r);
             return true;
         }
         Long last = STROKE.put(p.getUUID(), now);
@@ -182,12 +182,17 @@ public final class Helping {
 
     // ------------------------------------------------------------------ forging at the smithy
 
-    /** Tools a forging gives at most (all strokes but perfect), and one more for a perfect one. */
+    /** Tools a forging gives at most (all strokes but perfect) of the smithy's best kind; one more for a perfect one. */
     public static final int FORGE_MOST = 3;
 
     /** Strokes a forging takes: more at a better smithy. */
     public static int strokes(Building smithy) {
         return 6 + Math.max(1, smithy.level);
+    }
+
+    /** Tools a forging of a kind gives at most: two more for each level the smithy is above that kind's. */
+    public static int forgeMost(Building smithy, Workshops.Recipe r) {
+        return FORGE_MOST + 2 * Math.max(0, smithy.level - r.lvl());
     }
 
     /** How many makings of a recipe the village's store can give the makings of. */
@@ -197,48 +202,55 @@ public final class Helping {
         return n;
     }
 
-    /** The forging window opened: what is forged, how many strokes. Nothing to forge it of: the bar says so. */
-    static void openForge(ServerPlayer p, Village v, Building b, Workshops.Recipe r) {
-        if (affordable(v, r) <= 0) {
-            Bar bar = bar(p, v, b, BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.PROGRESS);
-            bar.bar.setColor(BossEvent.BossBarColor.RED);
-            bar.bar.setName(Component.translatable("minecraftportsmod.badge.short", r.out().displayName()));
-            bar.bar.setProgress(0F);
-            return;
+    /** The forging window opened: the kinds of tools the smithy forges (what each takes, what the store has of it, the most it gives). */
+    static void openForge(ServerPlayer p, Village v, Building b) {
+        java.util.List<org.webtrade.minecraftportsmod.network.ColonyPayloads.ForgeOption> options = new java.util.ArrayList<>();
+        for (Workshops.Recipe r : Workshops.recipes(b.type)) {
+            if (!Workshops.open(b, r)) continue;
+            int k = r.in().size(), i = 0;
+            int[] ins = new int[k], per = new int[k], have = new int[k];
+            for (var e : r.in().entrySet()) {
+                ins[i] = e.getKey().ordinal();
+                per[i] = e.getValue();
+                have[i++] = v.stock(e.getKey());
+            }
+            options.add(new org.webtrade.minecraftportsmod.network.ColonyPayloads.ForgeOption(r.index(), new ItemStack(r.out().icon),
+                    Math.min(forgeMost(b, r) + 1, affordable(v, r)), forgeMost(b, r), ins, per, have));
         }
         net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(p, new org.webtrade.minecraftportsmod.network.ColonyPayloads.ForgeView(v.id, b.id,
-                new ItemStack(r.out().icon), strokes(b), Math.min(FORGE_MOST + 1, affordable(v, r)), p.getRandom().nextLong()));
+                strokes(b), p.getRandom().nextLong(), options));
     }
 
     /**
-     * A forging done: {@code hits} of its strokes in time. None: the iron spoilt (one making's materials lost);
-     * else tools as the share of the strokes in time (one more for all of them), each of its materials, to the
-     * smithy's order in hand (the village's store). Returns the tools forged.
+     * A forging done, of recipe {@code index}: {@code hits} of its strokes in time. None: the iron spoilt (one
+     * making's materials lost); else tools as the share of the strokes in time (one more for all of them), each of
+     * its materials: to the smithy's order of them if there is one, the rest to the village's store (for sale).
+     * Returns the tools forged.
      */
-    public static int forge(ServerPlayer p, VillageData data, Village v, Building b, int hits) {
+    public static int forge(ServerPlayer p, VillageData data, Village v, Building b, int index, int hits) {
         if (b == null || b.type != BuildingType.SMITHY || !b.standing()) return 0;
-        Orders.Order o = Workshops.current(v, b);
-        Workshops.Recipe r = o == null ? null : Workshops.recipe(b.type, o.recipe);
-        if (r == null) return 0;
-        int n = strokes(b);
+        Workshops.Recipe r = Workshops.recipe(b.type, index);
+        if (r == null || !Workshops.open(b, r) || affordable(v, r) <= 0) return 0;
+        int n = strokes(b), most = forgeMost(b, r);
         hits = Math.max(0, Math.min(n, hits));
-        int pieces = hits == 0 ? 0 : hits == n ? FORGE_MOST + 1 : Math.max(1, Math.round(FORGE_MOST * hits / (float) n));
+        int pieces = hits == 0 ? 0 : hits == n ? most + 1 : Math.max(1, Math.round(most * hits / (float) n));
         pieces = Math.min(pieces, affordable(v, r));
-        int spent = Math.max(pieces, Math.min(1, affordable(v, r)));
+        int spent = Math.max(pieces, 1);
         for (var e : r.in().entrySet()) {
             v.add(e.getKey(), -e.getValue() * spent);
             v.used.merge(e.getKey(), e.getValue() * spent, Integer::sum);
         }
         if (pieces > 0) {
             int tools = pieces * r.n();
-            o.made += tools;
-            if (o.village()) {
-                v.add(r.out(), tools);
-                v.made.merge(r.out(), tools, Integer::sum);
+            // (an order of them at the smithy, the village's own: they go towards it)
+            for (Orders.Order o : new java.util.ArrayList<>(v.orders)) {
+                if (o.building != b.id || o.recipe != r.index() || !o.village() || o.done()) continue;
+                o.made += Math.min(tools, o.count - o.made);
                 if (o.done()) v.orders.remove(o);
-            } else if (o.made > o.count) {
-                v.add(r.out(), o.made - o.count);
+                break;
             }
+            v.add(r.out(), tools);
+            v.made.merge(r.out(), tools, Integer::sum);
             if (hired(v, p.getUUID()) == Job.SMITH) v.tasks.brought.merge(p.getUUID(), pieces, Integer::sum);
         }
         v.log(data.day, Component.translatable("minecraftportsmod.vlog.forged", p.getName(), pieces, r.out().displayName())

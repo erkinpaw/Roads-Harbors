@@ -1037,6 +1037,7 @@
   "minecraftportsmod.vlog.carried_in": "%s привёз %s из %s",
   "minecraftportsmod.quest.carried": "Товар доставлен в «%s»",
   "minecraftportsmod.vlog.forged": "%s выковал: %s × %s",
+  "minecraftportsmod.forge.start": "Ковать",
   "minecraftportsmod.forge.done": "Выковано: %s",
   "minecraftportsmod.quest.take": "Взять",
   "minecraftportsmod.quest.drop": "Отказаться",
@@ -1219,7 +1220,7 @@
   "minecraftportsmod.badge.making": "Делает: %s",
   "minecraftportsmod.badge.queued": "Следующее: %s",
   "minecraftportsmod.badge.short": "Нет сырья: %s",
-  "minecraftportsmod.badge.idle": "%s: нечего делать",
+  "minecraftportsmod.badge.idle": "%s: нет сырья",
 
   "minecraftportsmod.order.tools": "Инструменты",
   "minecraftportsmod.order.put_tools": "Положить инструменты",
