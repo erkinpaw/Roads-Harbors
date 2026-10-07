@@ -169,6 +169,8 @@ public class WorkshopClientGameTest implements FabricClientGameTest {
                 last[0] = pr[1];
                 if (pr[1] >= 20) break;
             }
+            context.setScreen(() -> null);
+            context.waitTicks(5);
             // the block of the joiner's trade at its front (no name plate): a click on it opens the building's menu
             boolean[] key = {false};
             server.runOnServer(s -> {
