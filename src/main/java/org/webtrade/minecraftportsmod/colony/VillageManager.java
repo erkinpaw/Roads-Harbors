@@ -91,6 +91,7 @@ public final class VillageManager {
         ServerLevel level = srv.overworld();
         Plots.tick(srv);
         Helping.tick(srv);
+        Carry.tick(srv);
         if (srv.getTickCount() % 10 == 0) Wallet.tick(srv);
         Badges.tick(srv);
         if (data.dayLength == VillageData.DEFAULT_DAY_LENGTH) {

@@ -50,7 +50,9 @@ public final class Quests {
         /** Kill so many monsters round the village. */
         HUNT,
         /** Carry a letter to a village this one has never heard of, and its answer back. */
-        LETTER;
+        LETTER,
+        /** Take goods to a neighbour the trails lead to, on the village's donkey: delivered once ridden into its land. */
+        CARRY;
 
         public String id() {
             return name().toLowerCase(java.util.Locale.ROOT);
@@ -80,8 +82,9 @@ public final class Quests {
                 Codec.LONG.fieldOf("until").forGetter(q -> q.until),
                 UUIDUtil.CODEC.optionalFieldOf("taker").forGetter(q -> Optional.ofNullable(q.taker)),
                 Codec.STRING.optionalFieldOf("taker_name", "").forGetter(q -> q.takerName),
-                Codec.INT.optionalFieldOf("to", -1).forGetter(q -> q.to)
-        ).apply(i, (id, giver, kind, what, count, done, reward, building, until, taker, takerName, to) -> {
+                Codec.INT.optionalFieldOf("to", -1).forGetter(q -> q.to),
+                UUIDUtil.CODEC.optionalFieldOf("mount").forGetter(q -> Optional.ofNullable(q.mount))
+        ).apply(i, (id, giver, kind, what, count, done, reward, building, until, taker, takerName, to, mount) -> {
             Quest q = new Quest(id, giver, Kind.valueOf(kind.toUpperCase(java.util.Locale.ROOT)), what, count);
             q.done = done;
             q.reward = reward;
@@ -90,6 +93,7 @@ public final class Quests {
             q.taker = taker.orElse(null);
             q.takerName = takerName;
             q.to = to;
+            q.mount = mount.orElse(null);
             return q;
         }));
 
@@ -109,8 +113,10 @@ public final class Quests {
         long until;
         UUID taker;
         String takerName = "";
-        /** LETTER: the village the letter reached (-1: not yet). */
+        /** LETTER: the village the letter reached (-1: not yet); CARRY: the village the goods go to. */
         int to = -1;
+        /** CARRY: the donkey the goods are on. */
+        UUID mount;
 
         Quest(int id, int giver, Kind kind, String what, int count) {
             this.id = id;
@@ -154,7 +160,7 @@ public final class Quests {
         }
 
         public Res res() {
-            return kind == Kind.BRING || kind == Kind.SITE ? Res.byId(what) : null;
+            return kind == Kind.BRING || kind == Kind.SITE || kind == Kind.CARRY ? Res.byId(what) : null;
         }
     }
 
@@ -333,6 +339,7 @@ public final class Quests {
                     || !q.taken() && q.kind == Kind.ITEM;
             if (!gone) continue;
             b.quests.remove(q);
+            if (q.kind == Kind.CARRY && q.taken() && Carry.server != null) Carry.unload(Carry.server, v, q);
             if (q.taken() && !q.complete()) v.log(today, Component.translatable("minecraftportsmod.vlog.quest_failed", q.takerName,
                     giver == null ? "?" : giver.name).withStyle(ChatFormatting.GRAY));
         }
@@ -359,6 +366,7 @@ public final class Quests {
             if (open >= OFFERS) break;
             Quest out = new Quest(v.tasks.next++, q.giver, q.kind, q.what, q.count);
             out.building = q.building;
+            out.to = q.to;
             out.until = today + OFFER_DAYS;
             out.reward = price(v, out);
             v.tasks.quests.add(out);
@@ -408,6 +416,11 @@ public final class Quests {
             int n = Math.max(8, Math.min(64, (short_ + 7) / 8 * 8));
             out.add(new Cand(new Quest(0, d.id, Kind.BRING, r.id(), n), w * (own ? 2 : 1)));
         }
+        // the merchant and the head of the village: goods carried to a neighbour the trails lead to
+        if (d.elder || d.job == Job.MERCHANT) {
+            Quest carry = Carry.offer(data, v, d);
+            if (carry != null) out.add(new Cand(carry, 1.5));
+        }
         // the head of the village: a neighbour to hear of (the trade with it to come)
         if (d.elder) {
             Quest letter = letter(data, v, d);
@@ -443,10 +456,12 @@ public final class Quests {
             case SITE -> site(v, d);
             case HUNT -> hunt(v, d);
             case LETTER -> letter(data, v, d);
+            case CARRY -> Carry.offer(data, v, d);
         };
         if (q == null) return null;
         Quest out = new Quest(v.tasks.next++, q.giver, q.kind, q.what, q.count);
         out.building = q.building;
+        out.to = q.to;
         out.until = data.day + OFFER_DAYS;
         out.reward = price(v, out);
         v.tasks.quests.add(out);
@@ -527,6 +542,7 @@ public final class Quests {
             case ITEM -> treat(q) ? 0.5 : 2.5;
             case HUNT -> 0.4 * q.count;
             case LETTER -> 6;
+            case CARRY -> 3 + 0.15 * Trade.base(q.res()) * q.count;
         };
         return Math.max(1, (int) Math.round(worth));
     }
@@ -610,6 +626,7 @@ public final class Quests {
             case BRING, SITE -> new ItemStack(q.res() == null ? Items.CHEST : q.res().icon);
             case HUNT -> new ItemStack(Items.IRON_SWORD);
             case LETTER -> new ItemStack(Items.PAPER);
+            case CARRY -> new ItemStack(Items.CHEST);
             case ITEM -> switch (q.what) {
                 case "#flowers" -> new ItemStack(Items.POPPY);
                 case "#minecraft:saplings" -> new ItemStack(Items.OAK_SAPLING);
@@ -634,6 +651,7 @@ public final class Quests {
             case LETTER -> to == null ? Component.translatable("minecraftportsmod.panel.letter")
                     : Component.translatable("minecraftportsmod.panel.letter_to", to.name);
             case ITEM -> Component.translatable("minecraftportsmod.quest.item." + q.what.replace("#", "").replace("minecraft:", ""));
+            case CARRY -> Component.translatable("minecraftportsmod.panel.carry", to == null ? "?" : to.name);
         };
     }
 
@@ -652,8 +670,14 @@ public final class Quests {
             case SITE -> 4;
             case HUNT -> 2;
             case LETTER -> 20;
+            case CARRY -> 6;
         };
         if (q.kind == Kind.LETTER) give(p, letter(v, q, false));
+        if (q.kind == Kind.CARRY && !Carry.load(p, v, q)) {
+            q.taker = null;
+            q.takerName = "";
+            return Result.NOTHING;
+        }
         data.changed();
         return Result.OK;
     }
@@ -662,6 +686,7 @@ public final class Quests {
     static void drop(ServerPlayer p, VillageData data, Village v, Quest q) {
         if (!p.getUUID().equals(q.taker)) return;
         v.tasks.quests.remove(q);
+        if (q.kind == Kind.CARRY) Carry.unload(p.level().getServer(), v, q);
         if (q.kind == Kind.LETTER) {
             var inv = p.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) if (letterOf(inv.getItem(i)) == q.id && letterFrom(inv.getItem(i)) == v.id) inv.setItem(i, ItemStack.EMPTY);
@@ -675,6 +700,8 @@ public final class Quests {
      */
     static Result handIn(ServerPlayer p, MinecraftServer srv, VillageData data, Village v, Quest q) {
         if (!p.getUUID().equals(q.taker)) return Result.GONE;
+        // (goods on a donkey: delivered by riding it there, nothing to hand in)
+        if (q.kind == Kind.CARRY) return Result.NOTHING;
         if (q.kind == Kind.LETTER) {
             // the answer is given over
             if (!q.complete() || carried(p, q) == 0) return Result.NOTHING;
