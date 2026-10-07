@@ -30,8 +30,8 @@ public class GiveScreen extends UiScreen {
     public GiveScreen(ColonyPayloads.GiveView view) {
         super(Component.translatable("minecraftportsmod.give.title", view.villageName()));
         this.view = view;
-        // (a site waiting for something the player has: that first)
-        for (ColonyPayloads.GiveSite s : view.sites()) {
+        // (a site waiting for something the player has: that first; at the storehouse, the store)
+        for (ColonyPayloads.GiveSite s : view.person() == ColonyPayloads.GiveView.AT_STORE ? java.util.List.<ColonyPayloads.GiveSite>of() : view.sites()) {
             if (useful(s)) {
                 to = s.id();
                 break;

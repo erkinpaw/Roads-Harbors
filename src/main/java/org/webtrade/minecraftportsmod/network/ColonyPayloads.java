@@ -336,10 +336,13 @@ public final class ColonyPayloads {
      * building sites that still lack something: the player chooses what goes where.
      */
     public record GiveView(int village, int person, String villageName, int[] carried, int[] room, List<GiveSite> sites) implements CustomPacketPayload {
+        /** {@code person} of a window opened at the storehouse (the store chosen); -1: a refresh after a gift. */
+        public static final int AT_STORE = -2;
+
         public static final Type<GiveView> TYPE = new Type<>(Minecraftportsmod.id("give_view"));
         public static final StreamCodec<RegistryFriendlyByteBuf, GiveView> CODEC = StreamCodec.of((buf, v) -> {
             buf.writeVarInt(v.village);
-            buf.writeVarInt(v.person + 1);
+            buf.writeVarInt(v.person + 2);
             buf.writeUtf(v.villageName, 64);
             buf.writeVarIntArray(v.carried);
             buf.writeVarIntArray(v.room);
@@ -351,7 +354,7 @@ public final class ColonyPayloads {
                 buf.writeVarIntArray(s.missing);
             }
         }, buf -> {
-            int village = buf.readVarInt(), person = buf.readVarInt() - 1;
+            int village = buf.readVarInt(), person = buf.readVarInt() - 2;
             String name = buf.readUtf(64);
             int[] carried = ints(buf), room = ints(buf);
             int n = buf.readVarInt();
