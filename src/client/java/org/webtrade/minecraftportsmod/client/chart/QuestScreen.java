@@ -64,7 +64,7 @@ public class QuestScreen extends UiScreen {
                     b.active = view.taken() < Quests.MAX_TAKEN;
                 }
                 case 1 -> {
-                    addRenderableWidget(UiButton.make(Component.translatable(
+                    if (kind != Quests.Kind.CARRY) addRenderableWidget(UiButton.make(Component.translatable(
                                     kind == Quests.Kind.HUNT || kind == Quests.Kind.LETTER ? "minecraftportsmod.quest.report" : "minecraftportsmod.quest.hand"),
                             btn -> send(ColonyPayloads.VillageAction.QUEST_HAND, r.quest())).bounds(bx, by, bw, 16).build());
                     addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.quest.drop"),
@@ -135,15 +135,18 @@ public class QuestScreen extends UiScreen {
             String prog = r.done() + "/" + r.count();
             g.text(font, prog, rx + 64, y + 17, ChartStyle.TEXT, false);
             rx += 68 + font.width(prog);
-            if (kind != Quests.Kind.HUNT && kind != Quests.Kind.LETTER) {
+            if (kind != Quests.Kind.HUNT && kind != Quests.Kind.LETTER && kind != Quests.Kind.CARRY) {
                 g.item(new ItemStack(Items.BUNDLE), rx, y + 12);
                 g.text(font, String.valueOf(r.carried()), rx + 17, y + 17, r.carried() > 0 ? ChartStyle.GOOD : ChartStyle.TEXT_MUTED, false);
             }
-        } else if (r.state() == 0 && kind != Quests.Kind.HUNT && kind != Quests.Kind.LETTER && r.carried() > 0) {
+        } else if (r.state() == 0 && kind != Quests.Kind.HUNT && kind != Quests.Kind.LETTER && kind != Quests.Kind.CARRY && r.carried() > 0) {
             g.item(new ItemStack(Items.BUNDLE), rx, y + 12);
             g.text(font, String.valueOf(r.carried()), rx + 17, y + 17, ChartStyle.GOOD, false);
         }
-        if (kind == Quests.Kind.LETTER && !r.to().isEmpty()) g.text(font, r.to(), rx, y + 17, ChartStyle.TEXT, false);
+        if ((kind == Quests.Kind.LETTER || kind == Quests.Kind.CARRY) && !r.to().isEmpty()) {
+            g.item(new ItemStack(Items.FILLED_MAP), rx, y + 12);
+            g.text(font, r.to(), rx + 17, y + 17, ChartStyle.TEXT, false);
+        }
         if (r.state() == 2) g.text(font, "✔", right - 12, y + 10, ChartStyle.TEXT_MUTED, false);
     }
 

@@ -190,14 +190,49 @@ public final class Voyages {
     /** Pairs of harbours whose way is being worked out now. */
     private static final Set<Long> ASKED = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
-    /** The way from harbour {@code a} to harbour {@code b} (points x, z), or null if there is none (yet). */
+    /**
+     * Are two villages neighbours by land: both on the mainland, near enough to be joined by a trail, and not found
+     * to have no way over the land between them? Those go to each other by the trail, never over the sea.
+     */
+    public static boolean landPair(VillageData data, Village a, Village b) {
+        if (a.island || b.island) return false;
+        if (a.center.distSqr(b.center) > (double) Trails.MAX_REACH * Trails.MAX_REACH) return false;
+        Trails.Trail t = Trails.find(data, a.id, b.id);
+        return t == null || !t.none();
+    }
+
+    /** Is a village by the sea: an island, one with a pier, or one whose land round it has water enough to sail from. */
+    static boolean coastal(Village v) {
+        return v.island || Harbour.pier(v) != null || Land.ready(v) && Land.known(v).water() >= 0.04;
+    }
+
+    /**
+     * The way over the sea from village {@code a} to village {@code b} (points x, z; from its pier, where it has one),
+     * or null: none (yet), or the two are neighbours by land (the trail joins them, not the sea).
+     */
     static int[] lane(VillageData data, int a, int b) {
         int[] p = data.seaLanes.get(key(a, b));
-        if (p == null || a < b) return p;
-        int[] r = new int[p.length];
-        for (int i = 0; i < p.length; i += 2) {
-            r[p.length - 2 - i] = p[i];
-            r[p.length - 1 - i] = p[i + 1];
+        if (p == null) return null;
+        Village va = data.get(a), vb = data.get(b);
+        if (va == null || vb == null || landPair(data, va, vb)) return null;
+        int[] r = p.clone();
+        if (a > b) {
+            for (int i = 0; i < p.length; i += 2) {
+                r[p.length - 2 - i] = p[i];
+                r[p.length - 1 - i] = p[i + 1];
+            }
+        }
+        // (the ends: the piers as they stand now; the way was known before either was built)
+        Building pa = Harbour.pier(va), pb = Harbour.pier(vb);
+        if (pa != null) {
+            BlockPos s0 = Harbour.seaward(pa);
+            r[0] = s0.getX();
+            r[1] = s0.getZ();
+        }
+        if (pb != null) {
+            BlockPos s1 = Harbour.seaward(pb);
+            r[r.length - 2] = s1.getX();
+            r[r.length - 1] = s1.getZ();
         }
         return r;
     }
@@ -209,17 +244,25 @@ public final class Voyages {
         return out;
     }
 
-    /** Ways asked for between every two harbours near enough, that have none yet. */
+    /**
+     * Ways over the sea asked for between every two villages by the sea near enough (and not neighbours by land),
+     * that have none yet: known before any pier is built (from the village's middle; its pier, once built, takes
+     * the way's end).
+     */
     private static void askLanes(ServerLevel level, VillageData data) {
-        List<Village> hs = harbours(data);
+        List<Village> hs = new ArrayList<>();
+        for (Village v : data.all()) if (coastal(v)) hs.add(v);
         for (int i = 0; i < hs.size(); i++) {
             for (int j = i + 1; j < hs.size(); j++) {
+                if (ASKED.size() >= 4) return;
                 Village a = hs.get(i), b = hs.get(j);
                 long k = key(a.id, b.id);
                 if (data.seaLanes.containsKey(k) || data.noSea.contains(k) || ASKED.contains(k)) continue;
                 if (Math.hypot(a.center.getX() - b.center.getX(), a.center.getZ() - b.center.getZ()) > MAX_LANE) continue;
+                if (landPair(data, a, b)) continue;
                 Village lo = a.id < b.id ? a : b, hi = a.id < b.id ? b : a;
-                BlockPos from = Harbour.seaward(Harbour.pier(lo)), to = Harbour.seaward(Harbour.pier(hi));
+                BlockPos from = Harbour.pier(lo) != null ? Harbour.seaward(Harbour.pier(lo)) : lo.center;
+                BlockPos to = Harbour.pier(hi) != null ? Harbour.seaward(Harbour.pier(hi)) : hi.center;
                 ASKED.add(k);
                 boolean asked = org.webtrade.minecraftportsmod.worldgen.WorldPlanner.seaLane(from.getX(), from.getZ(), to.getX(), to.getZ(), p -> {
                     ASKED.remove(k);

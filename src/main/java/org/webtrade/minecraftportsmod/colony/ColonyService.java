@@ -144,6 +144,10 @@ public final class ColonyService {
                     .append(q.count > 1 ? " ×" + q.count : "");
             case HUNT -> Component.translatable(k, q.count);
             case LETTER -> Component.translatable(k);
+            case CARRY -> {
+                Village to = data.get(q.to());
+                yield Component.translatable(k, q.res().displayName(), q.count, to == null ? "?" : to.name);
+            }
         };
     }
 
