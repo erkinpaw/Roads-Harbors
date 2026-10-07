@@ -123,10 +123,12 @@ public final class ColonyService {
 
     /** A person's task as this player sees it: 0 none, 1 one to take, 2 taken by them, 3 taken by someone else. */
     static int questState(ServerPlayer player, Village v, Dweller d) {
-        Quests.Quest q = Quests.of(v, d.id);
-        if (q == null) return 0;
-        if (!q.taken()) return 1;
-        return player.getUUID().equals(q.taker()) ? 2 : 3;
+        int state = 0;
+        for (Quests.Quest q : Quests.all(v, d.id)) {
+            if (!q.taken()) return 1;
+            state = player.getUUID().equals(q.taker()) ? 2 : Math.max(state, 3) == 3 && state != 2 ? 3 : state;
+        }
+        return state;
     }
 
     /** What a task asks for, in words. */
@@ -147,18 +149,18 @@ public final class ColonyService {
 
     public static void sendQuest(ServerPlayer player, Village v, Dweller d) {
         VillageData data = data(player);
-        Quests.Quest q = Quests.of(v, d.id);
+        if (Quests.topUp(data, v, d, data.day)) data.changed();
         int taken = Quests.taken(data, player.getUUID()), thanks = v.tasks.thanks(player.getUUID());
-        if (q == null) {
-            ServerPlayNetworking.send(player, new ColonyPayloads.QuestView(v.id, d.id, d.name, d.job == null ? -1 : d.job.ordinal(), d.elder,
-                    -1, 0, net.minecraft.world.item.ItemStack.EMPTY, Component.empty(), 0, 0, 0, 0, 0, 0, "", taken, thanks));
-            return;
+        java.util.List<ColonyPayloads.QuestRow> rows = new java.util.ArrayList<>();
+        for (Quests.Quest q : Quests.all(v, d.id)) {
+            int state = !q.taken() ? 0 : player.getUUID().equals(q.taker()) ? 1 : 2;
+            Village to = data.get(q.to());
+            rows.add(new ColonyPayloads.QuestRow(q.id, q.kind.ordinal(), Quests.icon(q), questText(data, v, q), q.count, q.done(), Quests.carried(player, q),
+                    q.reward(), (int) Math.max(0, q.until() - data.day), state, to == null ? "" : to.name));
         }
-        int state = !q.taken() ? 0 : player.getUUID().equals(q.taker()) ? 1 : 2;
-        Village to = data.get(q.to());
-        ServerPlayNetworking.send(player, new ColonyPayloads.QuestView(v.id, d.id, d.name, d.job == null ? -1 : d.job.ordinal(), d.elder,
-                q.id, q.kind.ordinal(), Quests.icon(q), questText(data, v, q), q.count, q.done(), Quests.carried(player, q), q.reward(),
-                (int) Math.max(0, q.until() - data.day), state, to == null ? "" : to.name, taken, thanks));
+        // (the player's own first, then the offers; someone else's last)
+        rows.sort(java.util.Comparator.comparingInt(r -> r.state() == 1 ? 0 : r.state() == 0 ? 1 : 2));
+        ServerPlayNetworking.send(player, new ColonyPayloads.QuestView(v.id, d.id, d.name, d.job == null ? -1 : d.job.ordinal(), d.elder, rows, taken, thanks));
     }
 
     // ------------------------------------------------------------------ the village screen
@@ -410,6 +412,32 @@ public final class ColonyService {
                 cost, delivered, stock, carried, progress, VillageLife.eta(v, b)));
     }
 
+    /** What the player carries, the store's room and the sites that lack something: for the player to give out. */
+    public static void sendGive(ServerPlayer player, Village v, int person) {
+        int[] carried = new int[Res.values().length], room = new int[Res.values().length];
+        for (Res r : Res.values()) {
+            carried[r.ordinal()] = Helping.carried(player, r);
+            room[r.ordinal()] = v.free(r);
+        }
+        java.util.List<ColonyPayloads.GiveSite> sites = new java.util.ArrayList<>();
+        for (Building b : Helping.sites(v)) {
+            int[] missing = new int[Res.values().length];
+            for (Res r : Res.values()) missing[r.ordinal()] = b.missing(r);
+            sites.add(new ColonyPayloads.GiveSite(b.id, b.type.ordinal(), b.upgrading() ? b.level + 1 : 1, missing));
+        }
+        ServerPlayNetworking.send(player, new ColonyPayloads.GiveView(v.id, person, v.name, carried, room, sites));
+    }
+
+    /** The trades the player can take up in the village, the most wanted first, and the one they are at. */
+    public static void sendJobs(ServerPlayer player, Village v, int person) {
+        java.util.List<ColonyPayloads.JobRow> rows = new java.util.ArrayList<>();
+        for (Job j : Helping.jobs(v)) rows.add(new ColonyPayloads.JobRow(j.ordinal(), (int) Math.round(Helping.demand(v, j) * 100), Helping.quota(v, j),
+                Helping.crafter(j)));
+        Job mine = Helping.hired(v, player.getUUID());
+        ServerPlayNetworking.send(player, new ColonyPayloads.JobView(v.id, person, v.name, mine == null ? -1 : mine.ordinal(),
+                Helping.brought(v, player.getUUID()), rows));
+    }
+
     // ------------------------------------------------------------------ a building's menu
 
     public static void sendBuilding(ServerPlayer player, Village v, Building b) {
@@ -499,25 +527,24 @@ public final class ColonyService {
                         : r == Quests.Result.OK ? SoundEvents.VILLAGER_YES : SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 0.6F, 1.0F);
                 if (d != null) sendQuest(player, v, d);
             }
-            case ColonyPayloads.VillageAction.DEPOSIT -> {
-                var got = Helping.deposit(player, data, v);
-                if (got.isEmpty()) {
-                    player.sendSystemMessage(Component.translatable("minecraftportsmod.colony.nothing_to_give").withStyle(ChatFormatting.GRAY), true);
-                    player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 0.6F, 1.0F);
-                } else {
-                    Job j = Helping.hired(v, player.getUUID());
-                    Component msg = Component.translatable("minecraftportsmod.colony.thanks", VillageText.amounts(got));
-                    if (j != null) msg = Component.empty().append(msg).append(Component.literal("  " + Helping.brought(v, player.getUUID()) + " / "
-                            + Helping.quota(v, j)));
-                    player.sendSystemMessage(msg.copy().withStyle(ChatFormatting.GREEN), true);
-                    player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 0.6F, 1.0F);
-                }
+            case ColonyPayloads.VillageAction.DEPOSIT -> sendGive(player, v, a.a());
+            case ColonyPayloads.VillageAction.GIVE -> {
+                Building site = a.a() < 0 ? null : v.building(a.a());
+                int ri = a.b() / 100000, units = a.b() % 100000;
+                if (a.a() >= 0 && site == null || ri < 0 || ri >= Res.values().length) return;
+                int got = Helping.give(player, data, v, site, Res.values()[ri], units);
+                player.level().playSound(null, player.blockPosition(), got > 0 ? SoundEvents.ITEM_PICKUP : SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 0.6F, 1.0F);
+                sendGive(player, v, -1);
             }
+            case ColonyPayloads.VillageAction.JOBS -> sendJobs(player, v, a.a());
             case ColonyPayloads.VillageAction.HIRE -> {
-                Job j = Helping.hire(player, data, v);
+                Job want = a.b() < 0 || a.b() >= Job.values().length ? null : Job.values()[a.b()];
+                if (want != null && Helping.demand(v, want) < 0) return;
+                Job j = Helping.hire(player, data, v, want);
                 player.sendSystemMessage((j == null ? Component.translatable("minecraftportsmod.work.left", v.name)
                         : Component.translatable("minecraftportsmod.work.hired", j.displayName(), Helping.quota(v, j))).withStyle(ChatFormatting.GOLD), true);
                 player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 0.6F, 1.0F);
+                sendJobs(player, v, a.a());
             }
             case ColonyPayloads.VillageAction.PASSAGE -> {
                 Dweller d = v.dweller(a.a());

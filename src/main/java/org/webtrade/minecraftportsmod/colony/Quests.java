@@ -315,12 +315,10 @@ public final class Quests {
 
     // ------------------------------------------------------------------ the day
 
-    /** Tasks the village has out at once (offered and taken), by its size. */
-    static int room(Village v) {
-        return Math.max(2, Math.min(8, 1 + v.population() / 3));
-    }
+    /** Tasks a person offers at once (to choose from), besides those taken. */
+    public static final int OFFERS = 3;
 
-    /** The day's tasks: old offers and tasks run out, new ones are asked for. */
+    /** The day's tasks: old offers and tasks run out (or what they asked for is wanted no more); each person offers new ones. */
     static void day(VillageData data, Village v) {
         long today = data.day;
         Board b = v.tasks;
@@ -328,72 +326,103 @@ public final class Quests {
         for (Quest q : new ArrayList<>(b.quests)) {
             Dweller giver = v.dweller(q.giver);
             boolean gone = giver == null || q.until < today
-                    || q.kind == Kind.SITE && (v.building(q.building) == null || v.building(q.building).missing(q.res()) <= 0 && !q.taken());
+                    || q.kind == Kind.SITE && (v.building(q.building) == null || v.building(q.building).missing(q.res()) <= 0 && !q.taken())
+                    // (an offer of what the village has enough of now: taken back)
+                    || !q.taken() && q.kind == Kind.BRING && q.res() != null && VillageLife.want(v, q.res()) <= 0.1
+                    // (the old kinds no one offers now: a child's treat, a trade's wish)
+                    || !q.taken() && q.kind == Kind.ITEM;
             if (!gone) continue;
             b.quests.remove(q);
             if (q.taken() && !q.complete()) v.log(today, Component.translatable("minecraftportsmod.vlog.quest_failed", q.takerName,
                     giver == null ? "?" : giver.name).withStyle(ChatFormatting.GRAY));
         }
-        int tries = 0;
-        while (b.quests.size() < room(v) && tries++ < 6) {
-            Quest q = offer(data, v, today);
-            if (q == null) continue;
-            b.quests.add(q);
-        }
-    }
-
-    /** One new task: someone without one asks for what the village (or their trade) needs most. */
-    static Quest offer(VillageData data, Village v, long today) {
-        List<Dweller> free = new ArrayList<>();
-        for (Dweller d : v.dwellers) if (!d.away && !d.arriving && of(v, d.id) == null) free.add(d);
-        if (free.isEmpty()) return null;
-        return offer(data, v, free.get(VillageLife.RND.nextInt(free.size())), today);
+        for (Dweller d : v.dwellers) topUp(data, v, d, today);
     }
 
     /**
-     * A player comes up to someone with nothing to ask: they think of something the village needs now (if there is
-     * room for one more task, and anything to ask for). Returns the task, or null.
+     * A player comes up to someone: their offers topped up with what the village needs now. Returns the first of
+     * them, or null.
      */
     public static Quest meet(VillageData data, Village v, Dweller d) {
-        if (d.away || of(v, d.id) != null || v.tasks.quests.size() >= room(v) + 2) return null;
-        Quest q = offer(data, v, d, data.day);
-        if (q != null) {
-            v.tasks.quests.add(q);
-            data.changed();
-        }
-        return q;
+        if (topUp(data, v, d, data.day)) data.changed();
+        return of(v, d.id);
     }
 
-    static Quest offer(VillageData data, Village v, Dweller d, long today) {
-        Board b = v.tasks;
-        Quest q = null;
-        int roll = VillageLife.RND.nextInt(100);
-        if (d.elder) {
-            // the head of the village minds the building sites, the village's safety and its neighbours
-            if (roll < 50) q = site(v, d);
-            if (q == null && roll < 75) q = letter(data, v, d);
-            if (q == null && roll < 90) q = hunt(v, d);
-        } else if (d.job == null) {
-            // a child asks for a flower, a cookie...
-            q = treat(d);
-        } else if (d.job == Job.MERCHANT || d.job == Job.SCOUT) {
-            if (roll < 50) q = letter(data, v, d);
-        } else if (roll < 12) {
-            q = hunt(v, d);
+    /** A person's offers topped up to {@link #OFFERS} with what the village needs most now. True if any was added. */
+    static boolean topUp(VillageData data, Village v, Dweller d, long today) {
+        if (d.away || d.arriving || d.job == null && !d.elder) return false;
+        int open = 0;
+        for (Quest q : v.tasks.quests) if (q.giver == d.id && !q.taken()) open++;
+        if (open >= OFFERS) return false;
+        boolean added = false;
+        for (Quest q : wanted(data, v, d)) {
+            if (open >= OFFERS) break;
+            Quest out = new Quest(v.tasks.next++, q.giver, q.kind, q.what, q.count);
+            out.building = q.building;
+            out.until = today + OFFER_DAYS;
+            out.reward = price(v, out);
+            v.tasks.quests.add(out);
+            open++;
+            added = true;
         }
-        if (q == null && d.job != null && roll < 60) q = bring(v, d);
-        if (q == null && d.job != null) q = item(v, d);
-        // (nothing of their own trade to ask for: what the village is short of, a hunt now and then)
-        if (q == null && d.job != null && !d.elder) q = bring(v, d);
-        if (q == null && d.elder) q = bring(v, d);
-        if (q == null) return null;
-        Quest out = new Quest(b.next++, q.giver, q.kind, q.what, q.count);
-        out.building = q.building;
-        out.until = today + OFFER_DAYS;
-        out.reward = Math.min(price(v, out), Math.max(0, v.emeralds - 2));
-        // (a purse too thin for it: the village pays in goods when it is done)
-        if (out.reward <= 0) out.reward = price(v, out);
-        return out;
+        return added;
+    }
+
+    /**
+     * What a person may ask for now, the most wanted first: the materials the building sites still lack, what the
+     * store is short of (what their own trade minds first), a letter to a village no one here has heard of. Each
+     * only for as much as is not asked already, by anyone.
+     */
+    static List<Quest> wanted(VillageData data, Village v, Dweller d) {
+        record Cand(Quest q, double score) {
+        }
+        List<Cand> out = new ArrayList<>();
+        // what is asked already, by resource (a site's and the store's alike)
+        Map<Res, Integer> asked = new EnumMap<>(Res.class);
+        java.util.Set<String> mine = new java.util.HashSet<>();
+        for (Quest q : v.tasks.quests) {
+            if (q.res() != null && !q.complete()) asked.merge(q.res(), q.count - q.done, Integer::sum);
+            if (q.giver == d.id) mine.add(q.kind.id() + ":" + q.what + ":" + q.building);
+        }
+        // the building sites: the head of the village asks for any, the others for what their trade minds
+        for (Building b : VillageLife.queue(v)) {
+            if (b.state != Building.State.PLANNED && !b.upgrading()) continue;
+            for (Res r : Res.values()) {
+                int missing = b.missing(r) - asked.getOrDefault(r, 0);
+                if (missing <= 0) continue;
+                if (!d.elder && (d.job == null || !minds(d.job).contains(r))) continue;
+                Quest q = new Quest(0, d.id, Kind.SITE, r.id(), Math.min(128, missing));
+                q.building = b.id;
+                out.add(new Cand(q, 2 + Trade.base(r) * missing / 10));
+            }
+        }
+        // the store: what it is short of
+        for (Res r : Res.values()) {
+            if (r.optional() && VillageLife.target(v, r) <= 0) continue;
+            double w = VillageLife.want(v, r);
+            if (w <= 0.25) continue;
+            int short_ = VillageLife.target(v, r) - v.stock(r) - asked.getOrDefault(r, 0);
+            if (short_ < 4) continue;
+            boolean own = d.job != null && minds(d.job).contains(r);
+            if (!own && !d.elder && w < 0.5) continue;
+            int n = Math.max(8, Math.min(64, (short_ + 7) / 8 * 8));
+            out.add(new Cand(new Quest(0, d.id, Kind.BRING, r.id(), n), w * (own ? 2 : 1)));
+        }
+        // the head of the village: a neighbour to hear of (the trade with it to come)
+        if (d.elder) {
+            Quest letter = letter(data, v, d);
+            if (letter != null) out.add(new Cand(letter, 0.4));
+        }
+        out.sort((x, y) -> Double.compare(y.score, x.score));
+        List<Quest> qs = new ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>(mine);
+        for (Cand c : out) {
+            String key = c.q.kind.id() + ":" + c.q.what + ":" + c.q.building;
+            // (one task of a thing from a person: the store's and a site's of the same thing are two)
+            if (!seen.add(key)) continue;
+            qs.add(c.q);
+        }
+        return qs;
     }
 
     /**
@@ -511,16 +540,28 @@ public final class Quests {
 
     // ------------------------------------------------------------------ reading
 
-    /** The task a person has out (offered or taken), or null. */
+    /** The first task a person has out (offered or taken), or null. */
     public static Quest of(Village v, int dweller) {
         for (Quest q : v.tasks.quests) if (q.giver == dweller) return q;
         return null;
     }
 
-    /** The marker over a person's head: 0 none, 1 a task to take, 2 a task taken (by anyone). */
+    /** All the tasks a person has out: offered, and taken (by anyone). */
+    public static List<Quest> all(Village v, int dweller) {
+        List<Quest> out = new ArrayList<>();
+        for (Quest q : v.tasks.quests) if (q.giver == dweller) out.add(q);
+        return out;
+    }
+
+    /** The marker over a person's head: 0 none, 1 a task to take, 2 only tasks taken (by anyone). */
     public static int mark(Village v, Dweller d) {
-        Quest q = of(v, d.id);
-        return q == null ? 0 : q.taken() ? 2 : 1;
+        int m = 0;
+        for (Quest q : v.tasks.quests) {
+            if (q.giver != d.id) continue;
+            if (!q.taken()) return 1;
+            m = 2;
+        }
+        return m;
     }
 
     public static int taken(VillageData data, UUID player) {
@@ -697,14 +738,16 @@ public final class Quests {
             }
         }
         if (q.kind == Kind.HUNT) v.mood = Math.min(100, v.mood + 5);
-        // the reward: emeralds from the purse, or goods it has to spare
+        // the reward: emeralds from the purse, and goods it has to spare (more of them if the purse is short)
+        List<ItemStack> reward = new ArrayList<>();
         int pay = Math.min(q.reward, v.emeralds);
         if (pay > 0) {
             v.emeralds -= pay;
-            give(p, new ItemStack(Items.EMERALD, pay));
+            reward.add(new ItemStack(Items.EMERALD, pay));
         }
         int owed = q.reward - pay;
-        if (owed > 0) goods(p, v, owed);
+        reward.addAll(goods(v, owed + Math.max(1, q.reward / 2)));
+        Rewards.send(p, v, reward);
         v.tasks.thanks.merge(p.getUUID(), 1, Integer::sum);
         v.log(today, Component.translatable("minecraftportsmod.vlog.quest_done", p.getName(), giver == null ? "?" : giver.name)
                 .withStyle(ChatFormatting.DARK_GREEN));
@@ -712,8 +755,9 @@ public final class Quests {
         Plots.thank(p, v);
     }
 
-    /** Emeralds' worth of what the village has most to spare. */
-    static void goods(ServerPlayer p, Village v, int emeralds) {
+    /** Emeralds' worth of what the village has most to spare, taken out of its store. */
+    static List<ItemStack> goods(Village v, int emeralds) {
+        List<ItemStack> out = new ArrayList<>();
         Res best = null;
         double most = -1e9;
         for (Res r : Res.values()) {
@@ -724,20 +768,22 @@ public final class Quests {
                 best = r;
             }
         }
-        if (best == null) return;
+        if (best == null || emeralds <= 0) return out;
         int n = Math.min(v.stock(best), (int) Math.ceil(emeralds / Trade.base(best)));
         n = Math.min(n, 64 * 9);
-        if (n <= 0) return;
+        if (n <= 0) return out;
         Trade.Ware w = Trade.WARES.get(best.ordinal());
         int units = Trade.units(w);
         int pieces = Math.max(1, n / units);
+        if (pieces * units > v.stock(best)) return out;
         v.add(best, -pieces * units);
         ItemStack one = Trade.piece(v, w);
         for (int left = pieces; left > 0; ) {
             int k = Math.min(left, one.getMaxStackSize());
-            give(p, one.copyWithCount(k));
+            out.add(one.copyWithCount(k));
             left -= k;
         }
+        return out;
     }
 
     static void give(ServerPlayer p, ItemStack s) {

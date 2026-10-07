@@ -11,10 +11,12 @@ import org.webtrade.minecraftportsmod.colony.Quests;
 import org.webtrade.minecraftportsmod.network.ColonyPayloads;
 
 /**
- * A person's task: what is asked (an item, how many, how many brought so far and how many the player has on them),
- * what it pays, the days left; take it, hand in, give it up.
+ * A person's tasks to choose from (all of what the village needs now), and those taken: for each, what is asked and
+ * how many, how far along, what the player carries of it, the reward and the days left; take it, hand in, give it up.
  */
 public class QuestScreen extends UiScreen {
+
+    private static final int ROW = 40;
 
     private ColonyPayloads.QuestView view;
     private int x0, y0, x1, y1;
@@ -33,38 +35,45 @@ public class QuestScreen extends UiScreen {
         rebuildWidgets();
     }
 
-    private void send(int kind) {
-        ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(), kind, view.quest(), 0));
+    public ColonyPayloads.QuestView view() {
+        return view;
+    }
+
+    private void send(int kind, int quest) {
+        ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(), kind, quest, 0));
     }
 
     @Override
     protected void layout() {
-        int w = Math.min(width - 24, 380), h = Math.min(height - 24, 128);
+        int rows = Math.max(1, view.rows().size());
+        int w = Math.min(width - 24, 420), h = Math.min(height - 24, 36 + rows * ROW + 6);
         x0 = (width - w) / 2;
         y0 = (height - h) / 2;
         x1 = x0 + w;
         y1 = y0 + h;
-        int by = y1 - 26, bw = (w - 26) / 3;
-        if (view.quest() < 0) {
-            addRenderableWidget(UiButton.make(Component.translatable("gui.done"), b -> onClose()).bounds(x1 - 8 - bw, by, bw, 18).build());
-            return;
-        }
-        Quests.Kind kind = Quests.Kind.values()[view.kind()];
-        switch (view.state()) {
-            case 0 -> {
-                addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.quest.take"),
-                        b -> send(ColonyPayloads.VillageAction.QUEST_TAKE)).bounds(x1 - 8 - bw, by, bw, 18).build());
+        int bw = 76;
+        int y = y0 + 24;
+        for (ColonyPayloads.QuestRow r : view.rows()) {
+            if (y + ROW > y1) break;
+            Quests.Kind kind = Quests.Kind.values()[r.kind()];
+            int by = y + ROW - 22, bx = x1 - 14 - bw;
+            switch (r.state()) {
+                case 0 -> {
+                    UiButton b = addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.quest.take"),
+                            btn -> send(ColonyPayloads.VillageAction.QUEST_TAKE, r.quest())).bounds(bx, by, bw, 16).build());
+                    b.active = view.taken() < Quests.MAX_TAKEN;
+                }
+                case 1 -> {
+                    addRenderableWidget(UiButton.make(Component.translatable(
+                                    kind == Quests.Kind.HUNT || kind == Quests.Kind.LETTER ? "minecraftportsmod.quest.report" : "minecraftportsmod.quest.hand"),
+                            btn -> send(ColonyPayloads.VillageAction.QUEST_HAND, r.quest())).bounds(bx, by, bw, 16).build());
+                    addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.quest.drop"),
+                            btn -> send(ColonyPayloads.VillageAction.QUEST_DROP, r.quest())).bounds(bx - bw - 4, by, bw, 16).build());
+                }
+                default -> {
+                }
             }
-            case 1 -> {
-                addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.quest.drop"),
-                        b -> send(ColonyPayloads.VillageAction.QUEST_DROP)).bounds(x0 + 8, by, bw, 18).build());
-                addRenderableWidget(UiButton.make(Component.translatable(
-                                kind == Quests.Kind.HUNT || kind == Quests.Kind.LETTER ? "minecraftportsmod.quest.report" : "minecraftportsmod.quest.hand"),
-                        b -> send(ColonyPayloads.VillageAction.QUEST_HAND)).bounds(x1 - 8 - bw, by, bw, 18).build());
-
-            }
-            default -> {
-            }
+            y += ROW;
         }
     }
 
@@ -79,54 +88,63 @@ public class QuestScreen extends UiScreen {
         Job job = view.job() < 0 ? null : Job.values()[view.job()];
         g.text(font, Component.literal((view.elder() ? "★ " : "") + view.name()), x0 + 10, y0 + 7, view.elder() ? ChartStyle.BRASS : ChartStyle.TEXT_LIGHT, false);
         String count = view.taken() + "/" + Quests.MAX_TAKEN;
-        g.text(font, count, x1 - 10 - font.width(count), y0 + 7, ChartStyle.TEXT_LIGHT, false);
-        int px0 = x0 + 8, py0 = y0 + 20, px1 = x1 - 8, py1 = y1 - 32;
+        g.text(font, count, x1 - 10 - font.width(count), y0 + 7, view.taken() >= Quests.MAX_TAKEN ? ChartStyle.BAD : ChartStyle.TEXT_LIGHT, false);
+        int px0 = x0 + 8, py0 = y0 + 20, px1 = x1 - 8, py1 = y1 - 6;
         Ui.blit(g, Ui.PARCHMENT, px0 - 1, py0 - 1, px1 + 1, py1 + 1);
-        if (view.quest() < 0) {
+        if (view.rows().isEmpty()) {
             g.item(new ItemStack(job == null ? Items.POPPY : job.tool()), px0 + 6, py0 + 6);
             g.text(font, "—", px0 + 28, py0 + 10, ChartStyle.TEXT_MUTED, false);
             widgets(g, mouseX, mouseY, partialTick);
             return;
         }
-        Quests.Kind kind = Quests.Kind.values()[view.kind()];
-        int x = px0 + 8, y = py0 + 8;
-        Ui.slot(g, x, y, 28, view.icon());
+        int y = py0 + 4;
+        for (ColonyPayloads.QuestRow r : view.rows()) {
+            if (y + ROW > py1 + 4) break;
+            row(g, r, px0 + 4, y, px1 - 4);
+            y += ROW;
+            if (y < py1) g.fill(px0 + 4, y - 2, px1 - 4, y - 1, ChartStyle.PARCHMENT_SHADE);
+        }
+        widgets(g, mouseX, mouseY, partialTick);
+    }
+
+    private void row(GuiGraphicsExtractor g, ColonyPayloads.QuestRow r, int x, int y, int right) {
+        Quests.Kind kind = Quests.Kind.values()[r.kind()];
+        Ui.slot(g, x, y + 2, 24, r.icon());
         // how many are asked for, on the slot as on a stack
         if (kind != Quests.Kind.LETTER) {
-            String n = String.valueOf(view.count());
-            g.text(font, n, x + 27 - font.width(n), y + 19, ChartStyle.TEXT_LIGHT, false);
+            String n = String.valueOf(r.count());
+            g.text(font, n, x + 23 - font.width(n), y + 17, ChartStyle.TEXT_LIGHT, false);
         }
-        int tx = x + 36, tw = px1 - tx - 8;
-        y += Ui.wrap(g, font, view.what(), tx, y + 2, tw, ChartStyle.TEXT) + 6;
-        y = Math.max(y, py0 + 44);
-        // progress: brought so far (or monsters killed) out of what is asked
-        float frac = view.count() == 0 ? 0 : Math.min(1F, view.done() / (float) view.count());
-        Ui.bar(g, x, y, px1 - 8, y + 10, frac, ChartStyle.GOOD);
-        String prog = view.done() + " / " + view.count();
-        g.text(font, prog, (x + px1 - 8 - font.width(prog)) / 2, y + 1, ChartStyle.TEXT_LIGHT, false);
-        y += 16;
-        if (kind != Quests.Kind.HUNT && kind != Quests.Kind.LETTER && view.state() != 2) {
-            g.item(new ItemStack(Items.BUNDLE), x, y);
-            g.text(font, String.valueOf(view.carried()), x + 20, y + 5, view.carried() > 0 ? ChartStyle.GOOD : ChartStyle.TEXT_MUTED, false);
-        }
-        if (kind == Quests.Kind.LETTER && !view.to().isEmpty()) {
-            g.item(new ItemStack(Items.FILLED_MAP), x, y);
-            g.text(font, view.to(), x + 20, y + 5, ChartStyle.TEXT, false);
-        }
+        int tx = x + 30;
+        int color = r.state() == 2 ? ChartStyle.TEXT_MUTED : ChartStyle.TEXT;
+        g.text(font, Ui.fit(font, r.what().getString(), right - tx - 120), tx, y + 2, color, false);
         // the reward, and the days left
-        int rx = px1 - 8;
-        String days = String.valueOf(view.left());
-        rx -= font.width(days);
-        g.text(font, days, rx, y + 5, view.left() <= 1 ? ChartStyle.BAD : ChartStyle.TEXT, false);
-        rx -= 20;
-        g.item(new ItemStack(Items.CLOCK), rx, y);
-        String reward = "×" + view.reward();
-        rx -= 14 + font.width(reward);
-        g.text(font, reward, rx, y + 5, ChartStyle.TEXT, false);
-        rx -= 18;
-        g.item(new ItemStack(Items.EMERALD), rx, y);
-        if (view.state() == 2) g.text(font, "✔", px0 + 8, py1 - 12, ChartStyle.TEXT_MUTED, false);
-        widgets(g, mouseX, mouseY, partialTick);
+        int rx = tx;
+        g.item(new ItemStack(Items.EMERALD), rx, y + 12);
+        String reward = "×" + r.reward();
+        g.text(font, reward, rx + 17, y + 17, ChartStyle.TEXT, false);
+        rx += 22 + font.width(reward) + 6;
+        g.item(new ItemStack(Items.CLOCK), rx, y + 12);
+        String days = String.valueOf(r.left());
+        g.text(font, days, rx + 17, y + 17, r.left() <= 1 ? ChartStyle.BAD : ChartStyle.TEXT, false);
+        rx += 22 + font.width(days) + 6;
+        // taken: how far along, and what the player carries of it
+        if (r.state() == 1) {
+            float frac = r.count() == 0 ? 0 : Math.min(1F, r.done() / (float) r.count());
+            Ui.bar(g, rx, y + 16, rx + 60, y + 24, frac, ChartStyle.GOOD);
+            String prog = r.done() + "/" + r.count();
+            g.text(font, prog, rx + 64, y + 17, ChartStyle.TEXT, false);
+            rx += 68 + font.width(prog);
+            if (kind != Quests.Kind.HUNT && kind != Quests.Kind.LETTER) {
+                g.item(new ItemStack(Items.BUNDLE), rx, y + 12);
+                g.text(font, String.valueOf(r.carried()), rx + 17, y + 17, r.carried() > 0 ? ChartStyle.GOOD : ChartStyle.TEXT_MUTED, false);
+            }
+        } else if (r.state() == 0 && kind != Quests.Kind.HUNT && kind != Quests.Kind.LETTER && r.carried() > 0) {
+            g.item(new ItemStack(Items.BUNDLE), rx, y + 12);
+            g.text(font, String.valueOf(r.carried()), rx + 17, y + 17, ChartStyle.GOOD, false);
+        }
+        if (kind == Quests.Kind.LETTER && !r.to().isEmpty()) g.text(font, r.to(), rx, y + 17, ChartStyle.TEXT, false);
+        if (r.state() == 2) g.text(font, "✔", right - 12, y + 10, ChartStyle.TEXT_MUTED, false);
     }
 
     /** Back to the world (a task screen opened from a person: back to nothing, they are right there). */

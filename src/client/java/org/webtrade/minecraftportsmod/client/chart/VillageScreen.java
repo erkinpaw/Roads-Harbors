@@ -445,21 +445,6 @@ public class VillageScreen extends UiScreen {
                 missing.append(k + " ").append(r.displayName());
             }
             if (missing != null) ry += Ui.wrap(g, font, missing, tx, ry, tw, ChartStyle.TEXT_MUTED);
-            // the mouse on it: up, down, out (a trail's work stays; what is saved for only goes out)
-            boolean hot = mouseX >= rx && mouseX < rx + w && mouseY >= top && mouseY < ry;
-            if (hot && !road) {
-                String[] marks = {"▲", "▼", "✕"};
-                int[] acts = {ColonyPayloads.VillageAction.QUEUE_UP, ColonyPayloads.VillageAction.QUEUE_DOWN, ColonyPayloads.VillageAction.QUEUE_CANCEL};
-                int ax = rx + w - 3 * 16 - (eta.isEmpty() ? 0 : font.width(eta) + 6);
-                for (int k = 0; k < 3; k++) {
-                    if (q.kind() == 0 && k < 2) continue;
-                    int bxk = ax + k * 16, byk = top - 1;
-                    g.fill(bxk, byk, bxk + 14, byk + 11, 0xC0F3EAD5);
-                    g.outline(bxk, byk, 14, 11, 0x60000000);
-                    Ui.centered(g, font, Component.literal(marks[k]), bxk + 7, byk + 2, k == 2 ? 0xFFB0403A : ChartStyle.TEXT);
-                    queueButtons.add(new int[]{bxk, byk, acts[k], q.id()});
-                }
-            }
             ry += 6;
         }
         if (left > 0) {

@@ -108,6 +108,16 @@ public class MinecraftportsmodClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.ColonyPayloads.PlotView.TYPE, (payload, ctx) -> {
             if (ctx.client().gui.screen() == null) ctx.client().gui.setScreen(new org.webtrade.minecraftportsmod.client.chart.PlotScreen(payload));
         });
+        ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.ColonyPayloads.JobView.TYPE, (payload, ctx) -> {
+            if (ctx.client().gui.screen() instanceof org.webtrade.minecraftportsmod.client.chart.JobScreen js && js.shows(payload)) js.update(payload);
+            else ctx.client().gui.setScreen(new org.webtrade.minecraftportsmod.client.chart.JobScreen(payload));
+        });
+        ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.ColonyPayloads.RewardChest.TYPE, (payload, ctx) ->
+                org.webtrade.minecraftportsmod.client.render.BuildingHighlight.mark(payload.pos(), payload.ticks()));
+        ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.ColonyPayloads.GiveView.TYPE, (payload, ctx) -> {
+            if (ctx.client().gui.screen() instanceof org.webtrade.minecraftportsmod.client.chart.GiveScreen gs && gs.shows(payload)) gs.update(payload);
+            else ctx.client().gui.setScreen(new org.webtrade.minecraftportsmod.client.chart.GiveScreen(payload));
+        });
         ClientPlayNetworking.registerGlobalReceiver(org.webtrade.minecraftportsmod.network.ColonyPayloads.SiteView.TYPE, (payload, ctx) -> {
             if (ctx.client().gui.screen() instanceof org.webtrade.minecraftportsmod.client.chart.SiteScreen ss) {
                 if (ss.shows(payload)) ss.update(payload);

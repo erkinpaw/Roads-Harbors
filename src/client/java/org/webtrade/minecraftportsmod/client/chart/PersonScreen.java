@@ -54,16 +54,10 @@ public class PersonScreen extends UiScreen {
             });
         }
         labels.add(Component.translatable("minecraftportsmod.person.deposit"));
-        actions.add(() -> {
-            Minecraft.getInstance().gui.setScreen(null);
-            send(ColonyPayloads.VillageAction.DEPOSIT, view.person());
-        });
+        actions.add(() -> send(ColonyPayloads.VillageAction.DEPOSIT, view.person()));
         if (view.elder()) {
-            labels.add(Component.translatable(view.hired() >= 0 ? "minecraftportsmod.person.quit" : "minecraftportsmod.person.hire"));
-            actions.add(() -> {
-                Minecraft.getInstance().gui.setScreen(null);
-                send(ColonyPayloads.VillageAction.HIRE, view.person());
-            });
+            labels.add(Component.translatable("minecraftportsmod.person.hire"));
+            actions.add(() -> send(ColonyPayloads.VillageAction.JOBS, view.person()));
         }
         // a skipper: a passage on his ship to one of the harbours his ways go to
         for (ColonyPayloads.Passage p : view.passages()) {

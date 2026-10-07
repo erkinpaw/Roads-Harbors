@@ -384,6 +384,31 @@ public final class Workshops {
     }
 
     /**
+     * A player at a workshop's bench with nothing in hand there: what the village wants most of what it makes goes
+     * into its queue (whether or not it has hands of its own). True if something was ordered.
+     */
+    static boolean planAt(Village v, Building b, long today) {
+        Recipe how = null;
+        double most = 0;
+        int want = 0;
+        for (Recipe r : recipes(b.type)) {
+            if (!open(b, r)) continue;
+            if (r.out().toolLevel() > 0 && r.out().toolLevel() != bestTools(v)) continue;
+            int w = VillageLife.target(v, r.out()) - v.stock(r.out());
+            if (w <= 0) continue;
+            double m = VillageLife.want(v, r.out());
+            if (m > most) {
+                most = m;
+                how = r;
+                want = w;
+            }
+        }
+        if (how == null) return false;
+        v.orders.add(Orders.villageOrder(v, b, how.index(), Math.min(want, how.n() * 6), today));
+        return true;
+    }
+
+    /**
      * What the workshops' queues will take of a thing for the makings still to do (capped: a long queue is not all
      * bought for at once).
      */

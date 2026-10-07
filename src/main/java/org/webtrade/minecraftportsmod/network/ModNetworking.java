@@ -24,6 +24,9 @@ public final class ModNetworking {
         PayloadTypeRegistry.serverboundPlay().register(MarketPayloads.Action.TYPE, MarketPayloads.Action.CODEC);
         PayloadTypeRegistry.clientboundPlay().registerLarge(ColonyPayloads.VillageView.TYPE, ColonyPayloads.VillageView.CODEC, 2 * 1024 * 1024);
         PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.SiteView.TYPE, ColonyPayloads.SiteView.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.GiveView.TYPE, ColonyPayloads.GiveView.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.JobView.TYPE, ColonyPayloads.JobView.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.RewardChest.TYPE, ColonyPayloads.RewardChest.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.PersonView.TYPE, ColonyPayloads.PersonView.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(ColonyPayloads.QuestView.TYPE, ColonyPayloads.QuestView.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(ColonyPayloads.RequestVillage.TYPE, ColonyPayloads.RequestVillage.CODEC);
