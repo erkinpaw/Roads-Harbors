@@ -327,7 +327,11 @@ public final class Workshops {
             v.add(r.out(), r.n());
             v.made.merge(r.out(), r.n(), Integer::sum);
             v.workshop(b.type, r.out(), r.n(), 0);
-            if (o.done()) v.orders.remove(o);
+            if (o.done()) {
+                v.orders.remove(o);
+                // the next of what the village wants taken up at once, not the next day
+                plan(v, today);
+            }
         } else if (r.n() > n) {
             // (a player's order: the pieces over it to the store)
             v.add(r.out(), r.n() - n);
@@ -345,7 +349,7 @@ public final class Workshops {
     // ------------------------------------------------------------------ the village's own orders
 
     /**
-     * Once a day: what the village wants of what its workshops make (for its building sites, and what its stores keep)
+     * Once a day, and as each of its orders is done: what the village wants of what its workshops make (for its building sites, and what its stores keep)
      * and has not got nor ordered yet goes into a queue: the workshop of the kind with the shortest one. Of the tools,
      * the best kind the smithy can make.
      */
