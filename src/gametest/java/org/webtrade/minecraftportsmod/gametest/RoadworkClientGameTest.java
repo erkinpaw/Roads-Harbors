@@ -559,7 +559,12 @@ public class RoadworkClientGameTest implements FabricClientGameTest {
                 int[] r = Trails.route(data, a[0], b[0]);
                 int away = 0;
                 StringBuilder who = new StringBuilder();
-                for (int id : new int[]{a[0], b[0]}) for (Dweller d : data.get(id).dwellers()) if (d.away() && d.job() != Job.SCOUT && d.job() != Job.MERCHANT) {
+                // (a crew out on another trail of the village's is not this one's)
+                java.util.Set<String> elsewhere = new java.util.HashSet<>();
+                for (Roadworks.Work o : data.works()) if (o != w) for (Roadworks.Side sd : new Roadworks.Side[]{o.sideA(), o.sideB()})
+                    for (int c : sd.crew()) elsewhere.add(sd.village + ":" + c);
+                for (int id : new int[]{a[0], b[0]}) for (Dweller d : data.get(id).dwellers()) if (d.away() && d.job() != Job.SCOUT && d.job() != Job.MERCHANT
+                        && !elsewhere.contains(id + ":" + d.id)) {
                     away++;
                     who.append('#').append(id).append(' ').append(d.name).append(' ').append(d.job()).append("; ");
                 }
