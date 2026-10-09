@@ -180,8 +180,9 @@ final class PlotFinder {
         }
         BlockPos c = v.center;
         int half = type.half;
-        // (the mine keeps away from the houses even with no rock to go by; the smithy is in the village like any workshop)
-        boolean mine = type == BuildingType.MINE_HOUSE;
+        // (the mine and the woodcutters keep away from the houses even with nothing to go by; the smithy is in the
+        // village like any workshop)
+        boolean mine = type == BuildingType.MINE_HOUSE || type == BuildingType.WOOD_HUT;
         int first = mine ? MINE_AWAY : 8 + half, last = mine ? MINE_AWAY + 40 : MAX_RING + (steep ? 16 : 0);
         for (int ring = first; ring <= last; ring += 2) {
             int steps = Math.max(12, ring * 2);
@@ -192,6 +193,10 @@ final class PlotFinder {
                 BlockPos pos = new BlockPos(x, c.getY(), z);
                 if (clash(v, pos, half, ignore)) {
                     no("clash");
+                    continue;
+                }
+                if (type == BuildingType.WOOD_HUT && Mine.fromPit(v, pos) < WOOD_FROM_PIT) {
+                    no("pit");
                     continue;
                 }
                 // not out over the water in front of the village
@@ -236,7 +241,14 @@ final class PlotFinder {
                 return type == BuildingType.MINE_HOUSE ? mineSpot(level, v) : null;
             }
             case WOOD -> {
-                for (BlockPos t : DwellerGoals.trees(level, v)) if (t.distSqr(v.center) > WOOD_AWAY * WOOD_AWAY) return t;
+                // (the woodcutters' hut as far out as the mine, not by it: their grove is out there; the sawmill and
+                // the joiner's by the nearer woods)
+                int away = type == BuildingType.WOOD_HUT ? MINE_AWAY : WOOD_AWAY;
+                for (BlockPos t : DwellerGoals.trees(level, v)) {
+                    if (t.distSqr(v.center) <= away * away) continue;
+                    if (type == BuildingType.WOOD_HUT && Mine.fromPit(v, t) < WOOD_FROM_PIT) continue;
+                    return t;
+                }
                 return null;
             }
             case COAST -> {
@@ -311,17 +323,20 @@ final class PlotFinder {
 
     /** How far out of the village the miners' house stands at least (rock looked for out to {@link #ROCK_REACH}), and the woodcutters. */
     static final int MINE_AWAY = 40, ROCK_REACH = 125, WOOD_AWAY = 24;
+    /** How far the woodcutters' hut keeps from the pit. */
+    static final int WOOD_FROM_PIT = 40;
 
     /** A plot as close as can be to a point, not too near the middle of the village (the trades keep apart). */
     private static Blueprint.Frame near(ServerLevel level, Village v, BuildingType type, BlockPos anchor, int ignore, boolean steep) {
         BlockPos c = v.center;
         int half = type.half;
-        int minFromCenter = type == BuildingType.MINE_HOUSE ? MINE_AWAY - 4 : switch (type.branch) {
+        int minFromCenter = type == BuildingType.MINE_HOUSE || type == BuildingType.WOOD_HUT ? MINE_AWAY - 4 : switch (type.branch) {
             case WOOD -> WOOD_AWAY - 4;
             case FOOD -> 10;
             default -> type.isWorkshop() ? 16 : 10;
         };
-        int maxFromCenter = type == BuildingType.MINE_HOUSE ? ROCK_REACH + 10 : type.branch == BuildingType.Branch.WOOD ? 80 : MAX_RING + 12;
+        int maxFromCenter = type == BuildingType.MINE_HOUSE || type == BuildingType.WOOD_HUT ? ROCK_REACH + 10
+                : type.branch == BuildingType.Branch.WOOD ? 80 : MAX_RING + 12;
         for (int ring = half + 2; ring <= 22; ring += 2) {
             int steps = Math.max(8, ring * 2);
             for (int a = 0; a < steps; a++) {
@@ -333,6 +348,10 @@ final class PlotFinder {
                 BlockPos pos = new BlockPos(x, c.getY(), z);
                 if (clash(v, pos, half, ignore)) {
                     no("clash");
+                    continue;
+                }
+                if (type == BuildingType.WOOD_HUT && Mine.fromPit(v, pos) < WOOD_FROM_PIT) {
+                    no("pit");
                     continue;
                 }
                 Integer floor = floor(level, v, pos, half, steep);

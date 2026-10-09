@@ -115,8 +115,11 @@ public final class Village {
             Economy.CODEC.optionalFieldOf("economy", Economy.NONE).forGetter(v -> new Economy(v.rewarded, v.mined, v.dig, v.ready, v.traded, v.change)),
             Plans.CODEC.optionalFieldOf("plans", Plans.NONE).forGetter(v -> new Plans(List.copyOf(v.order), v.research == null ? "" : v.research.id(),
                     v.sub == null ? "" : v.sub.id(), v.style, v.island, v.ships, v.shipWork)),
-            Quests.Board.CODEC.optionalFieldOf("tasks").forGetter(v -> java.util.Optional.of(v.tasks))
-    ).apply(i, (core, life, dwellers, buildings, log, chart, orders, eco, plans, tasks) -> {
+            Quests.Board.CODEC.optionalFieldOf("tasks").forGetter(v -> java.util.Optional.of(v.tasks)),
+            MinePlot.CODEC.optionalFieldOf("mine_plot").forGetter(v -> java.util.Optional.ofNullable(v.minePlot)
+                    .map(f -> new MinePlot(f.origin(), f.front().getSerializedName()))),
+            Codec.INT.optionalFieldOf("pit_top", Integer.MIN_VALUE).forGetter(v -> v.pitTop)
+    ).apply(i, (core, life, dwellers, buildings, log, chart, orders, eco, plans, tasks, minePlot, pitTop) -> {
         Village v = new Village(core.id, core.name, core.center, core.front, core.wood, core.board, core.russian);
         try {
             v.level = Level.valueOf(life.level);
@@ -163,6 +166,8 @@ public final class Village {
         v.log.addAll(log);
         v.orders.addAll(orders);
         tasks.ifPresent(b -> v.tasks = b);
+        v.pitTop = pitTop;
+        minePlot.ifPresent(m -> v.minePlot = new Blueprint.Frame(m.origin(), java.util.Objects.requireNonNullElse(Direction.byName(m.front()), Direction.NORTH)));
         for (int k = 0; k < Math.min(chart.keys.size(), chart.colors.size()); k++) v.chart.put(chart.keys.get(k), chart.colors.get(k));
         chart.known.forEach((id, day) -> {
             try {
@@ -178,6 +183,14 @@ public final class Village {
     }));
 
     /** The village's queue: the order its building sites are worked in (building ids), and the research in hand. */
+    /** Where the miners' house is to stand, its pit dug before it (saved as the place and the way it faces). */
+    private record MinePlot(BlockPos origin, String front) {
+        static final Codec<MinePlot> CODEC = RecordCodecBuilder.create(i -> i.group(
+                BlockPos.CODEC.fieldOf("origin").forGetter(MinePlot::origin),
+                Codec.STRING.fieldOf("front").forGetter(MinePlot::front)
+        ).apply(i, MinePlot::new));
+    }
+
     private record Plans(List<Integer> order, String research, String sub, int style, boolean island, int ships, int shipWork) {
         static final Plans NONE = new Plans(List.of(), "", "", -1, false, 0, 0);
         static final Codec<Plans> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -304,6 +317,18 @@ public final class Village {
     final EnumMap<Res, Integer> built = new EnumMap<>(Res.class);
     /** How far along its plan the village mine is dug. */
     int mineStep;
+    /**
+     * The place kept for the miners' house while it is not built: its miners dig the pit behind it meanwhile (null:
+     * none chosen yet, or the house stands).
+     */
+    Blueprint.Frame minePlot;
+    /** The plot kept for the miners' house, its pit dug meanwhile (null: none). */
+    public Blueprint.Frame minePlot() {
+        return minePlot;
+    }
+
+    /** The height of the land the pit is dug down from (MIN_VALUE: not read yet): the same for every widening of it. */
+    int pitTop = Integer.MIN_VALUE;
     /** The village's purse, in emeralds (its merchant pays and is paid in them). */
     int emeralds = 10;
     /** And the hundredths over them (the stall's deals with players are paid to the hundredth). */

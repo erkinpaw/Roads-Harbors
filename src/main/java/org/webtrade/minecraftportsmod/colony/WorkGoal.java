@@ -577,7 +577,8 @@ final class WorkGoal extends Goal {
 
     private void miner(ServerLevel level, Village v) {
         r.hold(new ItemStack(Job.MINER.tool(v.toolLevel(Job.MINER))));
-        Building house = Mine.house(v);
+        // (the pit is dug from the first day there are miners: behind their house, or the plot kept for it)
+        Building house = Mine.site(v);
         if (house != null) {
             mine(level, v, house);
             return;
@@ -687,6 +688,7 @@ final class WorkGoal extends Goal {
                     i++;
                 }
                 if (i >= 3) Mine.entrance(level, v, house);
+
                 if (i >= plan.size()) {
                     // dug out: to a wall of it
                     List<BlockPos[]> faces = Mine.faces(level, plan);
@@ -767,6 +769,8 @@ final class WorkGoal extends Goal {
                     findOre(level, v, target, st);
                 }
                 if (step.torchWall() != null) Mine.torch(level, target, step.torchWall());
+                // (a layer done: its stair, ladder and posts)
+                Mine.furnish(level, v, house);
                 phase = carried >= LOAD_STONE + 2 ? Phase.DELIVER : Phase.FIND;
             }
             default -> phase = Phase.FIND;

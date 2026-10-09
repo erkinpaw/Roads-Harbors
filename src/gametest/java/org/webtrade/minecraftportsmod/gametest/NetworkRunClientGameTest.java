@@ -301,9 +301,9 @@ public class NetworkRunClientGameTest implements FabricClientGameTest {
                     }
                 }
                 if (sh.length() > 0) shortVillages++;
-                log(seed, "  #{} {}: land forest {} rock {} meadow {} mountain {} (wood x{}, ore x{}, vein {}) | short of: {}| purse {}", v.id, v.name,
-                        pct(land.forest()), pct(land.rock()), pct(land.meadow()), pct(land.mountain()), String.format("%.2f", land.wood()),
-                        String.format("%.2f", land.ore()), land.vein(), sh, v.emeralds());
+                log(seed, "  #{} {}: land forest {} rock {} meadow {} mountain {} (fields x{}, vein {}) | short of: {}| purse {}", v.id, v.name,
+                        pct(land.forest()), pct(land.rock()), pct(land.meadow()), pct(land.mountain()), String.format("%.2f", land.farm()),
+                        land.vein(), sh, v.emeralds());
             }
             log(seed, "short of: {} (in {} villages of {})", shortOf, shortVillages, data.all().size());
             java.util.Map<String, Integer> kinds = new java.util.TreeMap<>();
