@@ -49,8 +49,9 @@ final class Construction {
         int target = b.target(pieces.size());
         int steps = 0;
         if (target > 0 && !b.levelled) {
-            // the trees on and right around the plot come down whole (and go to the store)
-            v.add(Res.WOOD, clearTrees(level, b.origin, b.type.half + 2));
+            // the trees on and round the plot (their crowns over it) come down whole, not cut off at its edge (the
+            // wood to the store)
+            v.add(Res.WOOD, clearTrees(level, b.origin, b.type.half + 5, b));
             level(level, bp);
             blend(level, v, b);
             b.levelled = true;
@@ -242,10 +243,15 @@ final class Construction {
      * Returns the number of logs taken.
      */
     static int clearTrees(ServerLevel level, BlockPos c, int r) {
+        return clearTrees(level, c, r, null);
+    }
+
+    /** The same round a building about to go up ({@code site}): a square, its own plot's logs all trees'. */
+    static int clearTrees(ServerLevel level, BlockPos c, int r, Building site) {
         int logs = 0;
         for (int x = -r; x <= r; x++) {
             for (int z = -r; z <= r; z++) {
-                if (x * x + z * z > r * r) continue;
+                if (site == null && x * x + z * z > r * r) continue;
                 int px = c.getX() + x, pz = c.getZ() + z;
                 if (!loaded(level, new BlockPos(px, 0, pz))) continue;
                 int top = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, px, pz) - 1;
@@ -257,7 +263,7 @@ final class Construction {
                 }
                 if (!level.getBlockState(p).is(BlockTags.LOGS)) continue;
                 while (level.getBlockState(p.below()).is(BlockTags.LOGS)) p = p.below();
-                List<BlockPos> tree = WorkGoal.tree(level, p, null);
+                List<BlockPos> tree = WorkGoal.tree(level, p, null, site);
                 if (tree == null) continue;
                 for (BlockPos t : tree) {
                     if (level.getBlockState(t).is(BlockTags.LOGS)) logs++;

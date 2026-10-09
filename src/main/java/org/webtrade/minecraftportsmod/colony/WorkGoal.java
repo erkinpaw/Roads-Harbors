@@ -438,8 +438,16 @@ final class WorkGoal extends Goal {
      * tree but, say, the post of a house (no leaves of its own) or a giant too big to fell (a jungle giant is not).
      */
     static List<BlockPos> tree(ServerLevel level, BlockPos base, Village v) {
+        return tree(level, base, v, null);
+    }
+
+    /**
+     * The same, for a building about to go up: on its own plot there is no timber of a building yet, every log there
+     * is a tree's ({@code site}: the building; null: none).
+     */
+    static List<BlockPos> tree(ServerLevel level, BlockPos base, Village v, Building site) {
         // (a building's own timber is no tree: the logs round a field's beds, a house's posts)
-        if (Tidy.built(level, base)) return null;
+        if (timber(level, base, site)) return null;
         List<BlockPos> logs = new ArrayList<>();
         Set<BlockPos> seen = new HashSet<>();
         Deque<BlockPos> open = new ArrayDeque<>();
@@ -459,7 +467,7 @@ final class WorkGoal extends Goal {
                         if (n.getY() < base.getY() && (n.getY() < base.getY() - 3 || Math.abs(n.getX() - base.getX()) > 1 || Math.abs(n.getZ() - base.getZ()) > 1)) continue;
                         BlockState s = level.getBlockState(n);
                         // the posts of a house the tree leans on are not part of it
-                        if (s.is(BlockTags.LOGS) && (v == null || !DwellerGoals.inside(v, n.getX(), n.getZ())) && !Tidy.built(level, n)) open.add(n);
+                        if (s.is(BlockTags.LOGS) && (v == null || !DwellerGoals.inside(v, n.getX(), n.getZ())) && !timber(level, n, site)) open.add(n);
                         else if (natural(s)) leafy = true;
                     }
                 }
@@ -553,6 +561,12 @@ final class WorkGoal extends Goal {
     static boolean hangs(BlockState s) {
         return s.is(Blocks.VINE) || s.is(Blocks.COCOA) || s.is(Blocks.BEE_NEST) || s.is(Blocks.GLOW_LICHEN) || s.is(Blocks.MOSS_CARPET)
                 || s.is(Blocks.PALE_HANGING_MOSS);
+    }
+
+    /** Is a log a building's timber (on a plot), not counting the plot of a building about to go up? */
+    private static boolean timber(ServerLevel level, BlockPos p, Building site) {
+        if (site != null && Math.abs(p.getX() - site.origin.getX()) <= site.type.half + 1 && Math.abs(p.getZ() - site.origin.getZ()) <= site.type.half + 1) return false;
+        return Tidy.built(level, p);
     }
 
     private static boolean natural(BlockState s) {

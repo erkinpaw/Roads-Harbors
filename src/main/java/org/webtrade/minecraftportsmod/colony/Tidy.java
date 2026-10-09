@@ -253,10 +253,19 @@ public final class Tidy {
             k++;
         }
         if (lowest - ground >= 1 && Construction.natural(top)) return new Job(Kind.HOLE, g);
-        // a pit: lower by two or more than the land round it (the middle of the heights a few blocks out)
-        if (Construction.natural(top) && !top.is(Blocks.DIRT_PATH) && !top.is(Blocks.FARMLAND) && !nearBuilding(v, x, z, 1)) {
-            int around = around(level, v, x, z);
-            if (around != Integer.MIN_VALUE && around - ground >= 2) return new Job(Kind.PIT, g);
+        // (a hole two or three blocks across: lower than three of its neighbours, none of them lower)
+        int higher = 0;
+        boolean below = false;
+        for (int h : n) {
+            if (h > ground) higher++;
+            if (h < ground) below = true;
+        }
+        if (higher >= 3 && !below && Construction.natural(top) && !top.is(Blocks.DIRT_PATH) && !top.is(Blocks.FARMLAND)) return new Job(Kind.HOLE, g);
+        // a pit: shut in on every side, the land rising two or more round it (a slope, a valley open at its ends, is
+        // the land's own)
+        if (Construction.natural(top) && !top.is(Blocks.DIRT_PATH) && !top.is(Blocks.FARMLAND)) {
+            int rim = rim(level, v, x, z, ground);
+            if (rim != Integer.MIN_VALUE && rim - ground >= 2) return new Job(Kind.PIT, g);
         }
         // a bump: one column standing up over all of its neighbours
         int highestN = Integer.MIN_VALUE;
@@ -273,26 +282,32 @@ public final class Tidy {
         return null;
     }
 
+
+    /** How far each way a pit's side is looked for. */
+    private static final int PIT_REACH = 5;
+
     /**
-     * The lie of the land round a column: the middle of the ground heights on a ring three blocks out (dry land
-     * only, plots aside); Integer.MIN_VALUE if there is too little of it to tell (the shore, the village's middle).
+     * The rim of a pit a column is at the bottom of: going each of the four ways (up to {@link #PIT_REACH}), the
+     * highest ground met; the lowest of the four. Integer.MIN_VALUE if any way meets water or nothing higher (not
+     * shut in that way).
      */
-    private static int around(ServerLevel level, Village v, int x, int z) {
-        List<Integer> hs = new ArrayList<>();
-        for (int dx = -3; dx <= 3; dx++) {
-            for (int dz = -3; dz <= 3; dz++) {
-                if (Math.max(Math.abs(dx), Math.abs(dz)) != 3) continue;
-                int px = x + dx, pz = z + dz;
-                if (inPlot(v, px, pz) || !Construction.loaded(level, new BlockPos(px, 0, pz))) continue;
+    private static int rim(ServerLevel level, Village v, int x, int z, int ground) {
+        int rim = Integer.MAX_VALUE;
+        for (Direction d : Direction.Plane.HORIZONTAL) {
+            int best = Integer.MIN_VALUE;
+            for (int k = 1; k <= PIT_REACH; k++) {
+                int px = x + d.getStepX() * k, pz = z + d.getStepZ() * k;
+                if (!Construction.loaded(level, new BlockPos(px, 0, pz))) return Integer.MIN_VALUE;
                 int f = PlotFinder.floorAt(level, px, pz) - 1;
-                BlockState st = level.getBlockState(new BlockPos(px, f, pz));
-                if (!st.getFluidState().isEmpty()) return Integer.MIN_VALUE;
-                hs.add(f);
+                if (!level.getBlockState(new BlockPos(px, f, pz)).getFluidState().isEmpty()) return Integer.MIN_VALUE;
+                best = Math.max(best, f);
+                // (a building's plot is a side too: what it stands on)
+                if (inPlot(v, px, pz) || best >= ground + 2) break;
             }
+            if (best <= ground) return Integer.MIN_VALUE;
+            rim = Math.min(rim, best);
         }
-        if (hs.size() < 16) return Integer.MIN_VALUE;
-        hs.sort(Integer::compare);
-        return hs.get(hs.size() / 2);
+        return rim;
     }
 
     /** The woodcutters' grove: round their hut, out past its yard. */
@@ -328,8 +343,9 @@ public final class Tidy {
         seen.add(start);
         while (!open.isEmpty()) {
             BlockPos p = open.poll();
-            if (seen.size() > 24) return false;
-            if (!level.getBlockState(p.below()).getFluidState().isEmpty() && !level.getBlockState(p.below(2)).getFluidState().isEmpty()) return false;
+            if (seen.size() > POND) return false;
+            // (deeper than a pond: a lake)
+            if (!level.getBlockState(p.below(POND_DEPTH)).getFluidState().isEmpty()) return false;
             for (Direction d : Direction.Plane.HORIZONTAL) {
                 BlockPos q = p.relative(d);
                 if (seen.contains(q) || level.getBlockState(q).getFluidState().isEmpty()) continue;
@@ -339,6 +355,33 @@ public final class Tidy {
         }
         return true;
     }
+
+    /** For tests: is the water at a spot a pond the village fills in (not the sea, a lake, a river)? */
+    public static boolean pond(ServerLevel level, BlockPos p) {
+        return smallWater(level, p);
+    }
+
+    /** For tests: how far a column lies below the land round it (0: not at all, or it cannot be told). */
+    public static int sunk(ServerLevel level, Village v, int x, int z) {
+        int g = PlotFinder.floorAt(level, x, z) - 1;
+        int a = rim(level, v, x, z, g);
+        return a == Integer.MIN_VALUE ? 0 : Math.max(0, a - g);
+    }
+
+    /** For tests: the height of the ground's top block in a column. */
+    public static int ground(ServerLevel level, int x, int z) {
+        return PlotFinder.floorAt(level, x, z) - 1;
+    }
+
+    /** For tests: a column on the village's land the upkeep looks after (not a plot, a player's plot, the pit). */
+    public static boolean kept(Village v, int x, int z) {
+        return territory(v, x, z) && !inPlot(v, x, z);
+    }
+
+    /** The most water (blocks of its surface) a pond in the village may have to be filled in: more is the sea, a lake, a river. */
+    static final int POND = 300;
+    /** And how deep. */
+    static final int POND_DEPTH = 5;
 
     /** Close to a building's plot or on a path's way: where a ledge is in the way of people. */
     private static boolean nearWay(ServerLevel level, Village v, int x, int z) {
@@ -539,10 +582,10 @@ public final class Tidy {
                 }
             }
             case PIT -> {
-                // earth heaped up a block or two at a time, up to the land round it
-                int to = around(level, v, p.getX(), p.getZ());
+                // earth heaped up a few blocks at a time, up to the pit's rim
+                int to = rim(level, v, p.getX(), p.getZ(), p.getY());
                 if (to == Integer.MIN_VALUE) break;
-                to = Math.min(to, p.getY() + 2);
+                to = Math.min(to, p.getY() + 3);
                 for (int y = p.getY(); y < to; y++) {
                     BlockPos q = new BlockPos(p.getX(), y, p.getZ());
                     BlockState s = level.getBlockState(q.above());
@@ -577,15 +620,18 @@ public final class Tidy {
                 if (s.is(Blocks.DIRT) || s.is(Blocks.STONE) || s.is(Blocks.GRAVEL)) level.setBlock(nt, Blocks.GRASS_BLOCK.defaultBlockState(), FLAGS);
             }
             case PUDDLE -> {
-                // the puddle filled with earth, level with the land round it
+                // the puddle (a pond) filled with earth to its bottom, level with the land round it
+                if (!smallWater(level, p)) break;
                 Deque<BlockPos> open = new ArrayDeque<>();
                 Set<BlockPos> seen = new HashSet<>();
                 open.add(p);
                 seen.add(p);
-                while (!open.isEmpty() && seen.size() <= 24) {
+                while (!open.isEmpty() && seen.size() <= POND) {
                     BlockPos q = open.poll();
                     level.setBlock(q, Blocks.GRASS_BLOCK.defaultBlockState(), FLAGS);
-                    if (!level.getBlockState(q.below()).getFluidState().isEmpty()) level.setBlock(q.below(), Blocks.DIRT.defaultBlockState(), FLAGS);
+                    for (BlockPos d = q.below(); !level.getBlockState(d).getFluidState().isEmpty(); d = d.below()) {
+                        level.setBlock(d, Blocks.DIRT.defaultBlockState(), FLAGS);
+                    }
                     for (Direction d : Direction.Plane.HORIZONTAL) {
                         BlockPos r = q.relative(d);
                         if (seen.contains(r) || level.getBlockState(r).getFluidState().isEmpty()) continue;
@@ -617,13 +663,13 @@ public final class Tidy {
                 if (s.is(Blocks.DIRT) || s.is(Blocks.STONE) || s.is(Blocks.GRAVEL)) level.setBlock(nt, Blocks.GRASS_BLOCK.defaultBlockState(), FLAGS);
             }
             case HOLE -> {
-                // earth heaped up to a block below the lowest neighbour (a hole) or the highest one (a ledge)
-                int target = Integer.MAX_VALUE, highest = Integer.MIN_VALUE;
+                // earth heaped up to the lowest of the neighbours above it (one beside it as low: the same hole)
+                int target = Integer.MAX_VALUE;
                 for (Direction d : Direction.Plane.HORIZONTAL) {
                     int n = PlotFinder.floorAt(level, p.getX() + d.getStepX(), p.getZ() + d.getStepZ()) - 1;
-                    target = Math.min(target, n);
-                    highest = Math.max(highest, n);
+                    if (n > p.getY()) target = Math.min(target, n);
                 }
+                if (target == Integer.MAX_VALUE) break;
                 int to = target;
                 if (to - p.getY() > 4) to = p.getY() + 4;
                 for (int y = p.getY(); y < to; y++) {

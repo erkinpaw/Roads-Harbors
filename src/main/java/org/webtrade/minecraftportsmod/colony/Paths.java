@@ -71,6 +71,16 @@ final class Paths {
         return true;
     }
 
+    /** How near a bridge already there no other is laid. */
+    private static final int BRIDGE_GAP = 2;
+
+    /** Is the top of a column a bridge's deck: planks with water under them? */
+    static boolean deck(ServerLevel level, int x, int y, int z) {
+        BlockPos p = new BlockPos(x, y, z);
+        if (!level.getBlockState(p).is(BlockTags.PLANKS)) return false;
+        return !level.getBlockState(p.below()).getFluidState().isEmpty() || !level.getBlockState(p.below(2)).getFluidState().isEmpty();
+    }
+
     /** What a step over water (a bridge's) costs the way, against 1 for a step on the land. */
     private static final double BRIDGE_STEP = 2.5;
 
@@ -199,9 +209,28 @@ final class Paths {
                         || !doorstep && inPlot(v, x, z, 0, null)
                         || Math.abs(x - v.board.getX()) <= 0 && Math.abs(z - v.board.getZ()) <= 0) {
                     kind[k] = 2;
-                } else if (top.is(Blocks.DIRT_PATH)) {
+                } else if (top.is(Blocks.DIRT_PATH) || deck(level, x, y, z)) {
+                    // (a trodden path; a bridge's deck already over the water: walked on, not built again)
                     kind[k] = 1;
                 }
+            }
+        }
+        // no new bridge right beside one already there: the way goes over that one (else two decks side by side, at
+        // two heights, their rails between them)
+        for (int i = 0; i < w; i++) {
+            for (int j = 0; j < h; j++) {
+                int k = i * h + j;
+                if (kind[k] != 3) continue;
+                boolean byDeck = false;
+                for (int di = -BRIDGE_GAP; di <= BRIDGE_GAP && !byDeck; di++) {
+                    for (int dj = -BRIDGE_GAP; dj <= BRIDGE_GAP && !byDeck; dj++) {
+                        int ni = i + di, nj = j + dj;
+                        if (ni < 0 || nj < 0 || ni >= w || nj >= h) continue;
+                        int m = ni * h + nj;
+                        byDeck = kind[m] == 1 && deck(level, x0 + ni, ground[m], z0 + nj);
+                    }
+                }
+                if (byDeck) kind[k] = 2;
             }
         }
         int start = (from.getX() - x0) * h + (from.getZ() - z0), goal = (to.getX() - x0) * h + (to.getZ() - z0);
@@ -402,6 +431,8 @@ final class Paths {
             if (done.put(Blueprint.key(x, z), true) != null) continue;
             BlockPos p = new BlockPos(x, top, z);
             if (cell[4] == 1) continue;
+            // (a bridge already there: walked over as it is)
+            if (deck(level, x, ground, z)) continue;
             // built up: earth under it
             for (int k = ground + 1; k < top; k++) level.setBlock(new BlockPos(x, k, z), Blocks.DIRT.defaultBlockState(), FLAGS);
             // dug down: what was above goes
@@ -501,6 +532,8 @@ final class Paths {
             BlockPos at = new BlockPos(x, g, z);
             BlockState ground = level.getBlockState(at.below());
             if (!ground.getFluidState().isEmpty() || !Construction.natural(ground) && !ground.is(Blocks.DIRT_PATH)) continue;
+            // (never in water: a pond's edge, its shallows)
+            if (!level.getBlockState(at).getFluidState().isEmpty() || !level.getBlockState(at.above()).getFluidState().isEmpty()) continue;
             if (!level.getBlockState(at).canBeReplaced() || !level.getBlockState(at.above()).canBeReplaced()) continue;
             level.setBlock(at, wood(v, "fence"), FLAGS);
             level.setBlock(at.above(), Blocks.LANTERN.defaultBlockState(), FLAGS);
