@@ -349,9 +349,22 @@ final class SiteSurvey {
             if (f >= sea && Math.abs(f - ground) <= 2) flat++;
         }
         if (flat < 3) return -1e9;
+        // room to grow: dry land round it, not a sandbank with the water all about (a camp there never became more)
+        int dry = 0, all = 0;
+        for (int dx = -ROOM; dx <= ROOM; dx += 10) {
+            for (int dz = -ROOM; dz <= ROOM; dz += 10) {
+                all++;
+                if (floor(x + dx, z + dz) >= sea) dry++;
+            }
+        }
+        if (dry < all * ROOM_SHARE) return -1e9;
         return flat * 0.4 + Math.min(body, 12) * 0.1 + nearWater * 0.05 + (ground <= sea + 2 ? 0.5 : 0) + rnd.nextDouble() * 0.6
                 + ROCK_WEIGHT * rockNear(x, z);
     }
+
+    /** How far round a spot dry land is looked for, and the least share of it that must be dry. */
+    private static final int ROOM = 40;
+    private static final double ROOM_SHARE = 0.4;
 
     /** How much a spot is worth for rock in reach of its miners (iron and coal are found in it: a village by the hills has them to sell). */
     private static final double ROCK_WEIGHT = 2.5;
