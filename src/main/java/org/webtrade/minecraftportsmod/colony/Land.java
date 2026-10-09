@@ -14,9 +14,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 /**
- * What the land round a village gives: woods to fell, rock with ore in it, meadows to plough, and in the mountains a
- * vein of emerald. A village in a forest has wood to spare and one on a bare coast has little; one by the mountains
- * digs iron and coal, one on the plains hardly any: so villages are short of different things, and trade.
+ * What the land round a village is: woods, rock, meadows to plough (its fields bear more), and in the mountains a vein
+ * of emerald. Wood and ore come the same anywhere: the woodcutter plants his own grove, the miner digs his own pit.
  * <p>
  * Read from the world's generator (its biomes and heights round the village, out to {@link #RADIUS} blocks), on a
  * thread of its own, once per village; the same land gives the same answer, so nothing of it is saved.
@@ -31,21 +30,6 @@ public final class Land {
      * emeralds are found); and the share of all of it that is water.
      */
     public record Shares(double forest, double rock, double meadow, double mountain, double water) {
-        /** Wood a woodcutter brings, against the usual. */
-        public double wood() {
-            return clamp(0.55 + 0.8 * forest + 0.2 * meadow, 0.55, 1.3);
-        }
-
-        /** Stone a miner breaks (there is stone under any land; in the rock it comes easier). */
-        public double stone() {
-            return clamp(0.75 + 0.5 * rock, 0.75, 1.25);
-        }
-
-        /** Iron and coal a miner finds: in the rock, not under the plains. */
-        public double ore() {
-            return clamp(0.3 + 1.3 * rock, 0.3, 1.4);
-        }
-
         /** What the fields bear. */
         public double farm() {
             return clamp(0.8 + 0.4 * meadow, 0.8, 1.2);

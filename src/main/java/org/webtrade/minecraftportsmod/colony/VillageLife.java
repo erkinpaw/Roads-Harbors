@@ -77,6 +77,9 @@ public final class VillageLife {
         specialists(v, today);
         Scouting.day(level, v, today);
         if (Construction.loaded(level, v.center)) WorkGoal.growGrove(level, v);
+        // (the pit fitted out as far as it is dug, its miners there or not)
+        Building pit = Mine.site(v);
+        if (pit != null) Mine.furnish(level, v, pit);
         grow(data, v, today, hungry);
         rehouse(v, today);
         levelUp(level, v, today);
@@ -150,11 +153,9 @@ public final class VillageLife {
         // (a gatherer has no tools: his hands and a basket; and what grows wild round a village is soon picked)
         double n = j.perDay * (j == Job.GATHERER ? wildShare(v) : Job.TOOL_SPEED[v.toolLevel(job)]);
         if (j == Job.FARMER) n *= cropFactor(v) * fieldShare(v);
-        // what the land round the village gives
-        Land.Shares land = Land.known(v);
-        if (j == Job.WOODCUTTER) n *= land.wood();
-        if (j == Job.MINER) n *= land.stone();
-        if (j == Job.FARMER) n *= land.farm();
+        // (the woodcutter fells and plants his own grove, the miner digs his own pit: the same wherever the village is;
+        // the fields bear what the land round them gives)
+        if (j == Job.FARMER) n *= Land.known(v).farm();
         // (the farmstead's fields: the farming sub-branch's)
         if (j == Job.FARMER && v.count(BuildingType.FARM, true) > 0) n *= subFactor(v, BuildingType.Sub.FARMING);
         if (v.mood < 30) n *= 0.75;
@@ -221,16 +222,33 @@ public final class VillageLife {
         return 0.10F + 0.03F * v.toolLevel(Job.MINER);
     }
 
+    /** Of the rock a miner breaks, the share with ore in it (the same in every village's pit). */
+    static final double ORE = 0.6;
+
     /** Coal a miner finds in a day, on average. */
-    static int coalDaily(Village v) {
+    static double coalRate(Village v) {
         // (the ore is the mining sub-branch's: more to a village known for it, less to one of another branch)
-        return (int) Math.round(dailyBase(v, Job.MINER) * coalChance(v) * Land.known(v).ore() / Land.known(v).stone() * subFactor(v, BuildingType.Sub.MINING));
+        return dailyBase(v, Job.MINER) * coalChance(v) * ORE * subFactor(v, BuildingType.Sub.MINING);
     }
 
     /** Iron a miner finds in a day, on average (every block of rock broken has its chance). */
+    static double ironRate(Village v) {
+        return dailyBase(v, Job.MINER) * oreChance(v) * ORE * subFactor(v, BuildingType.Sub.MINING);
+    }
+
+    static int coalDaily(Village v) {
+        return (int) Math.round(coalRate(v));
+    }
+
     static int ironDaily(Village v) {
-        // (the ore is in the rock: under the plains a miner breaks stone and finds next to none)
-        return (int) Math.round(dailyBase(v, Job.MINER) * oreChance(v) * Land.known(v).ore() / Land.known(v).stone() * subFactor(v, BuildingType.Sub.MINING));
+        return (int) Math.round(ironRate(v));
+    }
+
+    /** A day's find of what comes {@code rate} a day on average: a good day half as much again, a bad one half (a part found or not by chance). */
+    static int find(double rate) {
+        double n = rate * (0.5 + RND.nextDouble());
+        int whole = (int) n;
+        return whole + (RND.nextDouble() < n - whole ? 1 : 0);
     }
 
     /** Emeralds a miner finds in a day in the village's vein (a share of one), while there are any left in it. */
@@ -327,15 +345,17 @@ public final class VillageLife {
                     v.workshop(pen.type, Res.BUCKET, 0, 1);
                 }
             }
-            if (d.job == Job.MINER && ironDaily(v) > 0) {
-                // the ore not already found and brought today by digging
-                int iron = Math.max(0, ironDaily(v) - d.found);
+            if (d.job == Job.MINER) {
+                // the ore not already found and brought today by digging (some days more, some less)
+                int found = find(ironRate(v));
+                int iron = Math.max(0, found - d.found);
                 if (iron > 0) v.add(Res.IRON, iron);
-                v.made.merge(Res.IRON, Math.max(ironDaily(v), d.found), Integer::sum);
-            }
-            if (d.job == Job.MINER && coalDaily(v) > 0) {
-                v.add(Res.COAL, coalDaily(v));
-                v.made.merge(Res.COAL, coalDaily(v), Integer::sum);
+                if (Math.max(found, d.found) > 0) v.made.merge(Res.IRON, Math.max(found, d.found), Integer::sum);
+                int coal = find(coalRate(v));
+                if (coal > 0) {
+                    v.add(Res.COAL, coal);
+                    v.made.merge(Res.COAL, coal, Integer::sum);
+                }
             }
             if (d.job == Job.MINER && emeraldDaily(v) > 0) {
                 v.dig += emeraldDaily(v);
@@ -1412,6 +1432,7 @@ public final class VillageLife {
     static void plan(ServerLevel level, Village v, long today) {
         // (a village nobody is near plans too: its plots are read off the world's generator, see PlotFinder)
         autoUnlock(v, today);
+        keepMinePlot(level, v);
         int active = 0;
         for (Building b : v.buildings) if (b.project() && !(b.state == Building.State.DEMOLISHING && b.finished)) active++;
         // (the queue: a few steps ahead, the materials for them kept back and bought for; not more)
@@ -1915,7 +1936,7 @@ public final class VillageLife {
         if (type.isCenter()) return startCenter(v, today);
         // a trade's house only while the homes outnumber them (unless a home waits on what it makes: else neither is built)
         if (type.isWorkshop() && homes(v) <= workshops(v) && !homeWaitsOn(v, type)) return false;
-        Blueprint.Frame f = PlotFinder.find(level, v, type, -1);
+        Blueprint.Frame f = plotFor(level, v, type);
         if (f == null) {
             org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("[plot] {} (#{}, {} people) day {}: no room for {}: {}", v.name, v.id, v.population(),
                     today, type.id(), PlotFinder.WHY);
@@ -1934,6 +1955,33 @@ public final class VillageLife {
         }
         add(v, b, today);
         return true;
+    }
+
+    /**
+     * The miners dig from the first day there are any: the place of their house to come is chosen then (well out of
+     * the village, by rock if there is any), and kept for it; the pit is dug behind it meanwhile.
+     */
+    static void keepMinePlot(ServerLevel level, Village v) {
+        if (v.minePlot != null || v.workers(Job.MINER) == 0 || v.count(BuildingType.MINE_HOUSE, false) > 0) return;
+        Blueprint.Frame f = PlotFinder.find(level, v, BuildingType.MINE_HOUSE, -1);
+        if (f == null) return;
+        v.minePlot = f;
+        v.pitTop = Integer.MIN_VALUE;
+        org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("[mine] {} (#{}): the pit begun at {}, the miners' house to stand at {}", v.name, v.id,
+                Mine.pitCenter(f.origin(), f.front()).toShortString(), f.origin().toShortString());
+    }
+
+    /**
+     * The plot for a new building of a kind: the miners' house on the one kept for it, by the pit its miners have been
+     * digging (no longer kept: the house is there now); any other where one is found. Null: no room.
+     */
+    static Blueprint.Frame plotFor(ServerLevel level, Village v, BuildingType type) {
+        if (type == BuildingType.MINE_HOUSE && v.minePlot != null) {
+            Blueprint.Frame f = v.minePlot;
+            v.minePlot = null;
+            return f;
+        }
+        return PlotFinder.find(level, v, type, -1);
     }
 
     /** Does a home being built wait on something a workshop of this kind makes (its doors, stairs...)? */

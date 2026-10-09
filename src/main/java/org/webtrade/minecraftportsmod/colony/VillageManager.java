@@ -244,7 +244,7 @@ public final class VillageManager {
 
     /** Puts a building up at once on a free plot (command, tests). Returns it, or null if there is no room. */
     public static Building buildNow(ServerLevel level, Village v, BuildingType type) {
-        Blueprint.Frame f = PlotFinder.find(level, v, type, -1);
+        Blueprint.Frame f = VillageLife.plotFor(level, v, type);
         if (f == null) return null;
         Building b = new Building(v.nextBuilding++, type, f.origin(), f.front(), RND.nextLong()).look(VillageLife.look(v));
         b.created = VillageData.get(level.getServer()).day;
@@ -257,7 +257,7 @@ public final class VillageManager {
 
     /** Puts a building up at once, already grown to a level (command, tests). */
     public static Building buildNow(ServerLevel level, Village v, BuildingType type, int lv) {
-        Blueprint.Frame f = PlotFinder.find(level, v, type, -1);
+        Blueprint.Frame f = VillageLife.plotFor(level, v, type);
         if (f == null) return null;
         Building b = new Building(v.nextBuilding++, type, f.origin(), f.front(), RND.nextLong()).look(VillageLife.look(v));
         b.level = Math.max(1, Math.min(type.maxLevel, lv));

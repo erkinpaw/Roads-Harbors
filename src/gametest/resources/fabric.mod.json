@@ -12,6 +12,7 @@
       "org.webtrade.minecraftportsmod.gametest.TradesClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.MinerClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.MineClientGameTest",
+      "org.webtrade.minecraftportsmod.gametest.MinePitClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.ColonyClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.TreeClientGameTest",
       "org.webtrade.minecraftportsmod.gametest.LevelsClientGameTest",
