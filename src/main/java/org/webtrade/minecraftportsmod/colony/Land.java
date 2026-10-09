@@ -14,8 +14,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 /**
- * What the land round a village is: woods, rock, meadows to plough (its fields bear more), and in the mountains a vein
- * of emerald. Wood and ore come the same anywhere: the woodcutter plants his own grove, the miner digs his own pit.
+ * What the land round a village is: woods, rock, meadows, mountains, water: how its houses look and what it goes in
+ * for. What it gives is the same anywhere: the woodcutter plants his own grove, the miner digs his own pit.
  * <p>
  * Read from the world's generator (its biomes and heights round the village, out to {@link #RADIUS} blocks), on a
  * thread of its own, once per village; the same land gives the same answer, so nothing of it is saved.
@@ -30,19 +30,6 @@ public final class Land {
      * emeralds are found); and the share of all of it that is water.
      */
     public record Shares(double forest, double rock, double meadow, double mountain, double water) {
-        /** What the fields bear. */
-        public double farm() {
-            return clamp(0.8 + 0.4 * meadow, 0.8, 1.2);
-        }
-
-        /** The emeralds in the village's reach, all told: a vein in the mountains, none elsewhere. */
-        public int vein() {
-            return (int) Math.round(40 * mountain);
-        }
-
-        private static double clamp(double x, double lo, double hi) {
-            return Math.max(lo, Math.min(hi, x));
-        }
     }
 
     /** Before the land is read: the usual everywhere. */

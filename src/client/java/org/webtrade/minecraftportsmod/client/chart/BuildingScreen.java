@@ -19,7 +19,7 @@ import java.util.Locale;
  * A building's own menu: what it is and how far it has grown; who lives or works here and what it gives (tools,
  * room in the store...); what it makes and uses up in a day; its next level, what that takes (and how much of it
  * the village has), with a button to have it raised first; keeping it from ever being pulled down, or pulling it
- * down; and for a field, what to sow.
+ * down; for a field, what to sow; for a farmyard, what each of its runs keeps.
  */
 public class BuildingScreen extends UiScreen {
 
@@ -30,6 +30,12 @@ public class BuildingScreen extends UiScreen {
     private int px0, py0, px1, py1, mid, flowsY;
     /** The demolish button asks once more before it does anything. */
     private boolean confirmDemolish;
+    /** When the view came (a run's countdown goes on from it). */
+    private long received = System.currentTimeMillis();
+    /** A farmyard's runs: the animals' eggs for their icons, by kind (1 hens .. 4 cows). */
+    private static final net.minecraft.world.item.Item[] EGGS = {Items.AIR, Items.CHICKEN_SPAWN_EGG, Items.SHEEP_SPAWN_EGG, Items.PIG_SPAWN_EGG,
+            Items.COW_SPAWN_EGG};
+    private static final int RUN_ROW = 22;
 
     public BuildingScreen(Screen parent, ColonyPayloads.BuildingView view) {
         super(BuildingType.values()[view.kind()].displayName());
@@ -44,6 +50,7 @@ public class BuildingScreen extends UiScreen {
     public void update(ColonyPayloads.BuildingView v) {
         if (!shows(v)) return;
         this.view = v;
+        received = System.currentTimeMillis();
         rebuildWidgets();
     }
 
@@ -77,8 +84,26 @@ public class BuildingScreen extends UiScreen {
                             org.webtrade.minecraftportsmod.colony.Tree.playerPrice(view.raiseCost())), b -> act(ColonyPayloads.VillageAction.BUY_RAISE))
                     .bounds(mid + 10, flowsY - 30, px1 - mid - 16, 20).build());
         }
+        // a farmyard: each open run, a button for each kind it could be given over to
+        if (view.crop() == 100) {
+            int[] runs = view.crops();
+            for (int i = 0; i * 4 < runs.length; i++) {
+                if (runs[i * 4] < 0 || runs[i * 4 + 1] >= 0) continue;
+                int ry = runTop() + i * RUN_ROW, bx = mid + 10 + 24;
+                int bw = (px1 - bx - 3 * 3) / 4;
+                for (int k = 1; k <= 4; k++) {
+                    final int slot = i, kind = k;
+                    UiButton b = addRenderableWidget(UiButton.make(Component.translatable("minecraftportsmod.herd." + k),
+                            btn -> ClientPlayNetworking.send(new ColonyPayloads.VillageAction(view.village(), ColonyPayloads.VillageAction.CROP,
+                                    view.building(), 100 + slot * 10 + kind))).bounds(bx, ry, bw, 18)
+                            .style(k == runs[i * 4] ? UiButton.Style.TAB_OPEN : UiButton.Style.PLANK).build());
+                    b.active = k != runs[i * 4];
+                    bx += bw + 3;
+                }
+            }
+        }
         // a field: what to sow
-        if (view.crop() >= 0) {
+        if (view.crop() >= 0 && view.crop() < 100) {
             int bx = mid + 10, by = flowsY - 30 - (view.raiseCost().length > 0 ? 50 : 26);
             int bw = Math.max(50, (px1 - mid - 16 - 4 * (view.crops().length - 1)) / Math.max(1, view.crops().length));
             for (int c : view.crops()) {
@@ -112,6 +137,11 @@ public class BuildingScreen extends UiScreen {
             down.active = !view.keep();
             if (view.keep()) down.setTooltip(Tooltip.create(Component.translatable("minecraftportsmod.bmenu.demolish_kept")));
         }
+    }
+
+    /** The top of a farmyard's first run row: the four of them over the next level's button. */
+    private int runTop() {
+        return flowsY - 30 - (view.raiseCost().length > 0 ? 26 : 4) - 4 * RUN_ROW;
     }
 
     @Override
@@ -218,11 +248,33 @@ public class BuildingScreen extends UiScreen {
             if (view.raiseFirst()) g.text(font, Component.translatable("minecraftportsmod.bmenu.raise_pinned"), nx, ny, ChartStyle.GOOD, false);
             else Ui.wrap(g, font, Component.translatable("minecraftportsmod.bmenu.raise_self"), nx, ny, nw, ChartStyle.TEXT_MUTED);
         }
-        if (view.crop() >= 0) {
+        if (view.crop() == 100) {
+            // a farmyard's runs: what each keeps; one being given over, what comes to it and when; one not open yet,
+            // the level that opens it
+            int[] runs = view.crops();
+            int top = runTop();
+            g.text(font, Component.translatable("minecraftportsmod.bmenu.herd"), mid + 10, top - 12, ChartStyle.TEXT_MUTED, false);
+            long gone = (System.currentTimeMillis() - received) / 1000;
+            for (int i = 0; i * 4 < runs.length; i++) {
+                int ry = top + i * RUN_ROW, rx = mid + 10;
+                int kind = runs[i * 4], next = runs[i * 4 + 1];
+                if (kind < 0) {
+                    Ui.slot(g, rx, ry, 18, ItemStack.EMPTY);
+                    pips(g, rx + 24, ry + 6, i, 3, 0, 6);
+                    continue;
+                }
+                Ui.slot(g, rx, ry, 18, kind > 0 ? new ItemStack(EGGS[kind]) : ItemStack.EMPTY);
+                if (next >= 0) {
+                    g.text(font, "\u2192", rx + 24, ry + 5, ChartStyle.TEXT, false);
+                    Ui.slot(g, rx + 34, ry, 18, new ItemStack(EGGS[Math.max(1, Math.min(4, next))]));
+                    long left = Math.max(0, runs[i * 4 + 2] - gone);
+                    g.text(font, String.format(Locale.ROOT, "%d:%02d", left / 60, left % 60), rx + 58, ry + 5, ChartStyle.INK, false);
+                }
+            }
+        }
+        if (view.crop() >= 0 && view.crop() < 100) {
             int by = flowsY - 30 - (view.raiseCost().length > 0 ? 50 : 26);
-            g.text(font, Component.translatable(view.crop() >= 100 ? "minecraftportsmod.bmenu.herd" : "minecraftportsmod.bmenu.sow"), mid + 10, by - 12,
-                    ChartStyle.TEXT_MUTED, false);
-
+            g.text(font, Component.translatable("minecraftportsmod.bmenu.sow"), mid + 10, by - 12, ChartStyle.TEXT_MUTED, false);
         }
 
         // ---- a day's making and using

@@ -325,6 +325,8 @@ final class PlotFinder {
     static final int MINE_AWAY = 40, ROCK_REACH = 125, WOOD_AWAY = 24;
     /** How far the woodcutters' hut keeps from the pit. */
     static final int WOOD_FROM_PIT = 40;
+    /** How far the woodcutters' hut keeps from the water. */
+    static final int WOOD_FROM_WATER = 20;
 
     /** A plot as close as can be to a point, not too near the middle of the village (the trades keep apart). */
     private static Blueprint.Frame near(ServerLevel level, Village v, BuildingType type, BlockPos anchor, int ignore, boolean steep) {
@@ -444,6 +446,8 @@ final class PlotFinder {
         if (!Territory.allows(v, type, pos.getX(), pos.getZ())) return no("cap");
         if (onPath(level, pos, type.half + 1)) return no("path");
         if (type.branch != BuildingType.Branch.COAST && wet(level, v, pos, type.half + SHORE)) return no("shore");
+        // (the woodcutters' grove inland: no water within twenty blocks of their hut)
+        if (type == BuildingType.WOOD_HUT && wet(level, v, pos, WOOD_FROM_WATER)) return no("shore");
         // (across a stream from the square: only if a short bridge will do; it is put up first)
         if (Construction.loaded(level, pos) && !Reach.ok(level, v, new BlockPos(pos.getX(), floorAt(level, pos.getX(), pos.getZ()), pos.getZ()))
                 && !bridgeable(level, v, pos)) return no("reach");

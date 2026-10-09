@@ -764,7 +764,7 @@ public final class Blueprint {
             }
             case FARMYARD -> {
                 // the runs of the level, and its lights
-                for (Herds.Run r : Herds.runs(type.half)) if (r.level() == level) run(r);
+                for (Herds.Run r : Herds.places(type.half)) if (r.level() == level) run(r);
                 int h = type.half;
                 if (level == 2) {
                     for (int[] c : new int[][]{{-h, -h}, {h, Herds.FRONT}}) set(c[0], 1, c[1], block("lantern"));
@@ -869,14 +869,14 @@ public final class Blueprint {
 
     /**
      * The farmyard: the keeper's lodge (a bed, a chest) in the front corner, the yard with the hay beside it, and
-     * behind them the runs of the animals, each fenced, with a gate: the hens' at first; the other runs come with
-     * the levels ({@link #extras}). The animals are put in by {@link Herds}.
+     * behind them the runs of the animals, each fenced, with a gate: two at first; the other two come with the
+     * levels ({@link #extras}). The animals are put in by {@link Herds}.
      */
     private void farmyard() {
         int h = type.half;
         BlockState planks = wood("planks"), log = wood("log");
         levelAll(block("grass_block"), block("grass_block"), h);
-        for (Herds.Run r : Herds.runs(h)) if (r.level() == 1) run(r);
+        for (Herds.Run r : Herds.places(h)) if (r.level() == 1) run(r);
         // the keeper's lodge: log corners, plank walls, a window each side, a flat roof of slabs
         int x0 = -h, x1 = -h + 4, z0 = h - 4, z1 = h;
         for (int x = x0; x <= x1; x++) for (int z = z0; z <= z1; z++) surface(x, z, planks);

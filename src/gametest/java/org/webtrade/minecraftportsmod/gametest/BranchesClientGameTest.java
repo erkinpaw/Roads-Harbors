@@ -16,9 +16,11 @@ import org.webtrade.minecraftportsmod.colony.Res;
 import org.webtrade.minecraftportsmod.colony.Village;
 import org.webtrade.minecraftportsmod.colony.VillageData;
 import org.webtrade.minecraftportsmod.colony.VillageLife;
+import org.webtrade.minecraftportsmod.network.ColonyPayloads;
 
 /**
- * The branches: the farmyard (its runs of real hens, sheep, pigs and cows, its herders), the weaver's cloth, the
+ * The branches: the farmyard (its four runs of real hens, sheep, pigs or cows: the village's choice, a player's
+ * changing one, a day till the new animals come; its herders), the weaver's cloth, the
  * smelter's iron, the glassworks' glass, the locksmith's metalware and the joiner's furniture; what each makes and
  * uses in a few days.
  */
@@ -109,10 +111,51 @@ public class BranchesClientGameTest implements FabricClientGameTest {
                 log("built: {}", b);
                 log("people: {}", v.population());
             });
+            // the runs: the village chooses what each keeps, the animals come the next day
             server.runCommand("tp @a 0 -35 30 180 50");
+            server.runCommand("village day");
+            context.waitTicks(20);
+            server.runOnServer(s -> {
+                for (Building x : village(s).buildings()) if (x.type.isPen()) log("runs chosen: {}", x.option());
+            });
+            server.runCommand("village day");
             context.waitTicks(300);
             sp.getConnection().waitForChunksRender();
-            server.runOnServer(s -> log("herds after stocking: {}", herds(s, village(s))));
+            server.runOnServer(s -> {
+                log("herds after stocking: {}", herds(s, village(s)));
+                if (animals(s, village(s)) < 12) throw new AssertionError("the runs were not stocked: " + herds(s, village(s)));
+            });
+            // a player gives the first run over to sheep: empty for a day, a countdown in the window, then the sheep
+            int[] yard = new int[1];
+            server.runOnServer(s -> {
+                for (Building x : village(s).buildings()) if (x.type.isPen()) yard[0] = x.id;
+                var p = s.getPlayerList().getPlayers().getFirst();
+                String before = village(s).building(yard[0]).option();
+                // (sheep: the wool is looked for at the end; cows, if it keeps sheep already)
+                int first = before.startsWith("run0:2") ? 4 : 2;
+                ColonyService.handleAction(p, new ColonyPayloads.VillageAction(1, ColonyPayloads.VillageAction.CROP, yard[0], 100 + first));
+                String after = village(s).building(yard[0]).option();
+                log("run 0 given over to {}: {} -> {}", first, before, after);
+                if (after.equals(before)) throw new AssertionError("the run was not given over");
+                // (again at once: refused, it is being given over)
+                ColonyService.handleAction(p, new ColonyPayloads.VillageAction(1, ColonyPayloads.VillageAction.CROP, yard[0], 100 + 2));
+                if (!village(s).building(yard[0]).option().equals(after)) throw new AssertionError("a run being given over was changed again");
+            });
+            context.waitTicks(200);
+            server.runOnServer(s -> {
+                log("herds while the run is given over: {}", herds(s, village(s)));
+                if (animals(s, village(s)) > 12) throw new AssertionError("the run being given over still has its animals: " + herds(s, village(s)));
+            });
+            context.runOnClient(mc -> mc.options.guiScale().set(2));
+            server.runOnServer(s -> ColonyService.handleAction(s.getPlayerList().getPlayers().getFirst(),
+                    new ColonyPayloads.VillageAction(1, ColonyPayloads.VillageAction.OPEN, yard[0], 0)));
+            context.waitForScreen(org.webtrade.minecraftportsmod.client.chart.BuildingScreen.class);
+            context.waitTicks(10);
+            context.takeScreenshot("branches_f_farmyard_menu");
+            context.setScreen(() -> null);
+            server.runCommand("village day");
+            context.waitTicks(200);
+            server.runOnServer(s -> log("herds the day after: {} ({})", herds(s, village(s)), village(s).building(yard[0]).option()));
             context.takeScreenshot("branches_a_overview");
             // the runs close up
             int[][] pens = new int[3][];
@@ -170,7 +213,7 @@ public class BranchesClientGameTest implements FabricClientGameTest {
                 log("herds at the end: {}", herds(s, v));
                 if (animals(s, v) == 0) throw new AssertionError("no animals in the runs");
                 log("kinds of animals: {}", kinds(s, v));
-                if (kinds(s, v).size() < 4) throw new AssertionError("a farmyard at level 3 keeps hens, sheep, pigs and cows: " + kinds(s, v));
+                if (animals(s, v) < 12) throw new AssertionError("a farmyard at level 3 keeps four runs of animals: " + herds(s, v));
                 // (the workshops make what is ordered of them: glass, carpets, lanterns, beds when the village or a player wants them)
                 log("workshops' things: glass {}+{}, carpets {}+{}, lanterns {}+{}, beds {}+{}", v.stock(Res.GLASS), v.made(Res.GLASS), v.stock(Res.CARPET),
                         v.made(Res.CARPET), v.stock(Res.LANTERN), v.made(Res.LANTERN), v.stock(Res.BED), v.made(Res.BED));
