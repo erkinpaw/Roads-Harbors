@@ -301,16 +301,15 @@ public class NetworkRunClientGameTest implements FabricClientGameTest {
                     }
                 }
                 if (sh.length() > 0) shortVillages++;
-                log(seed, "  #{} {}: land forest {} rock {} meadow {} mountain {} (fields x{}, vein {}) | short of: {}| purse {}", v.id, v.name,
-                        pct(land.forest()), pct(land.rock()), pct(land.meadow()), pct(land.mountain()), String.format("%.2f", land.farm()),
-                        land.vein(), sh, v.emeralds());
+                log(seed, "  #{} {}: land forest {} rock {} meadow {} mountain {} | short of: {}| purse {}", v.id, v.name,
+                        pct(land.forest()), pct(land.rock()), pct(land.meadow()), pct(land.mountain()), sh, v.emeralds());
             }
             log(seed, "short of: {} (in {} villages of {})", shortOf, shortVillages, data.all().size());
             java.util.Map<String, Integer> kinds = new java.util.TreeMap<>();
             for (Village v : data.all()) kinds.merge((v.focus() == null ? "-" : v.focus().id()) + "/" + (v.sub() == null ? "-" : v.sub().id()), 1, Integer::sum);
             log(seed, "specialities: {}", kinds);
             long bound = 0;
-            for (Village v : data.all()) bound += 10 + 3 + 5 + 8 + 12 + org.webtrade.minecraftportsmod.colony.Land.now(level, v).vein();
+            for (Village v : data.all()) bound += 10 + 3 + 5 + 8 + 12 + org.webtrade.minecraftportsmod.colony.VillageLife.VEIN;
             StringBuilder bad = new StringBuilder();
             if (byFirstHouse == 0) bad.append("no village found another with a first-level cartographer's house; ");
             // (70: a scout eats for three, and only villages with food to spare send more than one; the farming

@@ -385,6 +385,40 @@ public final class Workshops {
             int count = Math.min(want - ordered, how.n() * 6);
             v.orders.add(Orders.villageOrder(v, at, how.index(), count, today));
         }
+        // (nothing more wanted: what the store has to spare made into goods to sell)
+        forSale(v, today);
+    }
+
+    /** The most of a thing kept for sale over what the village wants of it, in makings. */
+    static final int SALE_MAKINGS = 6;
+
+    /**
+     * Each workshop with hands and an empty queue: of its open recipes whose makings the store has to spare (over what
+     * it keeps), the one with the fewest made for sale already, a few makings of it; goods over the village's wants are
+     * what its merchant and ships sell.
+     */
+    static void forSale(Village v, long today) {
+        for (Building b : v.buildings) {
+            if (!workshop(b.type) || !b.standing() || b.type.job == null || v.workers(b.type.job) == 0) continue;
+            if (!queue(v, b).isEmpty()) continue;
+            Recipe how = null;
+            double fewest = Double.MAX_VALUE;
+            for (Recipe r : recipes(b.type)) {
+                if (!open(b, r)) continue;
+                if (r.out().toolLevel() > 0 && r.out().toolLevel() != bestTools(v)) continue;
+                boolean spare = true;
+                for (var e : r.in().entrySet()) spare &= v.stock(e.getKey()) - VillageLife.target(v, e.getKey()) >= e.getValue() * 2;
+                if (!spare) continue;
+                double over = (v.stock(r.out()) - VillageLife.target(v, r.out())) / (double) r.n();
+                if (over >= SALE_MAKINGS || v.full(r.out())) continue;
+                if (over < fewest) {
+                    fewest = over;
+                    how = r;
+                }
+            }
+            if (how == null) continue;
+            v.orders.add(Orders.villageOrder(v, b, how.index(), how.n() * 2, today));
+        }
     }
 
     /**

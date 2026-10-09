@@ -516,11 +516,10 @@ public final class ColonyService {
             crops = open.stream().mapToInt(Integer::intValue).toArray();
             crop = b.crop().ordinal();
         }
-        // a farmyard: what herd it keeps (sent as 100 + the herd, beside the crops)
+        // a farmyard: its runs (sent in the crops' place, the crop 100 telling them apart; see Herds.view)
         if (b.type == BuildingType.FARMYARD && b.standing()) {
-            crops = new int[Herds.HERDS];
-            for (int k = 0; k < Herds.HERDS; k++) crops[k] = 100 + k;
-            crop = 100 + Herds.herd(b);
+            crops = Herds.view(VillageData.get(player.level().getServer()), b);
+            crop = 100;
         }
         float progress = b.upgrading() ? raiseProgress(v, b) : 1;
         int[][] flows = VillageLife.flows(v, b);
@@ -756,11 +755,14 @@ public final class ColonyService {
             }
             case ColonyPayloads.VillageAction.CROP -> {
                 Building b = v.building(a.a());
-                if (b != null && b.type == BuildingType.FARMYARD && a.b() >= 100 && a.b() < 100 + Herds.HERDS) {
-                    b.setOption("herd:" + (a.b() - 100) + ";");
-                    v.log(data.day, Component.translatable("minecraftportsmod.vlog.herd", player.getName(),
-                            Component.translatable("minecraftportsmod.herd." + (a.b() - 100))));
-                    data.changed();
+                // (a farmyard's run given over to a kind: sent as 100 + the run * 10 + the kind)
+                if (b != null && b.type == BuildingType.FARMYARD && a.b() >= 100) {
+                    int slot = (a.b() - 100) / 10, kind = (a.b() - 100) % 10;
+                    if (Herds.choose(data, b, slot, kind)) {
+                        v.log(data.day, Component.translatable("minecraftportsmod.vlog.herd", player.getName(),
+                                Component.translatable("minecraftportsmod.herd." + kind)));
+                        data.changed();
+                    }
                     sendBuilding(player, v, b);
                     return;
                 }

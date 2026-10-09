@@ -46,9 +46,9 @@ public final class VillageLife {
     /** @param watched a player is near: building is done by the people in the world, not on paper */
     static void day(ServerLevel level, VillageData data, Village v, boolean watched) {
         long today = data.day;
-        // (the land round it: read once, off the server thread; until then the usual, and no speciality chosen by it)
-        Land.Shares land = Land.of(level, v);
-        if (v.focus == null && (land != null || Construction.loaded(level, v.center))) v.focus = chooseFocus(level, v);
+        // (the land round it: read once, off the server thread, for how its houses look)
+        Land.of(level, v);
+        if (v.focus == null) v.focus = chooseFocus(level, v);
         // (the sub-branch it is known for: of its speciality; the first of it until someone chooses)
         if (v.focus != null && (v.sub == null || v.sub.branch != v.focus)) v.sub = chooseSub(v);
         growUp(v, today);
@@ -57,6 +57,8 @@ public final class VillageLife {
         v.built.clear();
         v.workshopMade.clear();
         v.workshopUsed.clear();
+        // (the farmyards' runs: those given over yesterday take their new animals, the village chooses for the rest)
+        for (Building b : v.buildings) if (b.type.isPen() && b.standing()) Herds.day(data, v, b);
         // the players' orders first; what is left of the day goes to the village's own work
         v.orderLoad = Orders.work(v);
         produce(data, v, today);
@@ -153,9 +155,8 @@ public final class VillageLife {
         // (a gatherer has no tools: his hands and a basket; and what grows wild round a village is soon picked)
         double n = j.perDay * (j == Job.GATHERER ? wildShare(v) : Job.TOOL_SPEED[v.toolLevel(job)]);
         if (j == Job.FARMER) n *= cropFactor(v) * fieldShare(v);
-        // (the woodcutter fells and plants his own grove, the miner digs his own pit: the same wherever the village is;
-        // the fields bear what the land round them gives)
-        if (j == Job.FARMER) n *= Land.known(v).farm();
+        // (the woodcutter fells and plants his own grove, the miner digs his own pit, the fields are the village's own
+        // ploughing: the same wherever the village is)
         // (the farmstead's fields: the farming sub-branch's)
         if (j == Job.FARMER && v.count(BuildingType.FARM, true) > 0) n *= subFactor(v, BuildingType.Sub.FARMING);
         if (v.mood < 30) n *= 0.75;
@@ -253,10 +254,12 @@ public final class VillageLife {
 
     /** Emeralds a miner finds in a day in the village's vein (a share of one), while there are any left in it. */
     static double emeraldDaily(Village v) {
-        Land.Shares land = Land.known(v);
-        if (v.mined >= land.vein()) return 0;
-        return 0.25 * land.mountain() * (v.toolLevel(Job.MINER) >= 2 ? 1 : 0.4);
+        if (v.mined >= VEIN) return 0;
+        return 0.1 * (v.toolLevel(Job.MINER) >= 2 ? 1 : 0.4);
     }
+
+    /** The emeralds in a village's pit, all told (the same in every one). */
+    public static final int VEIN = 10;
 
     /** Emeralds for reaching a level (the newcomers bring their savings, the village's fame brings custom): once each. */
     static int reward(Village.Level l) {
@@ -359,7 +362,7 @@ public final class VillageLife {
             }
             if (d.job == Job.MINER && emeraldDaily(v) > 0) {
                 v.dig += emeraldDaily(v);
-                while (v.dig >= 1 && v.mined < Land.known(v).vein()) {
+                while (v.dig >= 1 && v.mined < VEIN) {
                     v.dig -= 1;
                     v.mined++;
                     v.emeralds++;
@@ -1026,12 +1029,11 @@ public final class VillageLife {
     // ------------------------------------------------------------------ the animals, the locksmith, the furniture
 
     /**
-     * What a farmyard gives in a day with all its keepers: {food, wool, hides (and feathers), grain its animals eat}.
-     * Its runs by its level: hens (eggs, fowl, feathers); sheep (wool, mutton) and pigs (pork); cows (milk, beef, hides).
+     * What a farmyard gives in a day with all its keepers: {food, wool, hides, grain its animals eat}: each run what its
+     * four animals give (hens: fowl; sheep: wool; pigs: pork; cows: milk and beef, hides).
      */
     static int[] herd(Village v, Building b) {
         double k = subFactor(v, BuildingType.Sub.HUSBANDRY) * own(v, BuildingType.Branch.FOOD) * (v.mood < 30 ? 0.75 : 1.0);
-        // (each run what its animals give: the four kinds, a run each; or all the runs one herd)
         int[] out = new int[4];
         for (Herds.Run r : Herds.runs(b)) {
             int[] y = Herds.yield(r.kind());
@@ -1198,14 +1200,10 @@ public final class VillageLife {
         return n;
     }
 
-    /**
-     * The sub-branch a village goes in for: a food village on open meadows keeps herds, one by the water ploughs;
-     * the woods and the rock, one or the other (villages differ).
-     */
+    /** The sub-branch a village goes in for: one or the other of its speciality's (villages differ). */
     static BuildingType.Sub chooseSub(Village v) {
-        Land.Shares land = Land.known(v);
         return switch (v.focus) {
-            case FOOD -> land.meadow() > land.water() ? BuildingType.Sub.HUSBANDRY : BuildingType.Sub.FARMING;
+            case FOOD -> v.id % 2 == 0 ? BuildingType.Sub.HUSBANDRY : BuildingType.Sub.FARMING;
             case WOOD -> v.id % 2 == 0 ? BuildingType.Sub.LOGGING : BuildingType.Sub.JOINERY;
             case MINE -> v.id % 2 == 0 ? BuildingType.Sub.MINING : BuildingType.Sub.METALWORK;
             default -> BuildingType.Sub.first(v.focus);
@@ -1824,37 +1822,13 @@ public final class VillageLife {
     }
 
     /**
-     * The trade a village goes deep into, going by the land around it: rock to quarry, a forest, the water, open
-     * meadows. (A village that isn't loaded: by what its people do.)
+     * The trade a village goes deep into: one of the three, by chance (the land round it has nothing to do with it:
+     * every village plants its grove, digs its pit, ploughs its fields); the same for a village whenever asked.
      */
     static BuildingType.Branch chooseFocus(ServerLevel level, Village v) {
-        int stone = 0, wood = 0, water = 0, grass = 0;
-        if (Construction.loaded(level, v.center)) {
-            for (int x = -32; x <= 32; x += 2) {
-                for (int z = -32; z <= 32; z += 2) {
-                    int wx = v.center.getX() + x, wz = v.center.getZ() + z;
-                    if (!Construction.loaded(level, new BlockPos(wx, 0, wz))) continue;
-                    int top = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, wx, wz) - 1;
-                    var st = level.getBlockState(new BlockPos(wx, top, wz));
-                    if (st.is(net.minecraft.tags.BlockTags.LEAVES) || st.is(net.minecraft.tags.BlockTags.LOGS)) wood++;
-                    else if (!st.getFluidState().isEmpty()) water++;
-                    else if (DwellerGoals.rock(st)) stone++;
-                    else if (st.is(net.minecraft.world.level.block.Blocks.GRASS_BLOCK)) grass++;
-                }
-            }
-        }
-        // the water is by every camp: it counts for less; meadows are the most common land, too
-        int[] score = {stone * 3, wood * 2, water, grass};
-        if (stone + wood + water + grass == 0) {
-            // nobody near: the land as the world's generator has it
-            Land.Shares land = Land.known(v);
-            score = new int[]{(int) (land.rock() * 300), (int) (land.forest() * 200), (int) (land.water() * 100), (int) (land.meadow() * 100)};
-        }
-        // (the water and the meadows both mean food)
-        BuildingType.Branch[] branches = {BuildingType.Branch.MINE, BuildingType.Branch.WOOD, BuildingType.Branch.FOOD, BuildingType.Branch.FOOD};
-        int best = 0;
-        for (int i = 1; i < 4; i++) if (score[i] > score[best]) best = i;
-        return branches[best];
+        BuildingType.Branch[] branches = {BuildingType.Branch.FOOD, BuildingType.Branch.WOOD, BuildingType.Branch.MINE};
+        long seed = level.getSeed() * 31 + v.center.asLong();
+        return branches[Math.floorMod(new java.util.Random(seed).nextInt(), branches.length)];
     }
 
     /** A new home: the best kind of house open to the village that it can best pay for. */
@@ -1946,12 +1920,6 @@ public final class VillageLife {
         if (type == BuildingType.PIER) {
             b.jetty = Harbour.jetty(level, v, f.origin(), type.half);
             if (b.jetty == null) return false;
-        }
-        // a second farmyard: one herd, the one whose goods the village wants most (the first keeps a bit of everything)
-        if (type == BuildingType.FARMYARD && v.count(BuildingType.FARMYARD, false) >= 1) {
-            double wool = want(v, Res.WOOL), hides = want(v, Res.LEATHER), food = want(v, Res.FOOD);
-            int herd = wool >= hides && wool >= food ? 2 : hides >= food ? 4 : 3;
-            b.setOption("herd:" + herd + ";");
         }
         add(v, b, today);
         return true;

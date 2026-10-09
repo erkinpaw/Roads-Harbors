@@ -52,7 +52,7 @@ public final class Sandbox {
                 }
             }
             b.level = t.maxLevel;
-            if (t == BuildingType.FARMYARD && herds++ == 1) b.setOption("herd:2;");
+            if (t == BuildingType.FARMYARD && herds++ == 1) Herds.fill(b, 2);
             b.state = Building.State.BUILT;
             b.work = b.blueprint(v.wood).pieces.size();
             b.created = data.day;
