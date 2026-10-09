@@ -1913,8 +1913,8 @@ public final class VillageLife {
         // (one the players took out of the queue: not again for a few days)
         if (declined(v, "build:" + type.id(), today)) return false;
         if (type.isCenter()) return startCenter(v, today);
-        // a trade's house only while the homes outnumber them
-        if (type.isWorkshop() && homes(v) <= workshops(v)) return false;
+        // a trade's house only while the homes outnumber them (unless a home waits on what it makes: else neither is built)
+        if (type.isWorkshop() && homes(v) <= workshops(v) && !homeWaitsOn(v, type)) return false;
         Blueprint.Frame f = PlotFinder.find(level, v, type, -1);
         if (f == null) {
             org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("[plot] {} (#{}, {} people) day {}: no room for {}: {}", v.name, v.id, v.population(),
@@ -1934,6 +1934,15 @@ public final class VillageLife {
         }
         add(v, b, today);
         return true;
+    }
+
+    /** Does a home being built wait on something a workshop of this kind makes (its doors, stairs...)? */
+    static boolean homeWaitsOn(Village v, BuildingType type) {
+        for (Building b : v.projects()) {
+            if (b.type.branch != BuildingType.Branch.HOME || b.state == Building.State.DEMOLISHING) continue;
+            for (Workshops.Recipe r : Workshops.recipes(type)) if (b.missing(r.out()) > 0) return true;
+        }
+        return false;
     }
 
     /**
