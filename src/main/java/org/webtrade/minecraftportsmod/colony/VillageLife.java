@@ -1908,8 +1908,9 @@ public final class VillageLife {
         // (one the players took out of the queue: not again for a few days)
         if (declined(v, "build:" + type.id(), today)) return false;
         if (type.isCenter()) return startCenter(v, today);
-        // a trade's house only while the homes outnumber them (unless a home waits on what it makes: else neither is built)
-        if (type.isWorkshop() && homes(v) <= workshops(v) && !homeWaitsOn(v, type)) return false;
+        // a trade's house only while the homes outnumber them (unless a home waits on what the village cannot make yet:
+        // else neither is built; the way to it may be several workshops, the woodcutters' hut, the sawmill, the joiner's)
+        if (type.isWorkshop() && homes(v) <= workshops(v) && !homeStuck(v)) return false;
         Blueprint.Frame f = plotFor(level, v, type);
         if (f == null) {
             org.webtrade.minecraftportsmod.Minecraftportsmod.LOGGER.info("[plot] {} (#{}, {} people) day {}: no room for {}: {}", v.name, v.id, v.population(),
@@ -1952,11 +1953,11 @@ public final class VillageLife {
         return PlotFinder.find(level, v, type, -1);
     }
 
-    /** Does a home being built wait on something a workshop of this kind makes (its doors, stairs...)? */
-    static boolean homeWaitsOn(Village v, BuildingType type) {
+    /** Does a home being built wait on a workshop's thing (its doors, stairs...) the village cannot make yet? */
+    static boolean homeStuck(Village v) {
         for (Building b : v.projects()) {
             if (b.type.branch != BuildingType.Branch.HOME || b.state == Building.State.DEMOLISHING) continue;
-            for (Workshops.Recipe r : Workshops.recipes(type)) if (b.missing(r.out()) > 0) return true;
+            for (Res r : b.type.goods()) if (b.missing(r) > 0 && !Workshops.canMake(v, r)) return true;
         }
         return false;
     }
