@@ -252,9 +252,11 @@ final class Herds {
 
     /**
      * How much a kind is wanted: what the village itself is short of first (its want of the kind's goods); else how
-     * many of its neighbours are short of them (a tenth each), to be sold them; less for each run of it already.
+     * many of its neighbours are short of them (a tenth each), to be sold them: a food village's herds only (the
+     * others keep animals for their own wants); less for each run of it already.
      */
     private static double score(VillageData data, Village v, int k, int[] taken) {
+        boolean seller = v.focus == BuildingType.Branch.FOOD;
         double own = 0, sale = 0;
         for (Res r : goods(k)) {
             if (r == null) continue;
@@ -264,7 +266,7 @@ final class Herds {
                 Village o = data.get(id);
                 if (o != null && Caravans.short_(o, r) > 0) short_++;
             }
-            sale = Math.max(sale, 0.1 * short_);
+            if (seller) sale = Math.max(sale, 0.1 * short_);
         }
         double sc = own > 0.3 ? 1 + own : Math.min(0.9, sale);
         return sc / (1 + taken[k]);

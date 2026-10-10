@@ -130,7 +130,7 @@ public final class Tree {
 
         int have = 0;
         for (Building b : v.buildings) if (b.type == t && b.state != Building.State.DEMOLISHING) have++;
-        double k = 1 + DEARER * Math.max(0, have - 2);
+        double k = (1 + DEARER * Math.max(0, have - 2)) * speciality(v, t);
         Map<Res, Integer> out = new EnumMap<>(Res.class);
         for (Res r : Res.values()) {
             int c = t.cost(r);
@@ -139,6 +139,14 @@ public final class Tree {
         // (and the workshops' things it is put up with: as many as there are of them in it)
         goods(t).forEach((r, n) -> out.merge(r, n, Integer::sum));
         return out;
+    }
+
+    /** A building of the village's own speciality comes cheaper, one of another trade dearer (homes, stores and the like: as they are). */
+    static final double OWN_PRICE = 0.8, OTHER_PRICE = 1.3;
+
+    static double speciality(Village v, BuildingType t) {
+        if (!t.branch.trade() || v.focus == null) return 1.0;
+        return t.branch == v.focus ? OWN_PRICE : OTHER_PRICE;
     }
 
     public static boolean affordable(Village v, Map<Res, Integer> cost) {
@@ -241,8 +249,17 @@ public final class Tree {
      * half the logs are wanted as planks.
      */
     public static Map<Res, Integer> levelCost(BuildingType t, int level) {
+        return levelCost(t, level, 1.0);
+    }
+
+    /** A level's cost for this village: dearer or cheaper by its speciality (see {@link #speciality}). */
+    public static Map<Res, Integer> levelCost(Village v, BuildingType t, int level) {
+        return levelCost(t, level, speciality(v, t));
+    }
+
+    private static Map<Res, Integer> levelCost(BuildingType t, int level, double times) {
         Map<Res, Integer> out = new EnumMap<>(Res.class);
-        double k = level >= 3 ? 0.5 : 0.35;
+        double k = (level >= 3 ? 0.5 : 0.35) * times;
         for (Res r : Res.values()) {
             int c = t.cost(r);
             if (c > 0) out.put(r, (int) Math.max(1, Math.round(c * k)));
@@ -287,7 +304,7 @@ public final class Tree {
         b.goal = b.level + 1;
         b.delivered.clear();
         b.price.clear();
-        b.price.putAll(levelCost(b.type, b.goal));
+        b.price.putAll(levelCost(v, b.type, b.goal));
         b.work = b.blueprint(v.wood).upTo(b.level);
         b.builder = player;
         v.order.remove((Integer) b.id);
@@ -307,7 +324,7 @@ public final class Tree {
         if (!v.order.contains(b.id)) v.order.add(b.id);
         b.delivered.clear();
         b.price.clear();
-        b.price.putAll(levelCost(b.type, b.goal));
+        b.price.putAll(levelCost(v, b.type, b.goal));
         // the additions go up after what stands already
         b.work = b.blueprint(v.wood).upTo(b.level);
         v.log(today, Component.translatable("minecraftportsmod.vlog.raise", b.type.displayName(), b.goal));

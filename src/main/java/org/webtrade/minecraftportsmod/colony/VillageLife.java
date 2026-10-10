@@ -1472,7 +1472,7 @@ public final class VillageLife {
         // level first, else a new one
         if (storageShort(v)) {
             for (Building b : v.buildings) {
-                if (b.type.branch == BuildingType.Branch.STORE && Tree.canRaise(v, b) && Tree.affordable(v, Tree.levelCost(b.type, b.level + 1))) {
+                if (b.type.branch == BuildingType.Branch.STORE && Tree.canRaise(v, b) && Tree.affordable(v, Tree.levelCost(v, b.type, b.level + 1))) {
                     Tree.raise(v, b, today);
                     return;
                 }
@@ -1661,7 +1661,7 @@ public final class VillageLife {
         Building best = null;
         int bestScore = Integer.MIN_VALUE;
         for (Building b : v.buildings) {
-            if (!Tree.canRaise(v, b) || !spare(v, Tree.levelCost(b.type, b.level + 1))) continue;
+            if (!Tree.canRaise(v, b) || !spare(v, Tree.levelCost(v, b.type, b.level + 1))) continue;
             int score = b.type.branch == v.focus ? 40 : b.type.isWorkshop() ? 30 : b.type.branch == BuildingType.Branch.HOME ? 20 : 10;
             // short of planks and no sawmill yet: the woodcutters' hut grown to the top is what opens it
             if (b.type == BuildingType.WOOD_HUT && !v.unlocked(BuildingType.SAWMILL) && (want(v, Res.PLANKS) > 0.2 || wantsJoinery(v))) score = 55;
@@ -1795,7 +1795,7 @@ public final class VillageLife {
             if (t.branch != BuildingType.Branch.HOME && t.branch != BuildingType.Branch.STORE && t.branch != v.focus) continue;
             wish(v, Tree.unlockCost(v, t));
         }
-        for (Building b : v.buildings) if (Tree.canRaise(v, b)) wish(v, Tree.levelCost(b.type, b.level + 1));
+        for (Building b : v.buildings) if (Tree.canRaise(v, b)) wish(v, Tree.levelCost(v, b.type, b.level + 1));
     }
 
     private static void wish(Village v, java.util.Map<Res, Integer> cost) {

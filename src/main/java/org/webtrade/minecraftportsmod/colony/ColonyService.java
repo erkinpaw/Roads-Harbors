@@ -507,7 +507,7 @@ public final class ColonyService {
             notes.add(Component.translatable(b.supplied() ? "minecraftportsmod.bmenu.raising" : "minecraftportsmod.bmenu.raise_waiting", b.goal,
                     Math.round(raiseProgress(v, b) * 100)));
         }
-        int[] raiseCost = b.level < b.type.maxLevel && !b.upgrading() ? amounts(Tree.levelCost(b.type, b.level + 1)) : new int[0];
+        int[] raiseCost = b.level < b.type.maxLevel && !b.upgrading() ? amounts(Tree.levelCost(v, b.type, b.level + 1)) : new int[0];
         int[] crops = new int[0];
         int crop = -1;
         if (b.type == BuildingType.FIELD) {
@@ -602,7 +602,7 @@ public final class ColonyService {
                 Building b = v.building(a.a());
                 boolean ok = false;
                 if (b != null && Tree.canRaise(v, b) && b.owner() == null) {
-                    int price = Tree.playerPrice(Tree.levelCost(b.type, b.level + 1));
+                    int price = Tree.playerPrice(Tree.levelCost(v, b.type, b.level + 1));
                     if (Wallet.pay(player, price)) {
                         Tree.raiseFor(v, b, player.getUUID(), data.day);
                         v.receive(price * 100L);
