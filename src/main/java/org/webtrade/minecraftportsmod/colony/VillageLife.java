@@ -1089,10 +1089,8 @@ public final class VillageLife {
         return daily(v, d.job);
     }
 
-    /** Does the village want a farmyard now: a food village with hands and grain for it, and its trade or a want of what it gives. */
+    /** Does the village want a farmyard now: hands and grain for it, and its trade or a want of what it gives. */
     static boolean husbandry(Village v, BuildingType t) {
-        // (the herds are the food villages' trade: the others buy their wool and hides of them)
-        if (v.focus != BuildingType.Branch.FOOD) return false;
         if (v.adults() < 5 || v.stock(Res.WHEAT) < 10) return false;
         // (one farmyard; a village known for its herds keeps two)
         if (v.count(BuildingType.FARMYARD, false) >= (v.sub == BuildingType.Sub.HUSBANDRY ? 2 : 1)) return false;
