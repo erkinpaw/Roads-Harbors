@@ -331,6 +331,13 @@ public final class VillageLife {
                 // the wool not already shorn and brought today; the hides
                 int wool = (int) Math.round(herd[1] * fed * free), hides = (int) Math.round(herd[2] * fed * free);
                 int restWool = Math.max(0, wool - d.found);
+                // (a village not in food keeps its sheep for its own wants: with plenty of wool, none shorn to sell)
+                boolean forSelf = v.focus != BuildingType.Branch.FOOD;
+                if (forSelf && plenty(v, Res.WOOL)) {
+                    wool = 0;
+                    restWool = 0;
+                }
+                if (forSelf && plenty(v, Res.LEATHER)) hides = 0;
                 if (restWool > 0 && !v.full(Res.WOOL)) v.add(Res.WOOL, restWool);
                 if (Math.max(wool, d.found) > 0) {
                     v.made.merge(Res.WOOL, Math.max(wool, d.found), Integer::sum);
@@ -1032,8 +1039,13 @@ public final class VillageLife {
      * What a farmyard gives in a day with all its keepers: {food, wool, hides, grain its animals eat}: each run what its
      * four animals give (hens: fowl; sheep: wool; pigs: pork; cows: milk and beef, hides).
      */
+    /** What a farmyard gives in a village not in food, against one that is (besides its branch's three tenths less). */
+    static final double HERD_OTHER = 0.5;
+
     static int[] herd(Village v, Building b) {
         double k = subFactor(v, BuildingType.Sub.HUSBANDRY) * own(v, BuildingType.Branch.FOOD) * (v.mood < 30 ? 0.75 : 1.0);
+        // (herds are the food villages' trade: another village's farmyard gives half again less)
+        if (v.focus != BuildingType.Branch.FOOD) k *= HERD_OTHER;
         int[] out = new int[4];
         for (Herds.Run r : Herds.runs(b)) {
             int[] y = Herds.yield(r.kind());
